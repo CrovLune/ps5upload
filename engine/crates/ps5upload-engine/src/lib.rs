@@ -5973,6 +5973,75 @@ async fn local_inspect_folder_handler(Query(q): Query<LocalPathQuery>) -> impl I
     }
 }
 
+/// GET /api/local/game-icon — serve a local game's `sce_sys/icon0.png`.
+///
+/// The desktop app shows this cover through Tauri's asset protocol, which a
+/// browser / self-hosted web UI does not have, so without this the Upload
+/// screen shows a blank cover for any game folder on the engine's machine.
+/// Deliberately narrow: only a file named `icon0.png` directly inside a
+/// `sce_sys` directory, size-capped, and it must really be a PNG.
+async fn local_game_icon_handler(Query(q): Query<LocalPathQuery>) -> axum::response::Response {
+    const MAX_ICON_BYTES: u64 = 8 * 1024 * 1024;
+    let path = std::path::PathBuf::from(q.path);
+    if !is_game_icon_path(&path) {
+        return json_err(StatusCode::BAD_REQUEST, "not a game icon path").into_response();
+    }
+    let r = tokio::task::spawn_blocking(move || -> std::io::Result<Vec<u8>> {
+        use std::io::Read;
+        let mut buf = Vec::new();
+        std::fs::File::open(&path)?
+            .take(MAX_ICON_BYTES + 1)
+            .read_to_end(&mut buf)?;
+        Ok(buf)
+    })
+    .await;
+    match r {
+        Ok(Ok(b)) if b.len() as u64 <= MAX_ICON_BYTES && b.starts_with(b"\x89PNG\r\n\x1a\n") => (
+            [
+                (header::CONTENT_TYPE, "image/png"),
+                (header::CACHE_CONTROL, "private, max-age=300"),
+            ],
+            b,
+        )
+            .into_response(),
+        Ok(Ok(_)) => json_err(StatusCode::NOT_FOUND, "icon is not a usable PNG").into_response(),
+        Ok(Err(e)) => json_err(StatusCode::NOT_FOUND, format!("icon: {e}")).into_response(),
+        Err(e) => json_err(StatusCode::INTERNAL_SERVER_ERROR, format!("join: {e}")).into_response(),
+    }
+}
+
+/// True only for `<anything>/sce_sys/icon0.png`.
+fn is_game_icon_path(p: &std::path::Path) -> bool {
+    let name = |x: Option<&std::path::Path>| {
+        x.and_then(|x| x.file_name())
+            .and_then(|n| n.to_str())
+            .map(str::to_owned)
+    };
+    name(Some(p)).as_deref() == Some("icon0.png") && name(p.parent()).as_deref() == Some("sce_sys")
+}
+
+#[cfg(test)]
+mod game_icon_path_tests {
+    use super::is_game_icon_path;
+    use std::path::Path;
+
+    #[test]
+    fn accepts_only_sce_sys_icon0() {
+        assert!(is_game_icon_path(Path::new(
+            "/data/games/G/sce_sys/icon0.png"
+        )));
+        assert!(!is_game_icon_path(Path::new("/etc/passwd")));
+        assert!(!is_game_icon_path(Path::new("/data/games/G/icon0.png")));
+        assert!(!is_game_icon_path(Path::new(
+            "/data/games/G/sce_sys/param.json"
+        )));
+        assert!(!is_game_icon_path(Path::new(
+            "/data/games/G/sce_sys/icon0.png.bak"
+        )));
+        assert!(!is_game_icon_path(Path::new("sce_sys")));
+    }
+}
+
 async fn zip_inspect_handler(Json(req): Json<ZipInspectReq>) -> impl IntoResponse {
     let zip_path = req.zip_path;
     crate::log_info!("zip_inspect: zip={zip_path}");
@@ -9791,6 +9860,7 @@ async fn run(cfg: EngineConfig) -> anyhow::Result<()> {
             post(collection_tidy_api::post_macos_spotlight),
         )
         .route("/api/local/list-dir", get(local_list_dir_handler))
+        .route("/api/local/game-icon", get(local_game_icon_handler))
         .route("/api/local/storage-roots", get(local_storage_roots_handler))
         .route("/api/ps5/fs/delete", post(ps5_fs_delete))
         .route("/api/ps5/fs/move", post(ps5_fs_move))
