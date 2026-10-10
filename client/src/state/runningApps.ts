@@ -110,6 +110,16 @@ export function runningOn(
   return h && s.host === h ? s.titleIds : EMPTY;
 }
 
+/** The running set on `host` once `titleId` was closed there: never another
+ *  console's titles republished under `host`'s name. */
+export function runningAfterClose(
+  s: Pick<RunningAppsState, "titleIds" | "host">,
+  host: string,
+  titleId: string,
+): string[] {
+  return Array.from(runningOn(s, host)).filter((t) => t !== titleId);
+}
+
 /** Title ids running on `host`. Stable reference while the set is unchanged. */
 export function useRunningTitleIds(host: string | null | undefined): ReadonlySet<string> {
   return useRunningAppsStore((s) => runningOn(s, host));

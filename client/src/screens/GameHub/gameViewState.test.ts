@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { loadTitled, resultFor, type TitledResult } from "./gameViewState";
+import { finishedBaseline, finishedFor, loadTitled, resultFor, type TitledResult } from "./gameViewState";
 
 function deferred<T>() {
   let resolve!: (v: T) => void;
@@ -46,5 +46,26 @@ describe("game page view state", () => {
       (r) => (held = r),
     );
     expect(held).toEqual({ titleId: "PPSA00001", value: null, error: "engine away" });
+  });
+});
+
+describe("finished jobs on the game page", () => {
+  const old = { id: "1", status: "done", addr: "10.0.0.2:9200", contentId: null, sourcePath: "/games/X.ffpkg" };
+
+  it("an old job that only matches once the view loads is not new", () => {
+    // Baseline taken while the view is still loading (no copies known yet).
+    const items = [old];
+    const baseline = finishedBaseline(items);
+    expect(finishedFor(items, "PPSA00001", [])).toEqual([]);
+    // The view lands: the old job now matches by its source path, but it was already done.
+    const matched = finishedFor(items, "PPSA00001", ["/games/X.ffpkg"]);
+    expect(matched).toEqual(["1@10.0.0.2"]);
+    expect(matched.filter((id) => !baseline.has(id))).toEqual([]);
+  });
+
+  it("a job that finishes after the page opened is new", () => {
+    const baseline = finishedBaseline([old]);
+    const items = [old, { ...old, id: "2", contentId: "UP0000-PPSA00001_00-X" }];
+    expect(finishedFor(items, "PPSA00001", []).filter((id) => !baseline.has(id))).toEqual(["2@10.0.0.2"]);
   });
 });

@@ -6,7 +6,7 @@ import { hasTitleId } from "../../lib/gamePage";
 import { useConnectionStore } from "../../state/connection";
 import { useRosterStore } from "../../state/roster";
 import { useUploadQueueStore } from "../../state/uploadQueue";
-import { loadTitled, resultFor, type TitledResult } from "./gameViewState";
+import { finishedBaseline, finishedFor, loadTitled, resultFor, type TitledResult } from "./gameViewState";
 
 /** One game as the engine knows it: every saved console and every copy on the drives. The
  *  connected console is read again when the page opens, and a console is read again after a
@@ -71,14 +71,7 @@ export function useGameView(titleId: string) {
   // A send or install of this game that finished changes what that console has: read it again.
   const copyPaths = view?.copies.map((c) => c.absolute_path).join("\n") ?? "";
   const finished = useUploadQueueStore((s) =>
-    s.items
-      .filter(
-        (it) =>
-          it.status === "done" &&
-          ((it.contentId ?? "").includes(titleId) || copyPaths.split("\n").includes(it.sourcePath)),
-      )
-      .map((it) => `${it.id}@${hostOf(it.addr)}`)
-      .join(","),
+    finishedFor(s.items, titleId, copyPaths ? copyPaths.split("\n") : []).join(","),
   );
   const seen = useRef<Set<string> | null>(null);
   const seenFor = useRef(titleId);
@@ -90,10 +83,7 @@ export function useGameView(titleId: string) {
     }
     const ids = finished ? finished.split(",") : [];
     // Jobs that were already done when the page opened changed nothing new.
-    if (seen.current === null) {
-      seen.current = new Set(ids);
-      return;
-    }
+    if (seen.current === null) seen.current = finishedBaseline(useUploadQueueStore.getState().items);
     const fresh = ids.filter((id) => !seen.current!.has(id));
     if (fresh.length === 0) return;
     for (const id of fresh) seen.current.add(id);

@@ -1,3 +1,5 @@
+import { hostOf } from "../../lib/addr";
+
 /** What the game page holds: the answer for one title id, tagged with that id. */
 export interface TitledResult<T> {
   titleId: string;
@@ -32,4 +34,38 @@ export async function loadTitled<T>(
   }
   if (current() !== titleId) return;
   apply(r);
+}
+
+/** The queue fields the game page matches finished jobs on. */
+export interface FinishedJobLike {
+  id: string;
+  status: string;
+  addr: string;
+  contentId?: string | null;
+  sourcePath: string;
+}
+
+const jobKey = (it: FinishedJobLike) => `${it.id}@${hostOf(it.addr)}`;
+
+/** Every job already done, matched to this game or not. Taken when the page opens: which
+ *  jobs match depends on the game's copies, and those are not known until the view loads, so
+ *  a baseline of only the matching jobs would let an old one count as new once it did. */
+export function finishedBaseline(items: readonly FinishedJobLike[]): Set<string> {
+  return new Set(items.filter((it) => it.status === "done").map(jobKey));
+}
+
+/** This game's finished jobs (by content id, or by a source that is one of its copies), as
+ *  `id@host`. */
+export function finishedFor(
+  items: readonly FinishedJobLike[],
+  titleId: string,
+  copyPaths: readonly string[],
+): string[] {
+  return items
+    .filter(
+      (it) =>
+        it.status === "done" &&
+        ((it.contentId ?? "").includes(titleId) || copyPaths.includes(it.sourcePath)),
+    )
+    .map(jobKey);
 }

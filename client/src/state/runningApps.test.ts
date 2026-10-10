@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from "vitest";
 
-import { runningOn, useRunningAppsStore } from "./runningApps";
+import { runningAfterClose, runningOn, useRunningAppsStore } from "./runningApps";
 
 const store = () => useRunningAppsStore.getState();
 
@@ -44,5 +44,18 @@ describe("running apps store", () => {
     store().clearForHostChange("192.168.86.99:9120");
     expect(store().host).toBe("192.168.86.99");
     expect(store().titleIds.size).toBe(0);
+  });
+});
+
+describe("runningAfterClose", () => {
+  it("drops the closed title from that console's set", () => {
+    const s = { titleIds: new Set(["A", "B"]), host: "10.0.0.2" };
+    expect(runningAfterClose(s, "10.0.0.2:9200", "A")).toEqual(["B"]);
+  });
+
+  it("never republishes another console's running titles under this one", () => {
+    // The store holds console B's set; the game was closed on console A.
+    const s = { titleIds: new Set(["B1", "B2"]), host: "10.0.0.3" };
+    expect(runningAfterClose(s, "10.0.0.2", "A1")).toEqual([]);
   });
 });

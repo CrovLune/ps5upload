@@ -69,7 +69,7 @@ import { DrivesCard } from "./DrivesCard";
 import { fetchRunningGames } from "../../lib/runningGames";
 import { killGame } from "../../lib/killGame";
 import { playFor, useTrackedPlay } from "../../lib/trackedPlay";
-import { runningOn, useRunningAppsStore } from "../../state/runningApps";
+import { runningAfterClose, runningOn, useRunningAppsStore } from "../../state/runningApps";
 // Direct import to avoid the barrel's circular-dep warning at build.
 import { useConfirm } from "../../components/ConfirmDialog";
 import { useStaleHostGuard } from "../../lib/staleHostGuard";
@@ -289,10 +289,7 @@ export default function GameHubScreen() {
       if (probe.isStale()) return;
       if (closed) {
         const store = useRunningAppsStore.getState();
-        store.setRunning(
-          Array.from(store.titleIds).filter((t) => t !== title_id),
-          probe.host,
-        );
+        store.setRunning(runningAfterClose(store, probe.host, title_id), probe.host);
         pushNotification("info", label, {
           body: tr("installed_stopped", undefined, "Game closed"),
         });
