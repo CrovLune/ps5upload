@@ -144,7 +144,7 @@ export function TabBottomNav() {
         aria-label={tr("v5_tab_primary_nav", undefined, "Primary")}
         // Floats above the gesture bar: the safe area is a margin here, not
         // padding, so the pill keeps its shape on every phone.
-        className="glass-float elev-2 md:hidden fixed inset-x-3 bottom-[calc(var(--safe-bottom)_+_0.6rem)] z-40 flex h-16 items-stretch justify-around gap-1 rounded-full p-1.5"
+        className="glass-float elev-2 md:hidden fixed inset-x-3 bottom-[calc(var(--safe-bottom)_+_0.6rem)] z-40 flex h-16 items-stretch justify-around gap-0.5 rounded-full p-1.5"
       >
         {TABS.map((tab) => {
           const Icon = tab.icon;
@@ -161,7 +161,10 @@ export function TabBottomNav() {
               aria-label={label}
               aria-current={active ? "page" : undefined}
               className={[
-                "nav-pill relative flex flex-1 flex-col items-center justify-center gap-0.5 rounded-full text-[0.6875rem] font-medium",
+                // `min-w-0` + a truncating label: six tabs share a phone's width, and a
+                // long translation ("Konsole", "Aufgaben") otherwise widens its own tab
+                // until the labels touch.
+                "nav-pill relative flex min-w-0 flex-1 flex-col items-center justify-center gap-0.5 rounded-full text-[0.6875rem] font-medium",
                 "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent)]",
               ]
                 .filter(Boolean)
@@ -173,7 +176,7 @@ export function TabBottomNav() {
                 <Icon size={21} strokeWidth={1.8} className="nav-pill-icon" aria-hidden />
                 {showPlaying && <PlayingDot />}
               </span>
-              <span>{base}</span>
+              <span className="max-w-full truncate px-0.5">{base}</span>
             </Link>
           );
         })}
@@ -185,12 +188,12 @@ export function TabBottomNav() {
           to="/more"
           aria-label={tr("v5_tab_more", undefined, "More")}
           className={[
-            "nav-pill flex flex-1 flex-col items-center justify-center gap-0.5 rounded-full text-[0.6875rem] font-medium",
+            "nav-pill flex min-w-0 flex-1 flex-col items-center justify-center gap-0.5 rounded-full text-[0.6875rem] font-medium",
             "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent)]",
           ].join(" ")}
         >
           <MoreHorizontal size={21} strokeWidth={1.8} className="nav-pill-icon" aria-hidden />
-          <span>{tr("v5_tab_more", undefined, "More")}</span>
+          <span className="max-w-full truncate px-0.5">{tr("v5_tab_more", undefined, "More")}</span>
         </NavLink>
       </nav>
     </>
