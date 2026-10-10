@@ -20,6 +20,20 @@ describe("createPoller", () => {
     expect(fn).toHaveBeenCalledTimes(4);
   });
 
+  it("with no interval, runs once on start and on a kick, never on a timer", () => {
+    const fn = vi.fn();
+    const p = createPoller({ fn, ms: null });
+    p.start();
+    expect(fn).toHaveBeenCalledTimes(1);
+    vi.advanceTimersByTime(60_000);
+    expect(fn).toHaveBeenCalledTimes(1);
+    p.kick();
+    expect(fn).toHaveBeenCalledTimes(2);
+    vi.advanceTimersByTime(60_000);
+    expect(fn).toHaveBeenCalledTimes(2);
+    p.stop();
+  });
+
   it("never overlaps: the next tick waits for the call in flight", async () => {
     let resolve!: () => void;
     const fn = vi.fn(() => new Promise<void>((r) => (resolve = r)));

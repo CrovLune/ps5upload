@@ -26,7 +26,8 @@ export interface PollerOptions {
    *  it settles. Errors are the caller's to handle; a throw never stops the
    *  poller. */
   fn: () => unknown;
-  ms: number;
+  /** The interval; null runs only on start and on a kick, never on a timer. */
+  ms: number | null;
   /** True while ticks should be skipped. Checked at every tick. */
   paused?: () => boolean;
   /** Run once right away on start (default true). */
@@ -58,6 +59,8 @@ export function createPoller(opts: PollerOptions): Poller {
   const schedule = () => {
     if (!running) return;
     if (timer !== null) clearT(timer);
+    timer = null;
+    if (opts.ms === null) return;
     timer = setT(tick, opts.ms);
   };
 
@@ -151,8 +154,11 @@ export interface UsePollOptions {
 
 /**
  * Call `fn` every `ms` while the screen is mounted, with the pauses described
- * at the top of this file. `ms` null disables. Returns `refresh`, which runs
- * the poll now (unless one is already in flight).
+ * at the top of this file. `ms` null stops the repeating but still loads once
+ * whenever a poll would start: on mount, on a new host, and when re-enabled
+ * (window shown again) — a screen with auto-refresh off must not sit empty, or
+ * keep showing another console's data. Returns `refresh`, which runs the poll
+ * now (unless one is already in flight).
  */
 export function usePoll(
   fn: () => unknown,
@@ -181,13 +187,13 @@ export function usePoll(
   });
 
   const pollerRef = useRef<Poller | null>(null);
-  const active = enabled && ms !== null && ms > 0;
+  const active = enabled && (ms === null || ms > 0);
 
   useEffect(() => {
     if (!active) return;
     const poller = createPoller({
       fn: () => fnRef.current(),
-      ms: ms as number,
+      ms,
       immediate,
       paused: () =>
         pausedRef.current ||

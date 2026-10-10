@@ -82,8 +82,10 @@ export default function ProcessesScreen() {
   const genRef = useRef(0);
   // At most one process-list probe in flight at a time: on a busy mgmt port a
   // round-trip can exceed the poll interval, and without this the 3s timer
-  // would stack probes on the single-client socket.
-  const inFlightRef = useRef(false);
+  // would stack probes on the single-client socket. Holds the address being
+  // read, so a probe still out to the previous console doesn't block the
+  // new one's first load.
+  const inFlightRef = useRef<string | null>(null);
   // Last fetch-error string we logged, so a persistent failure logs once (on
   // the transition) rather than every poll — keeps the bug bundle clean.
   const lastLoggedErrRef = useRef<string | null>(null);
@@ -98,8 +100,8 @@ export default function ProcessesScreen() {
   }, []);
 
   const refresh = useCallback(async () => {
-    if (!online || inFlightRef.current) return;
-    inFlightRef.current = true;
+    if (!online || inFlightRef.current === addr) return;
+    inFlightRef.current = addr;
     const gen = ++genRef.current;
     try {
       const res = await processList(addr);
@@ -121,13 +123,24 @@ export default function ProcessesScreen() {
         log.warn("process", `process list fetch failed: ${msg}`);
       }
     } finally {
-      inFlightRef.current = false;
+      if (inFlightRef.current === addr) inFlightRef.current = null;
     }
   }, [addr, online]);
 
+  // Another console's list is not this one's: clear it on a switch, and drop
+  // any reply still out for the old one.
+  useEffect(() => {
+    genRef.current++;
+    setProcs([]);
+    setTruncated(false);
+    setError(null);
+    setLoadedOnce(false);
+  }, [addr]);
+
   // Initial load + auto-refresh poll. Gated on window visibility (don't poll a
   // hidden window) and the auto-refresh toggle. Pausing keeps the last
-  // snapshot; the manual button still works regardless.
+  // snapshot; the manual button still works regardless. With auto-refresh off
+  // it still loads once on mount, on a console switch and when shown again.
   // The shared poller also stands aside while a transfer runs to this console.
   usePoll(refresh, autoRefresh ? REFRESH_MS : null, { host: addr, enabled: online && windowVisible });
 
