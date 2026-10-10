@@ -26,7 +26,6 @@ import { useActivityHistoryStore } from "../../state/activityHistory";
 import { useNotificationsStore } from "../../state/notifications";
 import { useRunningTitleIds } from "../../state/runningApps";
 import { useSensors } from "../../state/sensors";
-import { AppLogo } from "../../components/AppLogo";
 import { Badge, Card, ConsoleChip, Sparkline, Spinner } from "../../components";
 import { useTr } from "../../state/lang";
 import { openExternalUrl } from "../../lib/openExternalUrl";
@@ -49,7 +48,7 @@ type RecentFilter = "all" | "done" | "failed";
  *  3. What is the console reporting, and what just happened?
  *
  * Laid out like the reference dashboard: framed photo tiles for the main
- * actions, a greeting panel with the orb that carries the console's status,
+ * actions, a console panel that carries the console's status,
  * and glass cards below.
  */
 export default function HomeScreen() {
@@ -117,6 +116,7 @@ export default function HomeScreen() {
     <div className="app-page">
       <header className="mb-7 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0">
+          <p className="mb-1 text-sm font-medium text-[var(--color-muted)]">{greeting}</p>
           <h1 className="text-[2.25rem] leading-[1.05] font-bold tracking-[-0.035em] sm:text-[3rem]">
             {tr("v5_home_title", "Home")}
           </h1>
@@ -181,7 +181,7 @@ export default function HomeScreen() {
 
           {/* What needs attention, before what just happened: a blocked port or a full drive
               is the reason the next action would fail. Only once the helper answers; without it
-              the greeting panel already says what is wrong. */}
+              the console panel already says what is wrong. */}
           {host && connected ? <HealthCard host={host} /> : null}
 
           <section>
@@ -239,17 +239,10 @@ export default function HomeScreen() {
           </section>
         </div>
 
-        {/* The greeting panel: the app mark, a time-of-day hello, and everything about the console. */}
-        <aside className="glass relative min-w-0 self-start overflow-hidden rounded-[var(--radius-panel)] p-6">
-          <div className="relative flex flex-col items-center pt-2 text-center">
-            <AppLogo size={64} />
-            <p className="mt-5 text-[1.6rem] leading-[1.2] tracking-[-0.02em]">
-              <span className="font-semibold">{greeting},</span>{" "}
-              <span>{tr("v5_home_greeting_question", "What are we sending today?")}</span>
-            </p>
-          </div>
-
-          <div className="relative mt-6 border-t border-[var(--color-border)] pt-5">
+        {/* Everything about the console. Short enough to stay beside the page
+            while it scrolls, so there is never an empty column under it. */}
+        <aside className="glass relative min-w-0 self-start overflow-y-auto rounded-[var(--radius-panel)] p-5 xl:sticky xl:top-0 xl:max-h-[calc(100dvh-9rem)]">
+          <div className="relative">
             <div className="flex items-start gap-3">
               <span
                 className={`grid h-10 w-10 shrink-0 place-items-center rounded-full ${

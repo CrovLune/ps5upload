@@ -881,7 +881,7 @@ export default function SavesScreen() {
           />
         )}
 
-        <div className="mx-auto max-w-4xl space-y-3">
+        <div className="space-y-3">
           {saves?.some((e) => e.kind === "ps4") && (
             <div className="rounded-[var(--radius-card)] border border-[var(--color-warn)]/40 bg-[var(--color-warn)]/10 p-3 text-xs text-[var(--color-warn)]">
               <strong>

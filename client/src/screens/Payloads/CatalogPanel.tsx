@@ -332,7 +332,7 @@ export default function CatalogPanel() {
     // `catalog` populated, which never happens on failure.
     if (errors._global) {
       return (
-        <div className="mx-auto w-full max-w-5xl">
+        <div className="w-full">
           <ErrorCard
             title={tr(
               "payloads_load_failed",
@@ -352,7 +352,7 @@ export default function CatalogPanel() {
   }
 
   return (
-    <div className="mx-auto w-full max-w-5xl">
+    <div className="w-full">
       <div className="space-y-3">
         {/* Essentials. The catalogue is a long alphabetical list, which is no
             help to someone who has just jailbroken a console and does not yet

@@ -61,7 +61,7 @@ export default function ChangelogScreen() {
         }
       />
 
-      <div className="mx-auto max-w-3xl">
+      <div className="max-w-4xl">
         {error && (
           <div className="mb-4">
             <ErrorCard

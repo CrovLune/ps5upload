@@ -53,7 +53,7 @@ export function StatsPanel({ entries }: { entries: ActivityEntry[] }) {
   }
 
   return (
-    <div className="mx-auto max-w-4xl space-y-4">
+    <div className="space-y-4">
       <div className="flex flex-wrap items-center gap-2">
         <p className="min-w-0 flex-1 text-xs text-[var(--color-muted)]">
           {tr(

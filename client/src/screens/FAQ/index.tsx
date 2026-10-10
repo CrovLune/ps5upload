@@ -236,7 +236,7 @@ export default function FAQScreen() {
         )}
       />
 
-      <div className="mx-auto max-w-5xl">
+      <div>
         <div className="mb-4 flex items-center gap-2 rounded-[var(--radius-card)] border border-[var(--color-border)] bg-[var(--color-surface-2)] px-3 py-2">
           <Search size={14} className="shrink-0 text-[var(--color-muted)]" />
           <input

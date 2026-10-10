@@ -541,7 +541,7 @@ export default function ConnectionScreen() {
         )}
       />
 
-      <div className="mx-auto grid max-w-3xl gap-4">
+      <div className="grid gap-4">
         {/* First-run wizard nudge — shown only before the user has a
             running payload. Once step2 is "ok" they don't need it.
             One-click path; falls through to this manual flow if they

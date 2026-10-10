@@ -24,7 +24,7 @@ export default function AutoBackupCard() {
   // Same centred column as the save list below it, so the two line up on a wide window.
   return (
     <section
-      className="mx-auto mb-4 max-w-4xl rounded-[var(--radius-card)] border border-[var(--color-border)] bg-[var(--color-surface-2)] p-4"
+      className="mb-4 rounded-[var(--radius-card)] border border-[var(--color-border)] bg-[var(--color-surface-2)] p-4"
       data-testid="auto-save-backup"
     >
       <header className="mb-1 flex items-center gap-2">

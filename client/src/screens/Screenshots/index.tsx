@@ -617,7 +617,7 @@ export default function ScreenshotsScreen({ tabs }: { tabs?: ReactNode } = {}) {
           />
         )}
 
-        <div className="mx-auto max-w-4xl">
+        <div>
           {items && items.length > 0 && (
             <button
               type="button"

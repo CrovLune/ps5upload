@@ -484,7 +484,7 @@ export default function SettingsScreen() {
           small, and stretching aligns the rows. The max-width stops the page
           sprawling edge-to-edge on a wide monitor, where 3 narrow columns of
           unrelated settings were hardest to scan. */}
-      <div className="mx-auto grid w-full max-w-6xl gap-4 md:grid-cols-2">
+      <div className="grid w-full gap-4 md:grid-cols-2">
         <GroupHeading>
           {tr("settings_group_general", undefined, "General")}
         </GroupHeading>

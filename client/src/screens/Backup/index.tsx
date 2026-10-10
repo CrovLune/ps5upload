@@ -220,7 +220,7 @@ export default function BackupScreen() {
 
   return (
     <div className="app-page">
-      <div className="mx-auto max-w-4xl space-y-4">
+      <div className="space-y-4">
         <PageHeader
           icon={Archive}
           title={tr("console_snapshots", undefined, "Console snapshots")}

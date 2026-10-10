@@ -407,7 +407,7 @@ export default function FirstRunScreen() {
           "Loads what most set-ups need, in the right order: kstuff (lets fake packages install and run), ShadowMount+ (puts game images and folders on the PS5's home screen) and ps5upload's own helper. After the PS5 restarts, Connection offers this wizard again.",
         )}
       />
-      <div className="mx-auto max-w-3xl space-y-4">
+      <div className="max-w-4xl space-y-4">
         <SetupCard
           index={1}
           icon={Cable}
