@@ -54,6 +54,9 @@ enum Direct {
 
 /// Copies `src` on `from` to `dest` on `to`: directly when it can, else through this computer.
 /// `on_route` hears the route as soon as it is known (and again if it changes).
+/// `bandwidth_cap` (bytes per second) paces the relay, which sends from this computer. The
+/// direct route is not paced: its bytes never cross this computer, and the console-to-console
+/// protocol carries no rate for the sending console to honour.
 #[allow(clippy::too_many_arguments)]
 pub fn ps5_to_ps5_routed(
     from: &str,
@@ -63,9 +66,10 @@ pub fn ps5_to_ps5_routed(
     job_id: [u8; 16],
     progress: Arc<Progress>,
     cancel: Arc<AtomicBool>,
+    bandwidth_cap: Option<u64>,
     on_route: impl Fn(&Route),
 ) -> Result<(SendReport, Route)> {
-    ps5_to_ps5_routed_between(
+    routed(
         pool(),
         from,
         src,
@@ -75,6 +79,7 @@ pub fn ps5_to_ps5_routed(
         job_id,
         progress,
         cancel,
+        bandwidth_cap,
         on_route,
     )
 }
@@ -93,6 +98,25 @@ pub fn ps5_to_ps5_routed_between(
     cancel: Arc<AtomicBool>,
     on_route: impl Fn(&Route),
 ) -> Result<(SendReport, Route)> {
+    routed(
+        from_pool, from, src, to_pool, to, dest, job_id, progress, cancel, None, on_route,
+    )
+}
+
+#[allow(clippy::too_many_arguments)]
+fn routed(
+    from_pool: &Pool,
+    from: &str,
+    src: &str,
+    to_pool: &Pool,
+    to: &str,
+    dest: &str,
+    job_id: [u8; 16],
+    progress: Arc<Progress>,
+    cancel: Arc<AtomicBool>,
+    bandwidth_cap: Option<u64>,
+    on_route: impl Fn(&Route),
+) -> Result<(SendReport, Route)> {
     let direct = crate::block_on(direct(
         from_pool, from, src, to_pool, to, dest, job_id, &progress, &cancel, &on_route,
     ));
@@ -102,12 +126,54 @@ pub fn ps5_to_ps5_routed_between(
         Direct::Failed(why) => return Err(anyhow!("{why}")),
         Direct::Fallback(reason) => reason,
     };
-    let route = Route::Relay { reason };
+    // The receiving console's half of the direct job may still be open (the sending console
+    // that would have cancelled it may be the one that stopped answering); while it is, the
+    // relay's open is refused as busy. The engine owns that job, so it ends it itself; its
+    // journal stays, so the relay resumes what the direct send wrote.
+    crate::block_on(cancel_on(to_pool, to, job_id));
+    let route = Route::Relay {
+        reason: reason.clone(),
+    };
     on_route(&route);
-    let r = crate::relay::ps5_to_ps5_between(
-        from_pool, from, src, to_pool, to, dest, job_id, progress, cancel,
-    )?;
+    let r = crate::relay::ps5_to_ps5_capped(
+        from_pool,
+        from,
+        src,
+        to_pool,
+        to,
+        dest,
+        job_id,
+        progress,
+        cancel,
+        bandwidth_cap,
+    )
+    .map_err(|e| with_route_reason(e, &reason))?;
     Ok((r, route))
+}
+
+/// A relay refused as busy after a direct send was given up says why the direct send ended:
+/// the two are usually the same story (the direct job still holding the destination).
+fn with_route_reason(mut e: anyhow::Error, reason: &str) -> anyhow::Error {
+    if let Some(f) = e.downcast_mut::<crate::upload::UploadFailure>() {
+        if f.reason == "ava1_busy" {
+            f.detail
+                .push_str(&format!(" (after the direct route was given up: {reason})"));
+        }
+    }
+    e
+}
+
+/// Why a direct send that has stopped reporting progress is given up, if it is: status calls
+/// failing (or unreadable) for [`STATUS_GIVE_UP`], or no byte acknowledged for
+/// [`DIRECT_STALL`].
+fn gave_up(status_failing_for: Duration, still_for: Duration) -> Option<&'static str> {
+    if status_failing_for > STATUS_GIVE_UP {
+        Some("the sending console stopped answering")
+    } else if still_for > DIRECT_STALL {
+        Some("the direct send stopped moving")
+    } else {
+        None
+    }
 }
 
 fn text(body: &[u8]) -> String {
@@ -130,8 +196,8 @@ fn terminal(code: u16) -> bool {
     )
 }
 
-/// Best effort: stops the sending console's direct job (its watcher then cancels it on the other
-/// console too). A job that is gone already is fine.
+/// Best effort: stops a console's half of the direct job (on the sending console its watcher
+/// then cancels it on the other console too). A job that is gone already is fine.
 async fn cancel_on(pool: &Pool, console: &str, job_id: [u8; 16]) {
     if let (Ok(s), Ok(body)) = (pool.session(console).await, JobRef { job_id }.to_bytes()) {
         let _ = s.rpc(gen::METHOD_JOB_CANCEL, &body).await;
@@ -239,20 +305,19 @@ async fn direct(
             Err(e) => Err(e),
         };
         let st = match reply {
-            Ok(r) if r.status == gen::STATUS_OK => match Status::decode(&r.body) {
-                Ok(st) => st,
-                Err(_) => continue,
-            },
+            // An unreadable status counts as no answer: it must not skip the give-up checks.
+            Ok(r) if r.status == gen::STATUS_OK => Status::decode(&r.body).ok(),
             Ok(r) if r.status == gen::ERR_UNKNOWN_JOB => {
                 return Direct::Fallback("the sending console lost the direct send".into())
             }
-            _ => {
-                if status_ok_at.elapsed() > STATUS_GIVE_UP {
-                    cancel_on(from_pool, from, job_id).await;
-                    return Direct::Fallback("the sending console stopped answering".into());
-                }
-                continue;
+            _ => None,
+        };
+        let Some(st) = st else {
+            if let Some(why) = gave_up(status_ok_at.elapsed(), last_move.elapsed()) {
+                cancel_on(from_pool, from, job_id).await;
+                return Direct::Fallback(why.into());
             }
+            continue;
         };
         status_ok_at = Instant::now();
         progress
@@ -303,9 +368,43 @@ async fn direct(
                 };
             }
         }
-        if last_move.elapsed() > DIRECT_STALL {
+        if let Some(why) = gave_up(Duration::ZERO, last_move.elapsed()) {
             cancel_on(from_pool, from, job_id).await;
-            return Direct::Fallback("the direct send stopped moving".into());
+            return Direct::Fallback(why.into());
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn a_direct_send_is_given_up_when_status_fails_or_nothing_moves() {
+        let s = Duration::from_secs(1);
+        assert_eq!(gave_up(s, s), None);
+        assert_eq!(
+            gave_up(STATUS_GIVE_UP + s, s),
+            Some("the sending console stopped answering")
+        );
+        // Unreadable statuses forever, while nothing moves: still given up.
+        assert_eq!(
+            gave_up(s, DIRECT_STALL + s),
+            Some("the direct send stopped moving")
+        );
+    }
+
+    #[test]
+    fn a_busy_relay_after_a_fallback_says_why_the_direct_route_ended() {
+        let busy =
+            crate::upload::busy_failure(3, "another transfer is writing to this destination");
+        let e = with_route_reason(busy, "the sending console stopped answering");
+        let f = e.downcast_ref::<crate::upload::UploadFailure>().unwrap();
+        assert_eq!(f.reason, "ava1_busy");
+        assert!(f.detail.contains("another transfer is writing"));
+        assert!(f.detail.contains("the sending console stopped answering"));
+        // Other failures are left as they are.
+        let e = with_route_reason(anyhow!("disk full"), "x");
+        assert_eq!(e.to_string(), "disk full");
     }
 }

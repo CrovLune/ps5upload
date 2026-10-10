@@ -139,7 +139,12 @@ pub fn import_ps_game_library(bytes: &[u8]) -> Result<Library, String> {
         .into_iter()
         .map(|(k, v)| (rekey(&k), v))
         .collect();
+    // The index is someone else's file: an id becomes a file name and a cover name is joined
+    // to our covers folder, so games with a bad id are dropped and covers are re-derived.
+    lib.games
+        .retain(|k, g| super::is_game_id(k) && *k == g.game_id);
     for g in lib.games.values_mut() {
+        g.local_cover = None;
         for l in &mut g.locations {
             if l.root.is_empty() {
                 l.root = root.clone();
@@ -364,5 +369,18 @@ mod tests {
         let csv = to_csv(&lib);
         assert!(csv.starts_with('\u{feff}') && csv.contains("\"Bloodborne\""));
         assert!(to_markdown(&lib, "now").contains("| **CUSA00900** | Bloodborne | PS4 | 2 |"));
+    }
+
+    #[test]
+    fn an_imported_index_cannot_name_files_outside_our_folders() {
+        let src = br#"{"version":1,"library_root":"/L","generated_at":"x",
+          "summary":{"total_games":0,"total_locations":0,"total_size_bytes":0,"duplicates_count":0,"reclaimable_bytes":0},
+          "games":{
+          "../../x":{"game_id":"../../x","title":"Evil","platform":"PS4","locations":[],"total_size_bytes":0},
+          "CUSA00901":{"game_id":"../../y","title":"Mismatch","platform":"PS4","locations":[],"total_size_bytes":0},
+          "CUSA00900":{"game_id":"CUSA00900","title":"Ok","platform":"PS4","local_cover":"/etc/passwd","locations":[],"total_size_bytes":0}}}"#;
+        let lib = import_ps_game_library(src).unwrap();
+        assert_eq!(lib.games.keys().collect::<Vec<_>>(), vec!["CUSA00900"]);
+        assert_eq!(lib.games["CUSA00900"].local_cover, None);
     }
 }

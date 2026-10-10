@@ -44,6 +44,19 @@ const MAX_BYTES: u64 = 512 * 1024 * 1024;
 /// when this passes [`MAX_BYTES`] (or after a clear or an invalidation).
 static TRACKED_BYTES: Mutex<Option<u64>> = Mutex::new(None);
 
+/// The running total is an estimate (concurrent writers of one entry, another engine on the
+/// same folder, files removed by hand), so the folder is counted again every this many writes.
+const RECOUNT_EVERY: u64 = 256;
+
+/// The tracked size after one more write, or `None` when the folder must be counted: nothing
+/// tracked yet, or the periodic recount is due.
+fn estimate(tracked: Option<u64>, writes: u64, added: u64, replaced: u64) -> Option<u64> {
+    if writes.is_multiple_of(RECOUNT_EVERY) {
+        return None;
+    }
+    tracked.map(|n| n.saturating_add(added).saturating_sub(replaced))
+}
+
 fn forget_tracked_size() {
     *TRACKED_BYTES.lock().unwrap_or_else(|e| e.into_inner()) = None;
 }
@@ -203,8 +216,10 @@ fn write_entry(console: &str, kind: &str, identity: &str, bytes: &[u8]) {
     let over = {
         let mut tracked = TRACKED_BYTES.lock().unwrap_or_else(|e| e.into_inner());
         let Some(root) = root() else { return };
-        let now = match *tracked {
-            Some(n) => (n + bytes.len() as u64).saturating_sub(replaced),
+        static WRITES: AtomicU64 = AtomicU64::new(0);
+        let writes = WRITES.fetch_add(1, Ordering::Relaxed) + 1;
+        let now = match estimate(*tracked, writes, bytes.len() as u64, replaced) {
+            Some(n) => n,
             None => walk(root).iter().map(|(_, m)| m.len()).sum(),
         };
         *tracked = Some(now);
@@ -518,5 +533,15 @@ mod tests {
         let path = entry_path(&c, "app", "CUSA00900").unwrap();
         fs::remove_file(&path).unwrap();
         assert!(matches!(get(&c, "app", "CUSA00900"), Cached::Unknown));
+    }
+
+    #[test]
+    fn the_tracked_size_is_recounted_now_and_then() {
+        assert_eq!(estimate(None, 1, 10, 0), None);
+        assert_eq!(estimate(Some(100), 1, 10, 4), Some(106));
+        assert_eq!(estimate(Some(3), 2, 0, 10), Some(0));
+        // Drift cannot outlive the next recount.
+        assert_eq!(estimate(Some(100), RECOUNT_EVERY, 10, 0), None);
+        assert_eq!(estimate(Some(100), RECOUNT_EVERY * 3, 10, 0), None);
     }
 }

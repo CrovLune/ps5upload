@@ -74,6 +74,59 @@ async fn a_tree_relays_between_two_hosts() {
         .is_empty());
 }
 
+/// The relay honours the outbound cap an upload does: what this computer sends on to the
+/// receiving console is paced.
+#[tokio::test(flavor = "multi_thread")]
+async fn a_capped_relay_is_paced() {
+    let _heavy = HEAVY.lock().await;
+    let d = temp("capped");
+    let ava = d.join("engine");
+    let key = Identity::load_or_create(&ava.join("identity"))
+        .unwrap()
+        .public();
+    let a = d.join("a");
+    let b = d.join("b");
+    std::fs::create_dir_all(a.join("share/src")).unwrap();
+    std::fs::create_dir_all(b.join("share")).unwrap();
+    const SIZE: u64 = 3 << 20;
+    write_pattern(&a.join("share/src/f"), 3, SIZE);
+    let (addr_a, addr_b) = (host(&a, key).await, host(&b, key).await);
+    let (pool_a, pool_b) = (
+        Pool::new(ava.clone()).with_addr(addr_a),
+        Pool::new(ava).with_addr(addr_b),
+    );
+    let started = std::time::Instant::now();
+    let report = tokio::time::timeout(
+        Duration::from_secs(60),
+        tokio::task::spawn_blocking(move || {
+            ps5upload_ava1::relay::ps5_to_ps5_capped(
+                &pool_a,
+                "a",
+                "src",
+                &pool_b,
+                "b",
+                "dst",
+                [19; 16],
+                Arc::new(Progress::default()),
+                Arc::new(AtomicBool::new(false)),
+                Some(1 << 20),
+            )
+        }),
+    )
+    .await
+    .expect("relay timed out")
+    .unwrap()
+    .unwrap();
+    assert_eq!(report.status, gen::STATUS_OK);
+    assert_pattern(&b.join("share/dst/f"), 3, SIZE);
+    // 3 MiB at 1 MiB/s: well over two seconds, however fast the machine.
+    assert!(
+        started.elapsed() >= Duration::from_secs(2),
+        "a 1 MiB/s relay of 3 MiB took {:?}",
+        started.elapsed()
+    );
+}
+
 #[tokio::test(flavor = "multi_thread")]
 async fn a_partly_durable_file_resumes_without_hanging() {
     let _heavy = HEAVY.lock().await;

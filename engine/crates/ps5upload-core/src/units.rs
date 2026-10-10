@@ -13,6 +13,11 @@ pub fn iec_bytes(bytes: u64) -> String {
         v /= 1024.0;
         i += 1;
     }
+    // 1023.96 KiB would print as "1024.0 KiB": that is 1.0 MiB.
+    if i > 0 && i < UNITS.len() - 1 && (v * 10.0).round() >= 10240.0 {
+        v /= 1024.0;
+        i += 1;
+    }
     if i == 0 {
         format!("{bytes} B")
     } else {
@@ -32,5 +37,10 @@ mod tests {
         assert_eq!(iec_bytes(2 << 30), "2.0 GiB");
         assert_eq!(iec_bytes(5 * (1 << 20)), "5.0 MiB");
         assert_eq!(iec_bytes(3 << 40), "3.0 TiB");
+        // Rounding up to 1024 of a unit promotes to the next one.
+        assert_eq!(iec_bytes((1 << 20) - 1), "1.0 MiB");
+        assert_eq!(iec_bytes((1 << 30) - 1), "1.0 GiB");
+        assert_eq!(iec_bytes(1023), "1023 B");
+        assert_eq!(iec_bytes(1023 << 10), "1023.0 KiB");
     }
 }

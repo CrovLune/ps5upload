@@ -309,8 +309,16 @@ pub async fn get_cover(Path(id): Path<String>) -> Response {
     let id = id.to_ascii_uppercase();
     let file = library()
         .and_then(|l| l.games.get(&id).and_then(|g| g.local_cover.clone()))
+        .filter(|name| crate::collection::is_bare_file_name(name))
         .and_then(|name| store::covers_dir().map(|d| d.join(name)));
-    match file.and_then(|f| std::fs::read(f).ok()) {
+    let bytes = match file {
+        Some(f) => tokio::task::spawn_blocking(move || std::fs::read(f).ok())
+            .await
+            .ok()
+            .flatten(),
+        None => None,
+    };
+    match bytes {
         Some(bytes) => Response::builder()
             .header(header::CONTENT_TYPE, "image/png")
             .header(header::CACHE_CONTROL, "max-age=300")
@@ -489,10 +497,8 @@ fn with_app_folders(
         .collect();
     for f in folders {
         let id = f.to_ascii_uppercase();
-        let shaped = id.len() == 9
-            && id[..4].bytes().all(|b| b.is_ascii_uppercase())
-            && id[4..].bytes().all(|b| b.is_ascii_digit());
-        if shaped {
+        // By bytes: a folder name with a multi-byte character must not be sliced mid-char.
+        if crate::collection::is_game_id(&id) {
             out.entry(id).or_insert(None);
         }
     }
@@ -715,6 +721,8 @@ mod installed_titles_tests {
                 "PPSA00001".to_string(),
                 "PPSA00002".to_string(),
                 "not-a-title".to_string(),
+                // Nine bytes, a multi-byte character inside: skipped, never sliced mid-char.
+                "PPP\u{e9}0001".to_string(),
             ],
         );
         assert_eq!(m.len(), 2);

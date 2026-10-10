@@ -205,10 +205,12 @@ pub async fn pairing_handler(
 /// the console: the console shows its code, the user types it. The handshake is held until
 /// confirmed, so asking twice shows one code.
 pub async fn pairing_start_handler(
-    State(state): State<crate::AppState>,
+    State(_state): State<crate::AppState>,
     Json(req): Json<PairingAddr>,
 ) -> Response {
-    let addr = req.addr.unwrap_or_else(|| state.default_ps5_addr.clone());
+    let Some(addr) = crate::required_console_addr(req.addr) else {
+        return crate::missing_console_addr();
+    };
     let (code, body) = pairing_body(ps5upload_ava1::pool().pairing_status(&addr).await);
     (code, Json(body)).into_response()
 }
@@ -264,10 +266,12 @@ pub struct PairingAddr {
 /// `POST /api/ava1/pairing/cancel` `{addr}` — the dialog was dismissed: closes the pending
 /// handshake so it stops holding one of the console's two unconfirmed places.
 pub async fn pairing_cancel_handler(
-    State(state): State<crate::AppState>,
+    State(_state): State<crate::AppState>,
     Json(req): Json<PairingAddr>,
 ) -> Response {
-    let addr = req.addr.unwrap_or_else(|| state.default_ps5_addr.clone());
+    let Some(addr) = crate::required_console_addr(req.addr) else {
+        return crate::missing_console_addr();
+    };
     let had = ps5upload_ava1::pool().cancel_pairing(&addr).await;
     Json(serde_json::json!({ "ok": true, "was_pending": had })).into_response()
 }
@@ -278,10 +282,12 @@ pub async fn pairing_cancel_handler(
 /// without this a second device (a web UI on a server whose identity was lost, a new phone)
 /// was refused until the helper restarted.
 pub async fn pairing_allow_handler(
-    State(state): State<crate::AppState>,
+    State(_state): State<crate::AppState>,
     Json(req): Json<PairingAddr>,
 ) -> Response {
-    let addr = req.addr.unwrap_or_else(|| state.default_ps5_addr.clone());
+    let Some(addr) = crate::required_console_addr(req.addr) else {
+        return crate::missing_console_addr();
+    };
     let opened = match ps5upload_ava1::pool().session(&addr).await {
         Ok(session) => session.open_pairing(300).await.map_err(|e| e.to_string()),
         Err(e) => Err(e.to_string()),
@@ -299,10 +305,12 @@ pub async fn pairing_allow_handler(
 /// `POST /api/ava1/pairing/forget` `{addr}` — "forget the old console": removes the key
 /// pinned for this address so a different PS5 there can be paired.
 pub async fn pairing_forget_handler(
-    State(state): State<crate::AppState>,
+    State(_state): State<crate::AppState>,
     Json(req): Json<PairingAddr>,
 ) -> Response {
-    let addr = req.addr.unwrap_or_else(|| state.default_ps5_addr.clone());
+    let Some(addr) = crate::required_console_addr(req.addr) else {
+        return crate::missing_console_addr();
+    };
     let had = ps5upload_ava1::pool().forget_console_key(&addr).await;
     Json(serde_json::json!({ "ok": true, "was_pinned": had })).into_response()
 }

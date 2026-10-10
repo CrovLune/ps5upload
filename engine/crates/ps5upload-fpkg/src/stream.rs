@@ -422,10 +422,10 @@ pub fn write_package(
         cnt_offset,
         seed: request.seed,
         passcode: request.passcode,
-        content_type: cnt_write::content_class(&request.param_json).0,
+        content_type: cnt_write::content_class(&request.param_json, plan.has_eboot()).0,
         drm_type: crate::cnt_write::drm_type_override()
             .unwrap_or(crate::cnt_write::LICENSED_DRM_TYPE),
-        content_flags: cnt_write::content_class(&request.param_json).1,
+        content_flags: cnt_write::content_class(&request.param_json, plan.has_eboot()).1,
         inner_size,
     })?;
     out.seek(SeekFrom::Start(cnt_offset))?;
@@ -466,7 +466,7 @@ pub fn write_package(
     let manifest = pfsimage::build(&pfsimage::ManifestParams {
         facts: &cnt.facts,
         content_id: request.content_id,
-        content_type: cnt_write::content_class(&request.param_json).0,
+        content_type: cnt_write::content_class(&request.param_json, plan.has_eboot()).0,
         param_json: &request.param_json,
         content_version: request.content_version,
         cnt_offset,

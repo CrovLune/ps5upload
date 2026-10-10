@@ -36,6 +36,30 @@ fn rescan() {
 
 // ─── Move to Trash ─────────────────────────────────────────────────────
 
+/// `paths` in order, each once: a path named twice is one copy, counted and removed once.
+fn unique(paths: &[String]) -> Vec<&String> {
+    let mut seen = std::collections::HashSet::new();
+    paths.iter().filter(|p| seen.insert(p.as_str())).collect()
+}
+
+/// Whether `path` sits below (never at) one of the current local library folders, reached
+/// only through ordinary names. The index can be imported from elsewhere, so a copy's path is
+/// checked against the folders the user has now before anything is removed.
+fn strictly_under_a_root(path: &str, roots: &[String]) -> bool {
+    use std::path::Component;
+    let p = FsPath::new(path);
+    roots
+        .iter()
+        .filter(|r| !r.is_empty() && !crate::remote::path::is_remote(r))
+        .any(|r| match p.strip_prefix(r) {
+            Ok(rest) => {
+                rest.components().next().is_some()
+                    && rest.components().all(|c| matches!(c, Component::Normal(_)))
+            }
+            Err(_) => false,
+        })
+}
+
 #[derive(Debug, Clone, Serialize)]
 pub struct TrashItem {
     pub path: String,
@@ -121,8 +145,9 @@ pub async fn post_trash_preview(Json(req): Json<TrashPreviewReq>) -> Response {
             "the collection has not been scanned yet",
         );
     };
+    let roots = settings().roots;
     let mut items = Vec::new();
-    for p in &req.paths {
+    for p in unique(&req.paths) {
         let found = lib.games.values().find_map(|g| {
             g.locations
                 .iter()
@@ -139,6 +164,12 @@ pub async fn post_trash_preview(Json(req): Json<TrashPreviewReq>) -> Response {
             return err(
                 StatusCode::BAD_REQUEST,
                 format!("{} is on a server: remove it there", l.name),
+            );
+        }
+        if !strictly_under_a_root(&l.absolute_path, &roots) {
+            return err(
+                StatusCode::BAD_REQUEST,
+                format!("{} is not inside a library folder", l.absolute_path),
             );
         }
         if !FsPath::new(&l.absolute_path).exists() {
@@ -312,7 +343,10 @@ pub struct PlanResponse {
 
 /// POST /api/collection/organize/plan: what the organizer would do. Touches nothing.
 pub async fn post_organize_plan() -> Response {
-    let containers = all_containers();
+    // Off the async workers: it stats every package folder.
+    let containers = tokio::task::spawn_blocking(all_containers)
+        .await
+        .unwrap_or_default();
     if containers.is_empty() {
         return err(
             StatusCode::BAD_REQUEST,
@@ -384,6 +418,23 @@ pub struct OrganizeApplyResult {
     pub dropped: Vec<String>,
     pub kept_dirs: Vec<String>,
     pub logs: Vec<String>,
+}
+
+/// `dir/stem`, or `dir/stem_2`, `_3`, ... when a log by that name exists: two folders with
+/// the same name organized in the same second must not share an undo log.
+fn unique_log_base(dir: &FsPath, stem: &str) -> PathBuf {
+    let mut n = 1;
+    loop {
+        let name = if n == 1 {
+            stem.to_string()
+        } else {
+            format!("{stem}_{n}")
+        };
+        if !dir.join(format!("{name}.json")).exists() {
+            return dir.join(name);
+        }
+        n += 1;
+    }
 }
 
 fn slug(container: &FsPath) -> String {
@@ -460,7 +511,10 @@ pub async fn post_organize_apply(Json(req): Json<OrganizeApplyReq>) -> Response 
             "no data folder for the undo log",
         );
     };
-    let containers = all_containers();
+    // Off the async workers: it stats every package folder.
+    let containers = tokio::task::spawn_blocking(all_containers)
+        .await
+        .unwrap_or_default();
     let result = tokio::task::spawn_blocking(move || {
         let lib = library();
         let roots = roots();
@@ -493,9 +547,12 @@ pub async fn post_organize_apply(Json(req): Json<OrganizeApplyReq>) -> Response 
                 .duration_since(std::time::UNIX_EPOCH)
                 .map(|d| d.as_secs())
                 .unwrap_or(0);
-            let base = log_dir.join(format!("organize_{stamp}_{}", slug(&c)));
-            let log_path = base.with_extension("json");
             let _ = std::fs::create_dir_all(&log_dir);
+            let base = unique_log_base(&log_dir, &format!("organize_{stamp}_{}", slug(&c)));
+            let log_path = base.with_file_name(format!(
+                "{}.json",
+                base.file_name().unwrap_or_default().to_string_lossy()
+            ));
             write_unsure_report(
                 &base.with_file_name(format!(
                     "{}_unsure.txt",
@@ -996,6 +1053,37 @@ mod tests {
         delete_permanently(&d.join("link")).unwrap();
         assert!(!d.join("Game-app").exists() && !d.join("x.pkg").exists());
         assert!(d.join("keep/precious").exists());
+        let _ = std::fs::remove_dir_all(&d);
+    }
+
+    #[test]
+    fn only_paths_strictly_inside_a_current_local_root_can_be_trashed() {
+        let roots = vec!["/Volumes/S/games".to_string(), "remote://abc/x".to_string()];
+        assert!(strictly_under_a_root("/Volumes/S/games/a/b.pkg", &roots));
+        assert!(!strictly_under_a_root("/Volumes/S/games", &roots));
+        assert!(!strictly_under_a_root("/Volumes/S/games/../secret", &roots));
+        assert!(!strictly_under_a_root("/Volumes/S/gamesX/a.pkg", &roots));
+        assert!(!strictly_under_a_root("/etc/passwd", &roots));
+        assert!(!strictly_under_a_root("remote://abc/x/y.pkg", &roots));
+        assert!(!strictly_under_a_root("/a.pkg", &[]));
+    }
+
+    #[test]
+    fn a_path_named_twice_is_previewed_once() {
+        let paths = vec!["/a".to_string(), "/b".to_string(), "/a".to_string()];
+        assert_eq!(unique(&paths), vec!["/a", "/b"]);
+    }
+
+    #[test]
+    fn same_named_folders_get_their_own_undo_logs() {
+        let d = std::env::temp_dir().join(format!("ps5u-logs-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&d);
+        std::fs::create_dir_all(&d).unwrap();
+        let a = unique_log_base(&d, "organize_1_fpkg");
+        std::fs::write(d.join("organize_1_fpkg.json"), b"{}").unwrap();
+        let b = unique_log_base(&d, "organize_1_fpkg");
+        assert_ne!(a, b);
+        assert_eq!(b, d.join("organize_1_fpkg_2"));
         let _ = std::fs::remove_dir_all(&d);
     }
 

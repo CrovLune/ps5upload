@@ -466,6 +466,14 @@ fn the_bandwidth_cap_env_is_renamed_and_maps_to_bytes_per_second() {
         cap(&env(vec![("PS5UPLOAD_BANDWIDTH_MBPS".into(), "1.5")])),
         Some(1_572_864)
     );
+    // A tiny cap is still a cap: it never rounds to 0 ("no cap").
+    assert_eq!(
+        cap(&env(vec![("PS5UPLOAD_BANDWIDTH_MBPS".into(), "1e-9")])),
+        Some(1)
+    );
+    let mut cfg = TransferConfig::new("10.0.0.1");
+    apply_per_request_bandwidth(&mut cfg, Some(1e-9));
+    assert_eq!(cfg.bandwidth_cap_bps, Some(1));
     // The old name is read, and warned about once.
     assert_eq!(cap(&env(vec![(old.clone(), "4")])), Some(4 * 1024 * 1024));
     assert!(warned.lock().unwrap().contains(&old));

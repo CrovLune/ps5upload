@@ -112,7 +112,7 @@ fn running(started_at_ms: u64, bytes_sent: u64, total_bytes: u64) -> JobState {
         started_at_ms,
         bytes_sent,
         total_bytes,
-        files: Vec::new(),
+        files: Default::default(),
         skipped_files: 0,
         skipped_bytes: 0,
         files_processing: 0,
@@ -184,8 +184,13 @@ pub(crate) async fn start_fetch(r: Arc<Remote>, deps: FetchDeps, body: FetchBody
             format!("That folder has more than {MAX_FILES} files."),
         );
     }
-    let total: u64 = files.iter().map(|(_, e)| e.size).sum::<u64>()
-        + siblings.iter().map(|(_, e)| e.size).sum::<u64>();
+    // The sizes come from the server: a sum that overflows is refused, not wrapped.
+    let Some(total) = total_size(files.iter().chain(siblings.iter()).map(|(_, e)| e.size)) else {
+        return err(
+            StatusCode::BAD_REQUEST,
+            "The server reports sizes too large to add up.",
+        );
+    };
 
     let (dest_dir, made_dir) = match body.dest_dir.as_deref().filter(|d| !d.trim().is_empty()) {
         Some(d) => (crate::fpkg_api::resolve_engine_path(d), false),
@@ -211,7 +216,7 @@ pub(crate) async fn start_fetch(r: Arc<Remote>, deps: FetchDeps, body: FetchBody
                 StatusCode::INSUFFICIENT_STORAGE,
                 format!(
                     "Not enough space: needs {}, {} free.",
-                    ps5upload_core::units::iec_bytes(total + HEADROOM),
+                    ps5upload_core::units::iec_bytes(total.saturating_add(HEADROOM)),
                     ps5upload_core::units::iec_bytes(free)
                 ),
             );
@@ -568,10 +573,22 @@ pub(crate) async fn inspect_folder(r: &Remote, remote: &str) -> Response {
     }
 }
 
+/// The sum of `sizes`, or `None` when it overflows.
+fn total_size(sizes: impl IntoIterator<Item = u64>) -> Option<u64> {
+    sizes.into_iter().try_fold(0u64, u64::checked_add)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::remote::pool::testing::remote_with;
+
+    #[test]
+    fn sizes_that_overflow_are_refused_not_wrapped() {
+        assert_eq!(total_size([1, 2, 3]), Some(6));
+        assert_eq!(total_size([u64::MAX, 1]), None);
+        assert_eq!(total_size([]), Some(0));
+    }
     use crate::remote::store::{conn, Protocol, Secret};
     use crate::remote::MemFs;
 

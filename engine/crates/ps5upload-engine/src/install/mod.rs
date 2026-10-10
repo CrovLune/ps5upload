@@ -66,7 +66,7 @@ impl JobStore {
     /// Reserve the console. `Ok(job_id)` if free; `Err(active_job_id)` if an
     /// install is already running for that console.
     pub fn begin(&self, ps5_addr: &str) -> Result<String, String> {
-        let cid = console_id(ps5_addr);
+        let cid = slot_key(ps5_addr);
         let mut active = lock(&self.active);
         if let Some(j) = active.get(&cid) {
             return Err(j.clone());
@@ -80,10 +80,13 @@ impl JobStore {
     /// Release the console's slot (if this job still holds it), forget the job's
     /// stop request and drop the oldest finished statuses past `KEEP_FINISHED`.
     pub fn finish(&self, job: &str) {
+        // Taken before the jobs lock: `begin` locks the slots first, then the jobs.
+        let holding: std::collections::HashSet<String> =
+            lock(&self.active).values().cloned().collect();
         let cid = {
             let mut jobs = lock(&self.jobs);
-            let cid = jobs.get(job).map(|st| console_id(&st.ps5_addr));
-            prune_finished(&mut jobs, KEEP_FINISHED);
+            let cid = jobs.get(job).map(|st| slot_key(&st.ps5_addr));
+            prune_finished(&mut jobs, KEEP_FINISHED, &holding);
             cid
         };
         lock(&self.cancelled).remove(job);
@@ -147,11 +150,17 @@ impl JobStore {
     }
 }
 
-/// Drops the oldest finished statuses until at most `keep` remain. Running ones stay.
-fn prune_finished(jobs: &mut HashMap<String, InstallStatus>, keep: usize) {
+/// Drops the oldest finished statuses until at most `keep` remain. Running ones (those holding
+/// a console's slot) stay; one that ended without reaching Done or Failed counts as finished,
+/// or it would be kept forever.
+fn prune_finished(
+    jobs: &mut HashMap<String, InstallStatus>,
+    keep: usize,
+    holding: &std::collections::HashSet<String>,
+) {
     let mut finished: Vec<(u64, String)> = jobs
         .values()
-        .filter(|st| matches!(st.phase, Phase::Done | Phase::Failed))
+        .filter(|st| matches!(st.phase, Phase::Done | Phase::Failed) || !holding.contains(&st.job))
         .map(|st| (st.updated_at, st.job.clone()))
         .collect();
     if finished.len() <= keep {
@@ -188,6 +197,12 @@ impl Drop for SlotRelease {
 /// addresses keep their whole host (a plain split at the last colon cut them).
 pub fn console_id(ps5_addr: &str) -> String {
     ps5upload_core::events::console_host(ps5_addr)
+}
+
+/// The install-slot key: [`console_id`] case-folded, so `PS5.local` and `ps5.local` (or an
+/// IPv6 address in either case) are one console with one slot.
+fn slot_key(ps5_addr: &str) -> String {
+    console_id(ps5_addr).to_ascii_lowercase()
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -860,7 +875,7 @@ async fn run_install(state: PkgInstallStateHandle, job: String, mut req: Install
                     .into(),
             );
         });
-        finalize(&state, &job, &req, started);
+        finalize(&state, &job, &req, started).await;
         return;
     }
 
@@ -904,7 +919,7 @@ async fn run_install(state: PkgInstallStateHandle, job: String, mut req: Install
             s.reason = mapped.reason;
             s.hint = mapped.hint.clone();
         });
-        finalize(&state, &job, &req, started);
+        finalize(&state, &job, &req, started).await;
         return;
     }
 
@@ -1185,7 +1200,7 @@ async fn run_install(state: PkgInstallStateHandle, job: String, mut req: Install
             }
             s.metrics.phase_ms.insert("deliver".into(), deliver_ms);
         });
-        finalize(&state, &job, &req, started);
+        finalize(&state, &job, &req, started).await;
         return;
     }
 
@@ -1274,7 +1289,7 @@ async fn run_install(state: PkgInstallStateHandle, job: String, mut req: Install
             s.shortened = shortened;
             s.metrics.phase_ms.insert("deliver".into(), deliver_ms);
         });
-        finalize(&state, &job, &req, started);
+        finalize(&state, &job, &req, started).await;
         return;
     }
     if delivery == DeliveryProgress::Stalled {
@@ -1351,7 +1366,7 @@ async fn run_install(state: PkgInstallStateHandle, job: String, mut req: Install
                 s.shortened = shortened;
                 s.metrics.phase_ms.insert("deliver".into(), deliver_ms);
             });
-            finalize(&state, &job, &req, started);
+            finalize(&state, &job, &req, started).await;
             return;
         }
     }
@@ -1458,7 +1473,7 @@ async fn run_install(state: PkgInstallStateHandle, job: String, mut req: Install
         s.metrics.phase_ms.insert("deliver".into(), deliver_ms);
         s.metrics.phase_ms.insert("verify".into(), verify_ms);
     });
-    finalize(&state, &job, &req, started);
+    finalize(&state, &job, &req, started).await;
 }
 
 /// Reuse the existing start handler in serve-only mode to create a pkg-host
@@ -1526,7 +1541,7 @@ async fn create_serve_session_for(
 }
 
 /// Record history and release the console's active-job guard. Always runs.
-fn finalize(
+async fn finalize(
     state: &PkgInstallStateHandle,
     job: &str,
     req: &InstallRequest,
@@ -1554,7 +1569,14 @@ fn finalize(
             code: st.code,
             metrics: st.metrics.clone(),
         };
-        let _ = history::append(&history_dir(), &req.ps5_addr, &entry, history::HISTORY_CAP);
+        // The history file is rewritten on a blocking thread, not an async worker.
+        {
+            let (addr, entry) = (req.ps5_addr.clone(), entry.clone());
+            let _ = tokio::task::spawn_blocking(move || {
+                history::append(&history_dir(), &addr, &entry, history::HISTORY_CAP)
+            })
+            .await;
+        }
         ps5upload_core::events::emit_detail(
             ps5upload_core::events::Cat::Install,
             if entry.code == 0 {
@@ -1573,7 +1595,7 @@ fn finalize(
         // placed on the console themselves (console_path / remote / url).
         if req.options.delete_source_copy_after && st.verdict == Some(Verdict::Installed) {
             if let Source::HostFile(path) = &req.source {
-                let _ = std::fs::remove_file(path);
+                let _ = tokio::fs::remove_file(path).await;
             }
         }
     }
@@ -1919,11 +1941,36 @@ mod tests {
             ids.push(job);
         }
         let running = jobs.begin("10.9.9.9").unwrap();
-        jobs.finish(&running); // still Resolve: never pruned
-        assert_eq!(jobs.jobs.lock().unwrap().len(), KEEP_FINISHED + 1);
+        // The oldest of all (set directly: `update` stamps the time).
+        jobs.jobs
+            .lock()
+            .unwrap()
+            .get_mut(&running)
+            .unwrap()
+            .updated_at = 0;
+        // Still holding its slot (Resolve): a finish elsewhere never prunes it.
+        let other = jobs.begin("10.9.9.8").unwrap();
+        jobs.update(&other, |s| s.phase = Phase::Done);
+        jobs.finish(&other);
+        assert!(jobs.get(&running).is_some());
         assert!(jobs.get(&ids[0]).is_none(), "the oldest went");
         assert!(jobs.get(ids.last().unwrap()).is_some());
-        assert!(jobs.get(&running).is_some());
+        // Ended without reaching Done or Failed: no longer kept forever.
+        jobs.finish(&running);
+        let last = jobs.begin("10.9.9.7").unwrap();
+        jobs.update(&last, |s| s.phase = Phase::Done);
+        jobs.finish(&last);
+        assert!(jobs.get(&running).is_none());
+        assert_eq!(jobs.jobs.lock().unwrap().len(), KEEP_FINISHED);
+    }
+
+    #[test]
+    fn one_console_has_one_slot_whatever_the_case_of_its_name() {
+        let jobs = JobStore::new();
+        let first = jobs.begin("PS5.local:1234").unwrap();
+        assert_eq!(jobs.begin("ps5.LOCAL"), Err(first.clone()));
+        jobs.finish(&first);
+        assert!(!jobs.any_active());
     }
 
     #[test]

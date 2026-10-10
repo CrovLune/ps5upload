@@ -1145,19 +1145,42 @@ impl Pacer {
     /// Reserve `len` bytes of the job's budget and return when they are due. Reservations
     /// queue back to back across every lane, and never start before now: an idle stretch
     /// does not bank a burst for later.
-    fn reserve(&self, len: u64) -> tokio::time::Instant {
+    fn reserve(&self, len: u64) -> (tokio::time::Instant, Duration) {
         let now = tokio::time::Instant::now();
         let mut next = self.next.lock().unwrap();
         let start = next.map_or(now, |n| n.max(now));
-        let due = start + Duration::from_secs_f64(len as f64 / self.bps);
+        let span = Duration::from_secs_f64(len as f64 / self.bps);
+        let due = start + span;
         *next = Some(due);
-        due
+        (due, span)
     }
 
-    /// Wait until `len` more bytes fit under the cap.
+    /// Wait until `len` more bytes fit under the cap. A wait that is dropped first (its lane
+    /// cancelled) gives its share of the budget back: those bytes were never sent.
     pub(crate) async fn pace(&self, len: u64) {
-        let due = self.reserve(len);
+        struct Release<'a> {
+            pacer: &'a Pacer,
+            span: Duration,
+            sent: bool,
+        }
+        impl Drop for Release<'_> {
+            fn drop(&mut self) {
+                if !self.sent {
+                    let mut next = self.pacer.next.lock().unwrap_or_else(|e| e.into_inner());
+                    if let Some(n) = *next {
+                        *next = Some(n.checked_sub(self.span).unwrap_or(n));
+                    }
+                }
+            }
+        }
+        let (due, span) = self.reserve(len);
+        let mut release = Release {
+            pacer: self,
+            span,
+            sent: false,
+        };
         tokio::time::sleep_until(due).await;
+        release.sent = true;
     }
 }
 
@@ -2627,6 +2650,20 @@ mod tests {
         let t = tokio::time::Instant::now();
         pacer.pace(1 << 20).await;
         assert!(t.elapsed() >= Duration::from_millis(990));
+    }
+
+    #[tokio::test(start_paused = true)]
+    async fn a_cancelled_wait_gives_its_budget_back() {
+        let pacer = Pacer::new(Some(1 << 20)).unwrap();
+        // A lane reserves 10 s worth and is cancelled almost at once.
+        let _ = tokio::time::timeout(Duration::from_millis(10), pacer.pace(10 << 20)).await;
+        let t = tokio::time::Instant::now();
+        pacer.pace(1 << 20).await;
+        let waited = t.elapsed();
+        assert!(
+            waited <= Duration::from_millis(1010),
+            "the cancelled reservation still held the cap: waited {waited:?}"
+        );
     }
 
     #[test]

@@ -149,6 +149,10 @@ pub struct RemoteProbe {
     pub total_size: u64,
     /// Filename from the URL path, when it had one. Used only for display.
     pub filename: String,
+    /// The origin's validators, when it sends them: a resumed download checks them so a
+    /// changed file is never spliced onto an older one.
+    pub etag: Option<String>,
+    pub last_modified: Option<String>,
 }
 
 /// A package on an HTTP(S) origin, readable by byte range.
@@ -500,9 +504,17 @@ impl RemoteSource {
             format!("the server sent an unusable Content-Range ({content_range})")
         })?;
 
+        let validator = |name: &str| {
+            resp.headers()
+                .get(name)
+                .and_then(|v| v.to_str().ok())
+                .map(str::to_string)
+        };
         Ok(RemoteProbe {
             total_size,
             filename: filename_from_url(url),
+            etag: validator("etag"),
+            last_modified: validator("last-modified"),
         })
     }
 

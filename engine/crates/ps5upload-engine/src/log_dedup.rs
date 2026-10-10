@@ -43,6 +43,9 @@ pub enum LogAction {
     Quiet,
 }
 
+/// At most this many failing endpoints are tracked at once.
+const MAX_TRACKED: usize = 512;
+
 #[derive(Default)]
 pub struct FailureLog {
     seen: HashMap<String, FailState>,
@@ -61,6 +64,19 @@ impl FailureLog {
         if failed {
             match self.seen.get_mut(key) {
                 None => {
+                    // Bounded: paths carry ids, so a stream of distinct failing requests
+                    // would otherwise grow this for the life of the process. The entry
+                    // logged longest ago goes.
+                    if self.seen.len() >= MAX_TRACKED {
+                        if let Some(oldest) = self
+                            .seen
+                            .iter()
+                            .min_by_key(|(_, st)| st.last_logged)
+                            .map(|(k, _)| k.clone())
+                        {
+                            self.seen.remove(&oldest);
+                        }
+                    }
                     // First failure for this endpoint — always say so.
                     self.seen.insert(
                         key.to_string(),
@@ -215,5 +231,19 @@ mod tests {
             LogAction::Warn { suppressed: 0 }
         );
         assert_eq!(f.observe("GET /a", true, at(t0, 2)), LogAction::Quiet);
+    }
+
+    #[test]
+    fn the_tracked_endpoints_are_bounded_and_the_oldest_goes() {
+        let base = Instant::now();
+        let mut log = FailureLog::new();
+        for i in 0..MAX_TRACKED + 10 {
+            log.observe(&format!("GET /x/{i}"), true, at(base, i as u64));
+        }
+        assert_eq!(log.seen.len(), MAX_TRACKED);
+        assert!(!log.seen.contains_key("GET /x/0"));
+        assert!(log
+            .seen
+            .contains_key(&format!("GET /x/{}", MAX_TRACKED + 9)));
     }
 }

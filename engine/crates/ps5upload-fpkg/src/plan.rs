@@ -116,6 +116,11 @@ pub struct PlannedFile {
 }
 
 impl Plan {
+    /// Whether the package has an `eboot.bin` at its root (DLC has none).
+    pub fn has_eboot(&self) -> bool {
+        self.files.iter().any(|f| f.path == "eboot.bin")
+    }
+
     /// Mark the executables, which the image flags as modules. `is_module` answers for one
     /// path, normally from the file's first bytes (see [`is_module_header`]).
     ///
