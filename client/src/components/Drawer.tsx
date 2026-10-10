@@ -42,6 +42,14 @@ export function Drawer({
   const motion = useAccessibilityStore((s) => s.resolvedMotion)();
   const tier = useResponsiveTier();
 
+  // Read through a ref: an inline onClose would otherwise re-run the effect on
+  // every render, re-pushing this drawer onto the modal stack above a confirm
+  // opened from it (and re-grabbing focus).
+  const onCloseRef = useRef(onClose);
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  });
+
   useScrollLock(open);
 
   useEffect(() => {
@@ -59,22 +67,20 @@ export function Drawer({
       );
       (focusable ?? panel).focus({ preventScroll: true });
     });
-    const handler = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
+    // Escape rides the shared modal stack: only the topmost surface closes.
+    const releaseTrap = activateFocusTrap(() => panelRef.current, window, {
+      onEscape: (e) => {
         e.preventDefault();
-        onClose();
-      }
-    };
-    window.addEventListener("keydown", handler);
-    const releaseTrap = activateFocusTrap(() => panelRef.current);
+        onCloseRef.current();
+      },
+    });
     return () => {
-      window.removeEventListener("keydown", handler);
       releaseTrap();
       const prev = prevFocus.current;
       prevFocus.current = null;
       if (prev) queueMicrotask(() => prev.focus({ preventScroll: true }));
     };
-  }, [open, onClose]);
+  }, [open]);
 
   if (!open) return null;
 

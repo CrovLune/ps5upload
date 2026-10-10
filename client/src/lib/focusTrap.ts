@@ -94,8 +94,17 @@ type KeyTarget = {
 
 /** Open traps, oldest first. A confirm opened from inside a Modal is a second
  *  entry; only the last one acts, or the Modal underneath would pull focus out
- *  of the confirm on every Tab. */
+ *  of the confirm on every Tab. The same stack decides who owns Escape: every
+ *  modal surface listens on `window`, so without it one Escape closed the
+ *  confirm AND the Modal beneath it. */
 const stack: symbol[] = [];
+
+export type FocusTrapOptions = {
+  /** Called for an Escape press while this is the topmost modal surface.
+   *  Skipped when something inside already handled the key (called
+   *  `preventDefault`, e.g. a menu or an inline rename closing itself). */
+  onEscape?: (e: KeyboardEvent) => void;
+};
 
 /**
  * Trap Tab inside the element `getContainer` returns until the returned
@@ -105,11 +114,16 @@ const stack: symbol[] = [];
 export function activateFocusTrap(
   getContainer: () => HTMLElement | null,
   target: KeyTarget = window,
+  options: FocusTrapOptions = {},
 ): () => void {
   const id = Symbol("focus-trap");
   stack.push(id);
   const handler = (e: KeyboardEvent) => {
     if (stack[stack.length - 1] !== id) return;
+    if (e.key === "Escape") {
+      if (options.onEscape && !e.defaultPrevented) options.onEscape(e);
+      return;
+    }
     const container = getContainer();
     if (container) trapTabKey(e, container);
   };

@@ -103,10 +103,7 @@ export function useConfirm(): {
   useEffect(() => {
     if (!pending) return;
     const handler = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        e.preventDefault();
-        settle(false);
-      } else if (e.key === "Enter") {
+      if (e.key === "Enter") {
         // Enter on a focused button is that button's own press. Without this
         // check, Tab to "Cancel" then Enter confirmed the action instead.
         const active = document.activeElement;
@@ -121,7 +118,14 @@ export function useConfirm(): {
       }
     };
     window.addEventListener("keydown", handler);
-    const releaseTrap = activateFocusTrap(() => panelRef.current);
+    // Escape goes through the shared modal stack so it closes only this
+    // dialog, not a Modal it was opened from.
+    const releaseTrap = activateFocusTrap(() => panelRef.current, window, {
+      onEscape: (e) => {
+        e.preventDefault();
+        settle(false);
+      },
+    });
     return () => {
       window.removeEventListener("keydown", handler);
       releaseTrap();
@@ -244,13 +248,18 @@ export function useAlert(): {
   useEffect(() => {
     if (!pending) return;
     const handler = (e: KeyboardEvent) => {
-      if (e.key === "Escape" || e.key === "Enter") {
+      if (e.key === "Enter") {
         e.preventDefault();
         settle();
       }
     };
     window.addEventListener("keydown", handler);
-    const releaseTrap = activateFocusTrap(() => panelRef.current);
+    const releaseTrap = activateFocusTrap(() => panelRef.current, window, {
+      onEscape: (e) => {
+        e.preventDefault();
+        settle();
+      },
+    });
     return () => {
       window.removeEventListener("keydown", handler);
       releaseTrap();
@@ -356,18 +365,13 @@ export function usePrompt(): {
     if (!pending) return;
     // Focus the input on mount so the user can type immediately.
     queueMicrotask(() => inputRef.current?.select());
-    const handler = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
+    const releaseTrap = activateFocusTrap(() => panelRef.current, window, {
+      onEscape: (e) => {
         e.preventDefault();
         settle(null);
-      }
-    };
-    window.addEventListener("keydown", handler);
-    const releaseTrap = activateFocusTrap(() => panelRef.current);
-    return () => {
-      window.removeEventListener("keydown", handler);
-      releaseTrap();
-    };
+      },
+    });
+    return releaseTrap;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pending]);
 

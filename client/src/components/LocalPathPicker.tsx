@@ -96,8 +96,23 @@ export function PickerView(p: PickerViewProps) {
   const tr = useTr();
   const shown = p.entries.filter((e) => e.is_dir || passes(e.name, p.filters));
   const panelRef = useRef<HTMLDivElement | null>(null);
-  // Keep Tab inside the picker while it is up.
-  useEffect(() => activateFocusTrap(() => panelRef.current), []);
+  const onCancelRef = useRef(p.onCancel);
+  useEffect(() => {
+    onCancelRef.current = p.onCancel;
+  });
+  // Keep Tab inside the picker while it is up; Escape cancels. Both go through
+  // the shared modal stack, so with the package viewer (a Drawer) or a confirm
+  // open on top, Escape is theirs and the picker underneath stays put.
+  useEffect(
+    () =>
+      activateFocusTrap(() => panelRef.current, window, {
+        onEscape: (e) => {
+          e.preventDefault();
+          onCancelRef.current();
+        },
+      }),
+    [],
+  );
   return (
     <div
       className="anim-scrim scrim fixed inset-0 z-50 flex items-end justify-center sm:items-center"
@@ -489,21 +504,6 @@ export function LocalPathPicker() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pending]);
-
-  // Esc cancels.
-  useEffect(() => {
-    if (!pending) return;
-    const h = (e: KeyboardEvent) => {
-      // While the package viewer is open on top, Esc is the viewer's: it must not also
-      // close the picker waiting underneath.
-      if (e.key === "Escape" && usePackageViewer.getState().request === null) {
-        e.preventDefault();
-        settle(null);
-      }
-    };
-    window.addEventListener("keydown", h);
-    return () => window.removeEventListener("keydown", h);
-  }, [pending, settle]);
 
   // The viewer opened from here has closed: the flag has done its job. (Derived visibility,
   // so no effect is needed to "re-show" the picker.)

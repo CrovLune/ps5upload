@@ -165,6 +165,37 @@ describe("activateFocusTrap", () => {
     expect(win.count()).toBe(0);
   });
 
+  it("hands Escape only to the topmost of two stacked dialogs", () => {
+    const win = fakeWindow();
+    const closed: string[] = [];
+    const releaseUnder = activateFocusTrap(() => null, win, {
+      onEscape: () => closed.push("modal"),
+    });
+    const releaseOver = activateFocusTrap(() => null, win, {
+      onEscape: () => closed.push("confirm"),
+    });
+
+    win.fire({ key: "Escape", defaultPrevented: false });
+    expect(closed).toEqual(["confirm"]);
+
+    // The confirm has gone; the next Escape is the modal's.
+    releaseOver();
+    win.fire({ key: "Escape", defaultPrevented: false });
+    expect(closed).toEqual(["confirm", "modal"]);
+    releaseUnder();
+  });
+
+  it("leaves an Escape that something inside already handled", () => {
+    const win = fakeWindow();
+    let closed = 0;
+    const release = activateFocusTrap(() => null, win, {
+      onEscape: () => closed++,
+    });
+    win.fire({ key: "Escape", defaultPrevented: true });
+    expect(closed).toBe(0);
+    release();
+  });
+
   it("does nothing while its panel is not mounted", () => {
     const win = fakeWindow();
     const release = activateFocusTrap(() => null, win);

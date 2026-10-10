@@ -101,18 +101,16 @@ export function Modal({
       );
       (focusable ?? panel).focus({ preventScroll: true });
     });
-    const handler = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
+    // Tab stays inside the panel: without this it walked on into the controls
+    // under the scrim (the status bar, the page's own buttons). Escape goes
+    // through the same stack so a confirm opened over this modal closes alone.
+    const releaseTrap = activateFocusTrap(() => panelRef.current, window, {
+      onEscape: (e) => {
         e.preventDefault();
         onCloseRef.current();
-      }
-    };
-    window.addEventListener("keydown", handler);
-    // Tab stays inside the panel: without this it walked on into the controls
-    // under the scrim (the status bar, the page's own buttons).
-    const releaseTrap = activateFocusTrap(() => panelRef.current);
+      },
+    });
     return () => {
-      window.removeEventListener("keydown", handler);
       releaseTrap();
       const prev = previousFocusRef.current;
       previousFocusRef.current = null;
