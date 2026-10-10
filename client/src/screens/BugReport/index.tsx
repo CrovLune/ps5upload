@@ -72,7 +72,9 @@ function BugReportPage({ host }: { host: string }) {
     );
   }, []);
   useEffect(() => {
-    if (appVersion && !draft.form.appVersion) setDraft((d) => ({ ...d, form: { ...d.form, appVersion } }));
+    // Always the version that is running: a saved draft from an older version must not carry
+    // its number into a new report, and the field is not editable.
+    if (appVersion && draft.form.appVersion !== appVersion) setDraft((d) => ({ ...d, form: { ...d.form, appVersion } }));
   }, [appVersion, draft.form.appVersion]);
   // Once created, the report is done: editing its issue link must not bring the draft back.
   const created = result !== null;

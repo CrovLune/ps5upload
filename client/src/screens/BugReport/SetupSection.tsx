@@ -55,7 +55,7 @@ export default function SetupSection({
 
   return (
     <div className="grid gap-4 sm:grid-cols-2">
-      <Input label={tr("br_app_version", undefined, "App version")} value={f.appVersion} onChange={(e) => updateForm({ appVersion: e.target.value })} />
+      <Input label={tr("br_app_version", undefined, "App version")} value={f.appVersion} readOnly aria-readonly="true" className="cursor-default text-[var(--color-muted)]" />
       <Select
         label={tr("br_platform", undefined, "Platform")}
         value={f.platform}
