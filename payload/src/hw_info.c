@@ -36,7 +36,6 @@
 
 #include "hw_info.h"
 #include "hw_guard.h"
-#include "shellui_rpc.h"
 #include "config.h"
 
 /* ── Fault guard for Sony hardware getters ────────────────────────

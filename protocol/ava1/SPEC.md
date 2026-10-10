@@ -756,6 +756,8 @@ peers for the job (§11.3), not who opened it.
 
 `FileRetry.reason` is `RETRY_VERIFY` (1, the root did not match), `RETRY_IO` (2, the receiver lost
 the part file or outboard) or `RETRY_CHANGED` (3, the record's length disagrees with the manifest).
+A sender queues a file at most once until it has re-read it: a repeated `FileRetry` for a file
+still waiting is ignored, and a `file_id` past the manifest closes the session.
 
 ## 12. Data frames and credit
 
@@ -1193,14 +1195,20 @@ replaces it. A node holds at most 8.
 `host:port` (IPv4), runs the handshake as the client and refuses unless the static key the server
 proves in message 2 is `key`. Its `ClientInfo` carries the ticket in ext tag 2 `token`. B admits a
 key it does not know only with a live ticket for it: it answers `Welcome{knows_you = 1}` and marks
-the session restricted. A joins up to 4 lanes (§9), sends `JobOpen{job_id, JOB_UPLOAD,
+the session restricted. A live ticket decides even for a key B has paired: that session is the
+ticket's restricted one too, never a full paired session. A joins up to 4 lanes (§9), sends `JobOpen{job_id, JOB_UPLOAD,
 POLICY_REPLACE, JF_SINGLE_FILE when src is a file, root = dest}` and then runs the job as the
 sender (§11–§13), exactly like a download's sender except that its window is the grant in B's
 `JobOpenAck` and the job ends with B's `JobDone`. The reply is the sending job's `Status` once it
-runs; a dial, handshake or ticket failure is `ERR_IO` with the reason as text. A's job is listed
-under `job_id` and its `job.status` / `job.cancel` answer the device that called `c2c.send`. When
-the session drops before the job ends, A fails the job (`ERR_IO`); a cancel on A sends B a
-`JobCancel`. Either way B keeps its journal, so a later `c2c.send` or upload with the same
+runs; a dial, handshake or ticket failure is `ERR_IO` with the reason as text. A source the read
+policy denies is `ERR_PATH` whether or not it exists. A's job is listed under `job_id` and its
+`job.status` / `job.cancel` answer the device that called `c2c.send`. A `c2c.send` from that device
+again under the same `job_id` replaces its earlier send; any other job listed under that id is
+left alone and the call is `ERR_BUSY`. When the session drops before the job ends, A fails the job
+(`ERR_IO`); a cancel on A sends B a `JobCancel`, unless the job on A was replaced under the same id
+(the relay took it over), which only hangs up. B acts on a `JobCancel` only for a job that is parked
+or attached to the session it came on: a late one from an earlier session never stops the job
+another session (the relay) now drives. Either way B keeps its journal, so a later `c2c.send` or upload with the same
 `job_id` resumes.
 
 18.3 A restricted session may send no RPC (`ERR_NOT_PAIRED`), and only data frames whose

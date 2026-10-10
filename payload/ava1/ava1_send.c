@@ -206,6 +206,7 @@ typedef struct {
     ava1_rset_t **durable;
     uint32_t *retry;
     uint32_t retry_n;
+    ava1_bits_t retry_set; /* the ids in retry: a file is asked again at most once until re-read */
     pthread_t reader;
     int reader_started;
     pthread_t writer[AVA1_MAX_LANES + 1];
@@ -221,6 +222,34 @@ typedef struct {
 } snd_t;
 
 static snd_t *S_(ava1_job_t *j) { return (snd_t *)j->role; }
+
+/* Caller holds mu. Hands the reader the files asked again (they may be asked once more from
+ * here on): 1 with *ids (the caller frees it) and *n, 0 when none are waiting. */
+static int retry_take_locked(snd_t *s, uint32_t **ids, uint32_t *n) {
+    uint32_t i;
+    if (!s->retry_n) return 0;
+    *ids = s->retry;
+    *n = s->retry_n;
+    for (i = 0; i < *n; i++) ava1_bits_clear(&s->retry_set, (*ids)[i]);
+    s->retry = NULL;
+    s->retry_n = 0;
+    return 1;
+}
+
+/* Caller holds mu. A FileRetry for `id` (< j->m.n): 0, or 1 to close the session. A file
+ * already waiting is not queued twice, so a peer repeating itself cannot grow the list past
+ * one entry per file. */
+static int retry_add_locked(ava1_job_t *j, snd_t *s, uint32_t id) {
+    uint32_t *a;
+    if (!s->retry_set.w && ava1_bits_init(&s->retry_set, j->m.n) != 0) return 0; /* no memory: as a lost frame */
+    if (ava1_bits_get(&s->retry_set, id)) return 0;
+    if (s->retry_n >= j->m.n) return 1;
+    if (!(a = realloc(s->retry, (s->retry_n + 1) * sizeof *a))) return 0;
+    s->retry = a;
+    s->retry[s->retry_n++] = id;
+    ava1_bits_set(&s->retry_set, id);
+    return 0;
+}
 
 static int put_frame(void *ctx, uint8_t type, uint8_t *msg, size_t len) {
     ava1_job_t *j = ctx;
@@ -293,14 +322,7 @@ static void *reader_main(void *arg) {
     while (rc == 0 && !s->stop && !j->stopping) {
         uint32_t *ids = NULL, n = 0;
         pthread_mutex_lock(&j->mu);
-        if (s->retry_n) {
-            ids = s->retry;
-            n = s->retry_n;
-            s->retry = NULL;
-            s->retry_n = 0;
-        } else {
-            pthread_cond_wait(&j->cv, &j->mu);
-        }
+        if (!retry_take_locked(s, &ids, &n)) pthread_cond_wait(&j->cv, &j->mu);
         pthread_mutex_unlock(&j->mu);
         if (ids) {
             r.skip = NULL;    /* a retry is a full re-read of the named files (C8) */
@@ -664,17 +686,13 @@ static int on_frame(ava1_job_t *j, uint8_t type, const uint8_t *body, size_t len
     }
     case AVA1_TYPE_FILE_RETRY: {
         ava1_file_retry_t r;
-        uint32_t *a;
+        int rc;
         if (ava1_file_retry_decode(body, len, &r) != 0 || r.file_id >= j->m.n) return 1;
         pthread_mutex_lock(&j->mu);
-        a = realloc(s->retry, (s->retry_n + 1) * sizeof *a);
-        if (a) {
-            s->retry = a;
-            s->retry[s->retry_n++] = r.file_id;
-        }
+        rc = retry_add_locked(j, s, r.file_id);
         pthread_cond_broadcast(&j->cv);
         pthread_mutex_unlock(&j->mu);
-        return 0;
+        return rc;
     }
     case AVA1_TYPE_JOB_OPEN_ACK: {
         /* Sending to another console (SPEC.md §18): we opened the job there, and its answer
@@ -776,6 +794,7 @@ static void role_free(ava1_job_t *j) {
         }
     free(s->durable);
     free(s->retry);
+    ava1_bits_free(&s->retry_set);
     ava1_bits_free(&s->skip);
     pthread_mutex_destroy(&s->pump_mu);
     free(s);
@@ -918,8 +937,11 @@ void ava1_send_test_end(void) {
         free(f->msg);
         free(f);
     }
+    free(s->retry);
+    ava1_bits_free(&s->retry_set);
     pthread_mutex_destroy(&s->pump_mu);
     free(s);
+    g_tj->m.n = 0;
     pthread_cond_destroy(&g_tj->cv);
     pthread_mutex_destroy(&g_tj->mu);
     free(g_tj);
@@ -1001,6 +1023,32 @@ void ava1_send_test_stopping(void) {
     g_tj->stopping = 1;
     pthread_cond_broadcast(&g_tj->cv);
     pthread_mutex_unlock(&g_tj->mu);
+}
+
+/* A FileRetry for `id` from the receiver, the job's manifest having `files` files: on_frame's
+ * return (1 = close). */
+int ava1_send_test_file_retry(uint32_t id, uint32_t files) {
+    ava1_file_retry_t r;
+    uint8_t b[64];
+    ava1_w_t w;
+    g_tj->m.n = files;
+    memset(&r, 0, sizeof r);
+    r.file_id = id;
+    ava1_w_init(&w, b, sizeof b);
+    if (ava1_file_retry_encode(&r, &w) != 0) return -1;
+    return on_frame(g_tj, AVA1_TYPE_FILE_RETRY, b, w.len);
+}
+
+/* The files waiting for a re-read; take != 0 hands them to the reader (as its loop does). */
+uint32_t ava1_send_test_retries(int take) {
+    snd_t *s = S_(g_tj);
+    uint32_t *ids = NULL, n;
+    pthread_mutex_lock(&g_tj->mu);
+    n = s->retry_n;
+    if (take) (void)retry_take_locked(s, &ids, &n);
+    pthread_mutex_unlock(&g_tj->mu);
+    free(ids);
+    return n;
 }
 
 /* out: credit, ready frames, queued bytes, in-flight frames. */

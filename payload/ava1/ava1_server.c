@@ -97,6 +97,14 @@ typedef struct {
     conn_t *conn[AVA1_MAX_LANES + 1];
 } sess_t;
 
+/* What a session may do beyond the plain paired one (the sess_t fields of the same names). */
+typedef struct {
+    int outbound, restricted;
+    uint8_t r_job[16];
+    uint8_t r_owner[32];
+    char r_root[AVA1_MAX_PATH + 1];
+} sess_terms_t;
+
 static struct {
     ava1_server_cfg_t cfg;
     int listen_fd;
@@ -241,9 +249,8 @@ static void member_drop(conn_t *k) {
  * after its link died must not be refused because of its own dead connections, which
  * would otherwise linger until dead_after: they are shut down now (waking their
  * threads) and their per-address counts given back at once. */
-static void supersede_locked(int keep, const uint8_t peer[32]) {
+static void supersede_locked(int keep, const uint8_t peer[32], const sess_terms_t *k) {
     int i, m;
-    const sess_t *k = &S.sessions[keep];
     for (i = 0; i < MAX_SESSIONS; i++) {
         sess_t *s = &S.sessions[i];
         if (i == keep || !s->used || s->superseded || memcmp(s->peer_key, peer, 32) != 0) continue;
@@ -400,13 +407,21 @@ static int ticket_take_locked(const uint8_t key[32], const uint8_t token[16]) {
     return -1;
 }
 
-/* Fills a slot from sess_reserve; k is its control connection. */
+/* Fills a slot from sess_reserve; k is its control connection. The session's terms (NULL: none)
+ * are written in the same locked section that publishes it, so no reader sees it without them. */
 static void sess_fill(int idx, conn_t *k, const uint8_t sid[16], const uint8_t c2s[32], const uint8_t s2c[32],
-                      int paired, const uint8_t peer[32], const char *name) {
+                      int paired, const uint8_t peer[32], const char *name, const sess_terms_t *t) {
     pthread_mutex_lock(&mu);
     {
         sess_t *s = &S.sessions[idx];
         memset(s, 0, sizeof *s);
+        if (t) {
+            s->outbound = t->outbound;
+            s->restricted = t->restricted;
+            memcpy(s->r_job, t->r_job, 16);
+            memcpy(s->r_owner, t->r_owner, 32);
+            memcpy(s->r_root, t->r_root, sizeof s->r_root);
+        }
         member_add_locked(idx, k);
         s->used = 1;
         memcpy(s->sid, sid, 16);
@@ -1083,9 +1098,11 @@ static void run_control(conn_t *k, uint8_t *buf, size_t len) {
     uint8_t type, flags;
     uint32_t ch;
     ava1_w_t w;
+    sess_terms_t terms;
     int known, open, busy = 0, notify = 0, idx, filled = 0, ci_ok, ticket = -1;
     uint32_t pair_code = 0;
 
+    memset(&terms, 0, sizeof terms);
     memset(&ns, 0, sizeof ns);
     memset(&eph, 0, sizeof eph);
     memset(c2s, 0, sizeof c2s);
@@ -1151,19 +1168,21 @@ static void run_control(conn_t *k, uint8_t *buf, size_t len) {
     pthread_mutex_lock(&mu);
     known = ava1_peers_contains(&S.peers, ns.rs);
     open = now_ms() < S.pairing_until_ms;
-    /* Another console with a ticket for one job (SPEC.md §18). */
-    if (!known && ci.has_token) ticket = ticket_take_locked(ns.rs, ci.token);
+    /* Another console with a ticket for one job (SPEC.md §18). The ticket decides even for a key
+     * that is also paired: a console that dials with a ticket gets the ticket's session (its one
+     * job, as the ticket's owner), never a full paired one. */
+    if (ci.has_token) ticket = ticket_take_locked(ns.rs, ci.token);
     if (ticket >= 0) {
         known = 1;
         open = 0;
-        S.sessions[idx].restricted = 1;
-        memcpy(S.sessions[idx].r_job, tickets[ticket].job, 16);
-        memcpy(S.sessions[idx].r_owner, tickets[ticket].owner, 32);
-        snprintf(S.sessions[idx].r_root, sizeof S.sessions[idx].r_root, "%s", tickets[ticket].root);
+        terms.restricted = 1;
+        memcpy(terms.r_job, tickets[ticket].job, 16);
+        memcpy(terms.r_owner, tickets[ticket].owner, 32);
+        snprintf(terms.r_root, sizeof terms.r_root, "%s", tickets[ticket].root);
     }
     /* Message 3 has just proved the client holds ns.rs: any session that key still has
      * is replaced, before the limits below. */
-    if (known || open) supersede_locked(idx, ns.rs);
+    if (known || open) supersede_locked(idx, ns.rs, &terms);
     if (!known && open) {
         if (unpaired_locked() >= cfg_or(S.cfg.max_unpaired, MAX_UNPAIRED)) busy = 1;
         else if (!ava1_pl_welcome_allowed(&S.pl, k->ip, now_ms())) busy = 1; /* this address's share */
@@ -1196,18 +1215,8 @@ static void run_control(conn_t *k, uint8_t *buf, size_t len) {
     /* Registered BEFORE the Welcome goes out: a client opens its lanes the moment it is
      * welcomed, and a Join that beat the registration was refused as an unknown session. If
      * the send then fails, the control connection is dead and the session ends with it. */
-    {
-        sess_t r = S.sessions[idx]; /* sess_fill starts the slot afresh: the ticket's terms carry over */
-        sess_fill(idx, k, sid, c2s, s2c, known, ns.rs, peer_name);
-        filled = 1;
-        pthread_mutex_lock(&mu);
-        S.sessions[idx].restricted = r.restricted;
-        memcpy(S.sessions[idx].r_job, r.r_job, 16);
-        memcpy(S.sessions[idx].r_owner, r.r_owner, 32);
-        memcpy(S.sessions[idx].r_root, r.r_root, sizeof r.r_root);
-        pthread_mutex_unlock(&mu);
-        crypto_wipe(&r, sizeof r);
-    }
+    sess_fill(idx, k, sid, c2s, s2c, known, ns.rs, peer_name, &terms);
+    filled = 1;
     pthread_mutex_lock(&mu);
     S.sessions[idx].pair_code = pair_code;
     memcpy(S.sessions[idx].h, ns.h, 64);
@@ -1831,6 +1840,7 @@ int ava1_server_dial(const char *host, uint16_t port, const uint8_t expect[32], 
     char peer_name[64] = "";
     uint8_t *buf = malloc(CTRL_MAX);
     conn_t *k = NULL;
+    sess_terms_t terms;
     int fd, idx = -1, rc = -1;
     uint16_t l, up = 0;
     memset(c2s, 0, sizeof c2s);
@@ -1854,11 +1864,10 @@ int ava1_server_dial(const char *host, uint16_t port, const uint8_t expect[32], 
         snprintf(why, cap, "too many sessions");
         goto out;
     }
-    sess_fill(idx, k, sid, c2s, s2c, 1, expect, peer_name);
-    pthread_mutex_lock(&mu);
-    S.sessions[idx].outbound = 1;
-    memcpy(S.sessions[idx].r_job, job, 16); /* the one job the peer may speak about */
-    pthread_mutex_unlock(&mu);
+    memset(&terms, 0, sizeof terms);
+    terms.outbound = 1;
+    memcpy(terms.r_job, job, 16); /* the one job the peer may speak about */
+    sess_fill(idx, k, sid, c2s, s2c, 1, expect, peer_name, &terms);
     member_drop(k); /* outbound_start lists it again */
     if (outbound_start(k, idx, sid, 0) != 0) {
         k = NULL;
@@ -1890,6 +1899,7 @@ int ava1_server_dial(const char *host, uint16_t port, const uint8_t expect[32], 
         goto out;
     }
     memcpy(sid_out, sid, 16);
+    if (cap) why[0] = 0; /* a lane that failed to join left its reason; the session is up */
     rc = 0;
 out:
     if (k) outbound_close(k);
