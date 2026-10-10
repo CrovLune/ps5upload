@@ -101,6 +101,93 @@ pub struct Download {
     pub done: AtomicBool,
     pub cancelled: AtomicBool,
     pub error: Mutex<Option<String>>,
+    /// True while a worker writes the partial. A cancelled download stays live until its
+    /// worker has exited: the worker, not the cancel request, removes its own partial, so a
+    /// new download of the same file never has its partial deleted under it.
+    pub worker_running: Mutex<bool>,
+    /// When the download stopped (finished, failed or cancelled); the registry forgets
+    /// entries some time after this.
+    pub ended: Mutex<Option<std::time::Instant>>,
+}
+
+impl Download {
+    fn mark_ended(&self) {
+        *self.ended.lock().unwrap_or_else(|e| e.into_inner()) = Some(std::time::Instant::now());
+    }
+}
+
+/// How long a stopped download's status stays readable.
+const ENDED_TTL: std::time::Duration = std::time::Duration::from_secs(30 * 60);
+/// At most this many stopped downloads are remembered.
+const ENDED_CAP: usize = 64;
+
+/// What a `.partial` was downloaded from, written beside it as `<name>.partial.json`. A
+/// partial is resumed only when this matches the link being downloaded now. The URL's query
+/// is left out: signed links carry credentials there and change on every request.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+struct PartialMeta {
+    host: String,
+    path: String,
+    total: u64,
+    #[serde(default)]
+    etag: Option<String>,
+    #[serde(default)]
+    last_modified: Option<String>,
+}
+
+impl PartialMeta {
+    /// Same origin path and size, and validators that agree wherever both sides have one.
+    fn same_file(&self, now: &PartialMeta) -> bool {
+        let agree = |a: &Option<String>, b: &Option<String>| match (a, b) {
+            (Some(a), Some(b)) => a == b,
+            _ => true,
+        };
+        self.host == now.host
+            && self.path == now.path
+            && self.total == now.total
+            && agree(&self.etag, &now.etag)
+            && agree(&self.last_modified, &now.last_modified)
+    }
+}
+
+fn sidecar_path(partial: &std::path::Path) -> PathBuf {
+    let mut name = partial.file_name().unwrap_or_default().to_os_string();
+    name.push(".json");
+    partial.with_file_name(name)
+}
+
+fn read_sidecar(partial: &std::path::Path) -> Option<PartialMeta> {
+    serde_json::from_slice(&std::fs::read(sidecar_path(partial)).ok()?).ok()
+}
+
+fn write_sidecar(partial: &std::path::Path, meta: &PartialMeta) -> std::io::Result<()> {
+    std::fs::write(
+        sidecar_path(partial),
+        serde_json::to_vec(meta).unwrap_or_default(),
+    )
+}
+
+/// Removes a partial and its sidecar (either may be missing).
+fn remove_partial(partial: &std::path::Path) -> std::io::Result<()> {
+    let _ = std::fs::remove_file(sidecar_path(partial));
+    match std::fs::remove_file(partial) {
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(()),
+        r => r,
+    }
+}
+
+/// The worker is done with the partial. Under the same lock the cancel request takes, so
+/// exactly one of them removes a cancelled download's partial.
+fn finish_worker(dl: &Download) {
+    let mut running = dl.worker_running.lock().unwrap_or_else(|e| e.into_inner());
+    *running = false;
+    if dl.cancelled.load(Ordering::Relaxed) && !dl.done.load(Ordering::Relaxed) {
+        match remove_partial(&dl.partial) {
+            Ok(()) => crate::log_info!("link-download cancelled: removed the partial file"),
+            Err(e) => crate::log_warn!("link-download cancelled: could not remove partial: {e}"),
+        }
+    }
+    dl.mark_ended();
 }
 
 #[derive(Default)]
@@ -181,8 +268,12 @@ fn partial_path(path: &std::path::Path) -> PathBuf {
     path.with_file_name(name)
 }
 
-/// Whether a download is still writing (not finished, failed or cancelled).
+/// Whether a download is still writing: its worker runs (even when cancelled), or it has not
+/// finished, failed or been cancelled.
 fn is_live(dl: &Download) -> bool {
+    if *dl.worker_running.lock().unwrap_or_else(|e| e.into_inner()) {
+        return true;
+    }
     !dl.done.load(Ordering::Relaxed)
         && !dl.cancelled.load(Ordering::Relaxed)
         && dl.error.lock().unwrap_or_else(|e| e.into_inner()).is_none()
@@ -196,6 +287,7 @@ fn register_unless_busy(
     dl: Arc<Download>,
 ) -> Result<(), String> {
     let mut items = registry.items.lock().unwrap_or_else(|e| e.into_inner());
+    prune(&mut items);
     if let Some((busy, _)) = items
         .iter()
         .find(|(_, other)| other.path == dl.path && is_live(other))
@@ -204,6 +296,22 @@ fn register_unless_busy(
     }
     items.insert(id.to_string(), dl);
     Ok(())
+}
+
+/// Forgets stopped downloads older than [`ENDED_TTL`], and the oldest beyond [`ENDED_CAP`].
+fn prune(items: &mut std::collections::HashMap<String, Arc<Download>>) {
+    let ended = |d: &Download| *d.ended.lock().unwrap_or_else(|e| e.into_inner());
+    items.retain(|_, d| ended(d).is_none_or(|t| t.elapsed() < ENDED_TTL));
+    let mut stopped: Vec<(std::time::Instant, String)> = items
+        .iter()
+        .filter_map(|(id, d)| ended(d).map(|t| (t, id.clone())))
+        .collect();
+    if stopped.len() > ENDED_CAP {
+        stopped.sort();
+        for (_, id) in stopped.iter().take(stopped.len() - ENDED_CAP) {
+            items.remove(id);
+        }
+    }
 }
 
 /// The id of a live download writing `path`, if there is one.
@@ -272,12 +380,6 @@ async fn start_handler(
         .filter(|d| !d.trim().is_empty())
         .map(PathBuf::from)
         .unwrap_or_else(default_download_dir);
-    if let Err(e) = std::fs::create_dir_all(&dir) {
-        return json_err(
-            StatusCode::BAD_REQUEST,
-            &format!("cannot create {}: {e}", dir.display()),
-        );
-    }
     let name = local_name_for(&probe.filename, req.keep_name);
     let path = dir.join(name);
 
@@ -289,47 +391,38 @@ async fn start_handler(
         return already_downloading(&path, busy);
     }
 
-    // A file already under the final name is either this link's finished download (same
-    // size: done, nothing to fetch) or an unrelated file, never resumed into or clobbered:
-    // a half-written package that installs is far worse than an error, because the
-    // failure surfaces much later as a corrupt install. Unfinished bytes only ever live in
-    // `<name>.partial`, so a killed download no longer leaves a short file here.
-    let complete = match std::fs::metadata(&path) {
-        Ok(meta) if meta.len() == total => true,
-        Ok(meta) => {
-            if let Err(e) = take_over_existing(&path, &partial, req.existing.as_deref()) {
-                return match e {
-                    TakeOver::Refused => (
-                        StatusCode::CONFLICT,
-                        Json(serde_json::json!({
-                            "error": format!(
-                                "{} already exists with a different size ({} bytes, link says {}).",
-                                path.display(),
-                                meta.len(),
-                                total
-                            ),
-                            "existing_path": path.display().to_string(),
-                            "existing_bytes": meta.len(),
-                            "total": total,
-                        })),
-                    )
-                        .into_response(),
-                    TakeOver::Io(e) => json_err(
-                        StatusCode::INTERNAL_SERVER_ERROR,
-                        &format!("cannot take over {}: {e}", path.display()),
-                    ),
-                };
-            }
-            false
-        }
-        Err(_) => false,
-    };
-
-    let host = url
-        .parse::<axum::http::Uri>()
-        .ok()
+    let parsed = url.parse::<axum::http::Uri>().ok();
+    let host = parsed
+        .as_ref()
         .and_then(|u| u.host().map(str::to_string))
         .unwrap_or_default();
+    let meta = PartialMeta {
+        host: host.clone(),
+        path: parsed
+            .as_ref()
+            .map(|u| u.path().to_string())
+            .unwrap_or_default(),
+        total,
+        etag: probe.etag.clone(),
+        last_modified: probe.last_modified.clone(),
+    };
+    let prep = {
+        let (path, partial, existing) = (path.clone(), partial.clone(), req.existing.clone());
+        tokio::task::spawn_blocking(move || {
+            prepare_files(&dir, &path, &partial, total, existing.as_deref(), &meta)
+        })
+        .await
+    };
+    let (complete, may_resume) = match prep {
+        Ok(Ok(v)) => v,
+        Ok(Err(resp)) => return resp,
+        Err(e) => {
+            return json_err(
+                StatusCode::INTERNAL_SERVER_ERROR,
+                &format!("prepare task failed: {e}"),
+            )
+        }
+    };
 
     let id = uuid::Uuid::new_v4().to_string();
     let dl = Arc::new(Download {
@@ -341,6 +434,8 @@ async fn start_handler(
         done: AtomicBool::new(complete),
         cancelled: AtomicBool::new(false),
         error: Mutex::new(None),
+        worker_running: Mutex::new(!complete),
+        ended: Mutex::new(complete.then(std::time::Instant::now)),
     });
     if let Err(busy) = register_unless_busy(&state, &id, dl.clone()) {
         return already_downloading(&path, busy);
@@ -366,22 +461,24 @@ async fn start_handler(
         tokio::task::spawn_blocking(move || {
             let dl = worker;
             let src = crate::remote_pkg::RemoteSource::new_with_options(url, total, insecure);
-            match copy_to_file(&src, &dl) {
+            match copy_to_file(&src, &dl, may_resume) {
                 // The partial stays: the next try of the same link resumes from it.
                 Err(e) => {
                     crate::log_warn!("link-download failed: host={} err={}", dl.url_host, e);
                     *dl.error.lock().unwrap_or_else(|x| x.into_inner()) = Some(e.to_string());
                 }
-                Ok(()) if !dl.cancelled.load(Ordering::Relaxed) => {
+                Ok(true) => {
                     dl.done.store(true, Ordering::Relaxed);
+                    let _ = std::fs::remove_file(sidecar_path(&dl.partial));
                     crate::log_info!(
                         "link-download done: host={} bytes={}",
                         dl.url_host,
                         dl.written.load(Ordering::Relaxed)
                     );
                 }
-                Ok(()) => {}
+                Ok(false) => {}
             }
+            finish_worker(&dl);
         });
     }
 
@@ -405,6 +502,68 @@ async fn start_handler(
         StatusCode::BAD_REQUEST,
         "downloading a package from a link is not available in the Android build",
     )
+}
+
+/// The file work before a download starts, off the async workers: makes the folder, settles
+/// a file already under the final name, and decides whether the partial may be resumed (its
+/// sidecar says it is this link's, or the user chose to resume a file they had). Writes this
+/// link's sidecar. `(complete, may_resume)`.
+#[cfg(not(target_os = "android"))]
+fn prepare_files(
+    dir: &std::path::Path,
+    path: &std::path::Path,
+    partial: &std::path::Path,
+    total: u64,
+    existing: Option<&str>,
+    meta: &PartialMeta,
+) -> Result<(bool, bool), Response> {
+    if let Err(e) = std::fs::create_dir_all(dir) {
+        return Err(json_err(
+            StatusCode::BAD_REQUEST,
+            &format!("cannot create {}: {e}", dir.display()),
+        ));
+    }
+    // A file already under the final name is either this link's finished download (same
+    // size: done, nothing to fetch) or an unrelated file, never resumed into or clobbered:
+    // a half-written package that installs is far worse than an error, because the
+    // failure surfaces much later as a corrupt install. Unfinished bytes only ever live in
+    // `<name>.partial`, so a killed download no longer leaves a short file here.
+    let mut took_over = false;
+    match std::fs::metadata(path) {
+        Ok(meta) if meta.len() == total => return Ok((true, false)),
+        Ok(meta) => {
+            if let Err(e) = take_over_existing(path, partial, existing) {
+                return Err(match e {
+                    TakeOver::Refused => (
+                        StatusCode::CONFLICT,
+                        Json(serde_json::json!({
+                            "error": format!(
+                                "{} already exists with a different size ({} bytes, link says {}).",
+                                path.display(),
+                                meta.len(),
+                                total
+                            ),
+                            "existing_path": path.display().to_string(),
+                            "existing_bytes": meta.len(),
+                            "total": total,
+                        })),
+                    )
+                        .into_response(),
+                    TakeOver::Io(e) => json_err(
+                        StatusCode::INTERNAL_SERVER_ERROR,
+                        &format!("cannot take over {}: {e}", path.display()),
+                    ),
+                });
+            }
+            took_over = existing == Some("resume");
+        }
+        Err(_) => {}
+    }
+    let may_resume = took_over || read_sidecar(partial).is_some_and(|m| m.same_file(meta));
+    if let Err(e) = write_sidecar(partial, meta) {
+        crate::log_warn!("link-download: could not record the partial's source: {e}");
+    }
+    Ok((false, may_resume))
 }
 
 #[cfg(not(target_os = "android"))]
@@ -445,17 +604,23 @@ fn take_over_existing(
 const RESUME_CHECK: u64 = 64 * 1024;
 
 /// Pull the package window by window into `dl.partial`, then rename it to `dl.path`.
+/// `Ok(true)` once the file is complete under its name; `Ok(false)` when cancelled.
 ///
-/// Resumes from the partial file's length: the probe already established that the origin
-/// serves byte ranges (it refuses one that does not), so a resume is always possible. The
-/// last `RESUME_CHECK` bytes are fetched again and compared first; a mismatch, or a partial
+/// With `may_resume` (the partial's sidecar names this link), resumes from the partial
+/// file's length: the probe already established that the origin serves byte ranges (it
+/// refuses one that does not), so a resume is always possible. The first and the last
+/// `RESUME_CHECK` bytes are fetched again and compared first; a mismatch, or a partial
 /// longer than the package, starts over.
 ///
 /// Sequential writes on purpose: the fetcher is already parallel *inside* a
 /// window, so this needs no concurrency of its own, and one append-only
 /// stream is what a spinning disk and a network share both handle best.
 #[cfg(not(target_os = "android"))]
-fn copy_to_file(src: &crate::remote_pkg::RemoteSource, dl: &Arc<Download>) -> std::io::Result<()> {
+fn copy_to_file(
+    src: &crate::remote_pkg::RemoteSource,
+    dl: &Arc<Download>,
+    may_resume: bool,
+) -> std::io::Result<bool> {
     use std::io::Read;
     let mut file = std::fs::OpenOptions::new()
         .create(true)
@@ -465,16 +630,23 @@ fn copy_to_file(src: &crate::remote_pkg::RemoteSource, dl: &Arc<Download>) -> st
         .open(&dl.partial)?;
     let total = dl.total;
     let mut offset = file.metadata()?.len();
-    if offset > total {
+    if offset > total || !may_resume {
         offset = 0;
     }
     if offset > 0 {
-        let from = offset.saturating_sub(RESUME_CHECK);
-        let mut have = vec![0u8; (offset - from) as usize];
-        file.seek(SeekFrom::Start(from))?;
-        file.read_exact(&mut have)?;
-        let fresh = src.read_range(from, offset - 1)?;
-        if fresh != have {
+        let mut same = true;
+        // The head, then the tail (they overlap on a short partial, which is harmless).
+        for from in [0, offset.saturating_sub(RESUME_CHECK)] {
+            let to = (from + RESUME_CHECK).min(offset);
+            let mut have = vec![0u8; (to - from) as usize];
+            file.seek(SeekFrom::Start(from))?;
+            file.read_exact(&mut have)?;
+            if src.read_range(from, to - 1)? != have {
+                same = false;
+                break;
+            }
+        }
+        if !same {
             crate::log_info!(
                 "link-download: the partial file is from another download; starting over"
             );
@@ -489,7 +661,7 @@ fn copy_to_file(src: &crate::remote_pkg::RemoteSource, dl: &Arc<Download>) -> st
 
     while offset < total {
         if dl.cancelled.load(Ordering::Relaxed) {
-            return Ok(());
+            return Ok(false);
         }
         let end = (offset + COPY_WINDOW).min(total) - 1;
         let bytes = src.read_range(offset, end)?;
@@ -504,9 +676,10 @@ fn copy_to_file(src: &crate::remote_pkg::RemoteSource, dl: &Arc<Download>) -> st
     file.sync_all()?;
     drop(file);
     if dl.cancelled.load(Ordering::Relaxed) {
-        return Ok(());
+        return Ok(false);
     }
-    std::fs::rename(&dl.partial, &dl.path)
+    std::fs::rename(&dl.partial, &dl.path)?;
+    Ok(true)
 }
 
 async fn status_handler(
@@ -547,19 +720,37 @@ async fn cancel_handler(
     let Some(dl) = dl else {
         return json_err(StatusCode::NOT_FOUND, "no such download");
     };
-    dl.cancelled.store(true, Ordering::Relaxed);
-    // Remove the partial file. A half-written .pkg left in the downloads
-    // folder is worse than no file: it is indistinguishable from a real
-    // package at a glance, and installing one fails late and confusingly.
-    // Only ever the incomplete one -- a download that already finished is a
-    // file the user asked for, whatever a late cancel says.
-    if !dl.done.load(Ordering::Relaxed) {
-        match std::fs::remove_file(&dl.partial) {
-            Ok(()) => crate::log_info!("link-download cancelled: removed the partial file"),
-            Err(e) if e.kind() == std::io::ErrorKind::NotFound => {}
-            Err(e) => crate::log_warn!("link-download cancelled: could not remove partial: {e}"),
+    // The partial goes: a half-written .pkg left in the downloads folder is worse than no
+    // file, since installing one fails late and confusingly. Only ever the incomplete one --
+    // a download that already finished is a file the user asked for, whatever a late cancel
+    // says. A running worker removes it itself when it sees the cancel; deleting it here
+    // could hit a retry that already owns the name.
+    // An ended download's partial may meanwhile belong to a retry of the same file, which
+    // is left alone. The registry lock is held throughout (before the worker's, as in
+    // `is_live`), so no retry can register in between.
+    let (dl2, id, state) = (dl.clone(), req.id.clone(), state.clone());
+    let _ = tokio::task::spawn_blocking(move || {
+        let items = state.items.lock().unwrap_or_else(|e| e.into_inner());
+        let retry_owns_it = items
+            .iter()
+            .any(|(other_id, o)| *other_id != id && o.path == dl2.path && is_live(o));
+        let running = dl2.worker_running.lock().unwrap_or_else(|e| e.into_inner());
+        dl2.cancelled.store(true, Ordering::Relaxed);
+        if !*running && !retry_owns_it && !dl2.done.load(Ordering::Relaxed) {
+            match remove_partial(&dl2.partial) {
+                Ok(()) => crate::log_info!("link-download cancelled: removed the partial file"),
+                Err(e) => {
+                    crate::log_warn!("link-download cancelled: could not remove partial: {e}")
+                }
+            }
         }
-    }
+        if !*running {
+            dl2.mark_ended();
+        }
+        drop(running);
+        drop(items);
+    })
+    .await;
     (
         StatusCode::OK,
         Json(serde_json::json!({ "download_id": req.id, "cancelled": true })),
@@ -670,7 +861,7 @@ mod tests {
             format!("http://{}/game.pkg", origin.addr),
             data.len() as u64,
         );
-        copy_to_file(&src, &dl).unwrap();
+        assert!(copy_to_file(&src, &dl, true).unwrap());
         assert_eq!(std::fs::read(&dl.path).unwrap(), data);
         assert!(!dl.partial.exists());
         let _ = std::fs::remove_dir_all(&dir);
@@ -690,7 +881,7 @@ mod tests {
             format!("http://{}/game.pkg", origin.addr),
             data.len() as u64,
         );
-        copy_to_file(&src, &dl).unwrap();
+        assert!(copy_to_file(&src, &dl, true).unwrap());
         assert_eq!(std::fs::read(&dl.path).unwrap(), data);
         let _ = std::fs::remove_dir_all(&dir);
     }
@@ -709,7 +900,7 @@ mod tests {
             format!("http://{}/game.pkg", origin.addr),
             data.len() as u64,
         );
-        copy_to_file(&src, &dl).unwrap();
+        assert!(copy_to_file(&src, &dl, true).unwrap());
         assert_eq!(std::fs::read(&dl.path).unwrap(), data);
         let _ = std::fs::remove_dir_all(&dir);
     }
@@ -800,6 +991,140 @@ mod tests {
         assert_eq!(resp.status(), StatusCode::CONFLICT);
         assert_eq!(std::fs::read(&path).unwrap(), &data[..10]);
         let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    /// Cancel while the worker runs: the partial is the worker's to remove, and the entry
+    /// stays live (blocking a second download of the file) until the worker exits.
+    #[cfg(not(target_os = "android"))]
+    #[tokio::test(flavor = "multi_thread")]
+    async fn a_cancelled_download_stays_live_until_its_worker_exits() {
+        let dir = scratch("cancel");
+        let dl = download_for(&dir, 10);
+        *dl.worker_running.lock().unwrap() = true;
+        std::fs::write(&dl.partial, b"half").unwrap();
+        let state: DownloadStateHandle = Arc::default();
+        register_unless_busy(&state, "first", dl.clone()).unwrap();
+        let resp = cancel_handler(
+            State(state.clone()),
+            Json(DownloadCancelRequest { id: "first".into() }),
+        )
+        .await;
+        assert_eq!(resp.status(), StatusCode::OK);
+        assert!(dl.partial.exists(), "the running worker owns the partial");
+        assert_eq!(
+            register_unless_busy(&state, "second", download_for(&dir, 10)),
+            Err("first".to_string())
+        );
+        finish_worker(&dl);
+        assert!(!dl.partial.exists());
+        assert!(register_unless_busy(&state, "third", download_for(&dir, 10)).is_ok());
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    /// Cancelling a failed download never deletes the partial a live retry is writing.
+    #[cfg(not(target_os = "android"))]
+    #[tokio::test(flavor = "multi_thread")]
+    async fn cancelling_a_failed_download_spares_the_retrys_partial() {
+        let dir = scratch("retry");
+        let failed = download_for(&dir, 10);
+        *failed.error.lock().unwrap() = Some("x".into());
+        let state: DownloadStateHandle = Arc::default();
+        register_unless_busy(&state, "failed", failed).unwrap();
+        let retry = download_for(&dir, 10);
+        *retry.worker_running.lock().unwrap() = true;
+        register_unless_busy(&state, "retry", retry.clone()).unwrap();
+        std::fs::write(&retry.partial, b"retry bytes").unwrap();
+        cancel_handler(
+            State(state.clone()),
+            Json(DownloadCancelRequest {
+                id: "failed".into(),
+            }),
+        )
+        .await;
+        assert!(retry.partial.exists());
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    /// A partial is resumed only when its sidecar names the same link and size.
+    #[cfg(not(target_os = "android"))]
+    #[test]
+    fn a_partial_resumes_only_when_its_sidecar_matches() {
+        let dir = scratch("sidecar");
+        let path = dir.join("game.pkg");
+        let partial = partial_path(&path);
+        let meta = |p: &str, etag: Option<&str>| PartialMeta {
+            host: "h".into(),
+            path: p.into(),
+            total: 100,
+            etag: etag.map(str::to_string),
+            last_modified: None,
+        };
+        std::fs::write(&partial, b"x").unwrap();
+        // No sidecar: an unknown partial is not resumed.
+        assert_eq!(
+            prepare_files(&dir, &path, &partial, 100, None, &meta("/a.pkg", None)).unwrap(),
+            (false, false)
+        );
+        // The sidecar now names /a.pkg.
+        assert_eq!(
+            prepare_files(&dir, &path, &partial, 100, None, &meta("/a.pkg", None)).unwrap(),
+            (false, true)
+        );
+        assert_eq!(
+            prepare_files(&dir, &path, &partial, 100, None, &meta("/b.pkg", None)).unwrap(),
+            (false, false)
+        );
+        write_sidecar(&partial, &meta("/a.pkg", Some("\"v1\""))).unwrap();
+        assert!(!read_sidecar(&partial)
+            .unwrap()
+            .same_file(&meta("/a.pkg", Some("\"v2\""))));
+        assert!(read_sidecar(&partial)
+            .unwrap()
+            .same_file(&meta("/a.pkg", None)));
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    /// A partial whose tail matches but whose head does not is another file: start over.
+    #[cfg(not(target_os = "android"))]
+    #[test]
+    fn a_partial_with_a_different_head_starts_over() {
+        use crate::remote_pkg::origin_tests::{body, spawn_origin};
+        let data = body(300_000);
+        let origin = spawn_origin(data.clone(), 0, false);
+        let dir = scratch("head");
+        let dl = download_for(&dir, data.len() as u64);
+        let mut part = data[..200_000].to_vec();
+        part[..1000].fill(0xEE);
+        std::fs::write(&dl.partial, &part).unwrap();
+        let src = crate::remote_pkg::RemoteSource::new(
+            format!("http://{}/game.pkg", origin.addr),
+            data.len() as u64,
+        );
+        assert!(copy_to_file(&src, &dl, true).unwrap());
+        assert_eq!(std::fs::read(&dl.path).unwrap(), data);
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn stopped_downloads_are_forgotten_after_a_while_and_beyond_a_cap() {
+        let mut items = std::collections::HashMap::new();
+        let ended = |ago: u64| {
+            let d = Download::default();
+            *d.ended.lock().unwrap() =
+                std::time::Instant::now().checked_sub(std::time::Duration::from_secs(ago));
+            Arc::new(d)
+        };
+        items.insert("old".to_string(), ended(ENDED_TTL.as_secs() + 5));
+        items.insert("live".to_string(), Arc::new(Download::default()));
+        for i in 0..ENDED_CAP + 3 {
+            items.insert(format!("n{i}"), ended(i as u64));
+        }
+        prune(&mut items);
+        assert!(!items.contains_key("old"));
+        assert!(items.contains_key("live"));
+        assert_eq!(items.len(), ENDED_CAP + 1);
+        // The newest stay.
+        assert!(items.contains_key("n0"));
     }
 
     #[test]
