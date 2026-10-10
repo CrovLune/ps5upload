@@ -278,13 +278,15 @@ pub fn drm_type_override() -> Option<u32> {
 /// Stellar Blade, Black Myth Wukong) is `0x20` / `0x0202_0000`, an app (category 65536: the Web
 /// Browser, YouTube) `0x26` / `0x0602_0000`, and additional content `0x21` / `0x0a02_0000`
 /// (all seven DLC packages read, from four publishers). A DLC's param.json names neither an
-/// `applicationCategoryType` nor an `applicationDrmType`, which every game's and app's does;
-/// that is how one is told apart. A param.json with a category but no DRM type, or a DRM type
-/// but no category, is still a game.
-pub fn content_class(param_json: &[u8]) -> (u32, u32) {
+/// `applicationCategoryType` nor an `applicationDrmType`, which every game's and app's does,
+/// and a DLC carries no `eboot.bin`; both together tell one apart. A homebrew's minimal
+/// param.json names neither key either, but it has an `eboot.bin`: still a game. A param.json
+/// with a category but no DRM type, or a DRM type but no category, is still a game.
+pub fn content_class(param_json: &[u8], has_eboot: bool) -> (u32, u32) {
     let json = crate::source::parse_param_json(param_json);
     let has = |key: &str| json.as_ref().is_some_and(|j| j.get(key).is_some());
-    if json.is_some() && !has("applicationCategoryType") && !has("applicationDrmType") {
+    if !has_eboot && json.is_some() && !has("applicationCategoryType") && !has("applicationDrmType")
+    {
         return (0x21, 0x0a02_0000);
     }
     let category = json
@@ -785,16 +787,21 @@ mod tests {
             "01.000.000", "masterVersion": "01.00", "titleId": "PPSA17599",
             "requiredSystemSoftwareVersion": "0x0000000000000000", "localizedParameters":
             {"defaultLanguage": "en-US", "en-US": {"titleName": "Deluxe Edition Upgrade"}}}"#;
-        assert_eq!(content_class(game), (0x20, 0x0202_0000));
-        assert_eq!(content_class(app), (0x26, 0x0602_0000));
-        assert_eq!(content_class(dlc), (0x21, 0x0a02_0000));
+        assert_eq!(content_class(game, true), (0x20, 0x0202_0000));
+        assert_eq!(content_class(app, true), (0x26, 0x0602_0000));
+        assert_eq!(content_class(dlc, false), (0x21, 0x0a02_0000));
+        // The same minimal param.json with an eboot.bin is a homebrew game, not DLC.
+        assert_eq!(content_class(dlc, true), (0x20, 0x0202_0000));
         // Either key alone keeps it an application; an unreadable file stays a game.
         assert_eq!(
-            content_class(br#"{"applicationDrmType": "standard"}"#).0,
+            content_class(br#"{"applicationDrmType": "standard"}"#, false).0,
             0x20
         );
-        assert_eq!(content_class(br#"{"applicationCategoryType": 0}"#).0, 0x20);
-        assert_eq!(content_class(b"not json").0, 0x20);
+        assert_eq!(
+            content_class(br#"{"applicationCategoryType": 0}"#, false).0,
+            0x20
+        );
+        assert_eq!(content_class(b"not json", false).0, 0x20);
     }
 
     // A test fixture: every field of the parameters with defaults for the fixed ones.
