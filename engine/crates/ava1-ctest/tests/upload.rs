@@ -337,3 +337,60 @@ async fn changed_source_restarts_the_file_never_splices() {
         "old and new bytes were spliced"
     );
 }
+
+/// A job.cancel on the console while an upload runs must end the sender: the console tells the
+/// attached session (a JobDone carrying ERR_CANCELLED), it does not just go quiet.
+#[tokio::test(flavor = "multi_thread")]
+async fn a_cancel_on_the_console_ends_the_attached_sender() {
+    use ava1::gen::{self, JobRef};
+    use ava1::send::{send_job, SendError, SendOptions};
+    use ava1::session::connect;
+    use ava1::source::LocalSource;
+    use ava1::wire::Message;
+
+    let d = dir("e2e-console-cancel");
+    let src = d.join("src");
+    write_tree(&src, 600, |i| 2000 + i);
+    let peers = d.join("peers");
+    let (me, mine) = paired_client(&peers);
+    // The console syncs slowly, so the cancel lands mid-way.
+    let srv = CServer::start_data(SECRET, &peers, &d.join("jobs"), 200, 2000, 2000, 3000);
+    let s = connect(&srv.addr(), me, mine, "rust", calm())
+        .await
+        .unwrap();
+    let job = [0x5C; 16];
+    let source = LocalSource::new(src.clone());
+    let m = ava1::manifest::walk(&source, &|_: &str| false).unwrap();
+    let mut link = s.job(job);
+    let root = d.join("dest");
+    let sending = send_job(
+        &mut link,
+        Arc::new(m),
+        Arc::new(source),
+        SendOptions::upload(root.to_str().unwrap()),
+    );
+    let cancel = async {
+        tokio::time::sleep(Duration::from_millis(400)).await;
+        let r = s
+            .rpc(
+                gen::METHOD_JOB_CANCEL,
+                &JobRef { job_id: job }.to_bytes().unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(r.status, gen::STATUS_OK);
+    };
+    let (end, ()) = tokio::join!(
+        async {
+            tokio::time::timeout(Duration::from_secs(20), sending)
+                .await
+                .expect("the sender was never told the job ended")
+        },
+        cancel
+    );
+    match end {
+        Ok(r) => assert_eq!(r.status, gen::ERR_CANCELLED, "{:?}", r.message),
+        Err(SendError::Refused { status, .. }) => assert_eq!(status, gen::ERR_CANCELLED),
+        Err(e) => panic!("{e}"),
+    }
+}

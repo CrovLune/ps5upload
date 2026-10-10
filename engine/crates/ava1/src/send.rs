@@ -118,6 +118,9 @@ pub struct SendOptions {
     pub open_ack_timeout: Option<Duration>,
     /// The up-front free-space check (see [`SpaceGate`]); `None` = no check.
     pub space_gate: Option<SpaceGate>,
+    /// How long the receiver may say nothing about the job on a live session before the sender
+    /// gives up; `None` = `RECEIVER_SILENT_FATAL`. Tests shorten it.
+    pub receiver_silent_timeout: Option<Duration>,
 }
 
 impl SendOptions {
@@ -137,6 +140,7 @@ impl SendOptions {
             settle_max: None,
             open_ack_timeout: None,
             space_gate: None,
+            receiver_silent_timeout: None,
         }
     }
 }
@@ -576,9 +580,37 @@ fn stall_limit(outstanding: u64) -> Duration {
     }
 }
 
+/// A receiver sends `Status` every 250 ms while a job is open (SPEC.md §16.9), so one that says
+/// nothing at all about the job for this long on a session that is still alive has lost the job
+/// (it was ended behind the sender's back, or its job thread is wedged): the sender ends the
+/// job instead of waiting forever. As generous as the slow-receiver stall: a drive may hold the
+/// console's job thread in one sync for minutes.
+pub const RECEIVER_SILENT_FATAL: Duration = Duration::from_secs(600);
+
+fn receiver_silent(limit: Duration) -> SendError {
+    SendError::Protocol(format!(
+        "the receiver said nothing about the job for {limit:?} although the connection is alive"
+    ))
+}
+
+/// Best effort, and bounded: the receiver has gone quiet, so it may not be reading either.
+async fn tell_stalled(link: &JobLink) {
+    let cancel = gen::JobCancel {
+        job_id: link.job_id,
+        reason: gen::ERR_STALLED,
+    };
+    let _ = tokio::time::timeout(Duration::from_secs(2), link.control.send(&cancel)).await;
+}
+
 /// The next control frame, Status frames skipped (they are advisory). Shared with the
 /// receiver (`recv.rs`), which reads its manifest the same way.
 pub(crate) async fn next_ctl(link: &mut JobLink) -> Result<Frame, SendError> {
+    next_ctl_heard(link, &mut Instant::now()).await
+}
+
+/// `next_ctl`, noting in `heard` when the peer last said anything about the job (a skipped
+/// Status counts). Safe to drop mid-wait: a frame is taken and returned in one step.
+async fn next_ctl_heard(link: &mut JobLink, heard: &mut Instant) -> Result<Frame, SendError> {
     loop {
         match link.rx.recv().await {
             // M6: a Status is skipped by type, but only after its decode succeeds — a
@@ -588,9 +620,13 @@ pub(crate) async fn next_ctl(link: &mut JobLink) -> Result<Frame, SendError> {
             Some(Inbound::Control(f)) if f.ty == Status::TYPE => {
                 f.decode::<Status>()
                     .map_err(|e| SendError::Protocol(e.to_string()))?;
+                *heard = Instant::now();
                 continue;
             }
-            Some(Inbound::Control(f)) => return Ok(f),
+            Some(Inbound::Control(f)) => {
+                *heard = Instant::now();
+                return Ok(f);
+            }
             Some(Inbound::Closed(why)) => return Err(SendError::Disconnected(why)),
             None => return Err(SendError::Disconnected("the session ended".into())),
             Some(_) => {} // lane events before data starts: lanes are read from the router
@@ -661,8 +697,32 @@ pub async fn open_upload(
         .await?;
     let mut need = Need::default();
     let mut credit = ack.credit;
+    // The map may take a while (the receiver replays its journal first), but it is not allowed
+    // to never come: the cancel is honoured and a receiver gone quiet ends the open.
+    let silent = o.receiver_silent_timeout.unwrap_or(RECEIVER_SILENT_FATAL);
+    let mut heard = Instant::now();
     loop {
-        let f = next_ctl(link).await?;
+        if o.cancel.load(Ordering::Relaxed) {
+            let _ = link
+                .control
+                .send(&gen::JobCancel {
+                    job_id,
+                    reason: gen::ERR_CANCELLED,
+                })
+                .await;
+            return Err(SendError::Cancelled);
+        }
+        if heard.elapsed() >= silent {
+            tell_stalled(link).await;
+            return Err(receiver_silent(silent));
+        }
+        let Ok(f) =
+            tokio::time::timeout(Duration::from_millis(100), next_ctl_heard(link, &mut heard))
+                .await
+        else {
+            continue; // re-check the cancel flag and the silence
+        };
+        let f = f?;
         if f.ty == JobDone::TYPE {
             // A job that failed in prepare: the map carried the status already, or it is this.
             let d: JobDone = f.decode().map_err(|e| SendError::Protocol(e.to_string()))?;
@@ -1518,6 +1578,11 @@ pub async fn run_upload(
     let mut opened_start = false;
     // The receiver's JobDone carried `settling`: files are still being made durable in place.
     let mut settle_after = false;
+    // When the receiver last said anything about the job (see `RECEIVER_SILENT_FATAL`).
+    let silent = opts
+        .receiver_silent_timeout
+        .unwrap_or(RECEIVER_SILENT_FATAL);
+    let mut heard = Instant::now();
     let result = 'job: loop {
         if opts.cancel.load(Ordering::Relaxed) {
             let _ = link
@@ -1645,7 +1710,7 @@ pub async fn run_upload(
                     sh.wake();
                 }
                 Some(Inbound::Lane { .. }) => {} // an uploader receives nothing on lanes
-                Some(Inbound::Control(f)) => match f.ty {
+                Some(Inbound::Control(f)) => { heard = Instant::now(); match f.ty {
                     Received::TYPE => match f.decode::<Received>() {
                         Ok(r) => {                            let got = sh.window.lock().unwrap().received(r.seq);
                             let mut s = sh.sched.lock().unwrap();
@@ -1776,9 +1841,15 @@ pub async fn run_upload(
                         Err(e) => break Err(SendError::Protocol(e.to_string())),
                     },
                     _ => {}
-                },
+                } },
             },
             _ = tick.tick() => {
+                // A receiver that is alive but has said nothing about the job for the whole
+                // limit has lost it: end the job here too (and tell it, like every fatal exit).
+                if heard.elapsed() >= silent {
+                    tell_stalled(link).await;
+                    break Err(receiver_silent(silent));
+                }
                 // I2: a stall that has persisted — nothing sent, Received or credited
                 // since it began — is a job the receiver can never advance: fail it
                 // loudly instead of parking forever.
@@ -3361,6 +3432,8 @@ mod tests {
         control_pipe: usize,
         /// The last JobCancel's reason (0: none seen).
         cancel_seen: Arc<AtomicU32>,
+        /// Never answer the manifest with a map (the job was lost behind the sender's back).
+        no_map: bool,
     }
 
     impl Default for FakeReceiver {
@@ -3377,6 +3450,7 @@ mod tests {
                 pause_control: None,
                 control_pipe: 1 << 20,
                 cancel_seen: Arc::new(AtomicU32::new(0)),
+                no_map: false,
             }
         }
     }
@@ -3501,6 +3575,9 @@ mod tests {
                             let me: ManifestEnd = f.decode().unwrap();
                             manifest_bytes = me.bytes;
                             manifest_files = me.files;
+                            if rcv.no_map {
+                                continue;
+                            }
                             peer_w.send_msg(0, &JobMap {
                                 job_id: job,
                                 status: 0,
@@ -4398,6 +4475,74 @@ mod tests {
         .await
         .expect("the receiver saw the JobCancel (reason ERR_STALLED) within the bound");
         let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    /// One small file and a receiver that goes quiet: `no_map` = before the map, else after
+    /// every byte was acknowledged (no JobDone ever comes). The session itself stays alive.
+    async fn quiet_receiver(tag: &str, no_map: bool) {
+        let cancel_seen = Arc::new(AtomicU32::new(0));
+        let (mut link, _lane_seen, _keep) = fake_link(
+            FakeReceiver {
+                credit: 16 << 20,
+                credit_on_apply: true,
+                done_when_complete: false,
+                cancel_seen: cancel_seen.clone(),
+                no_map,
+                ..Default::default()
+            },
+            None,
+        );
+        let dir = std::env::temp_dir().join(format!("ava1-send-{tag}-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).unwrap();
+        std::fs::write(dir.join("f"), vec![0x51u8; 4096]).unwrap();
+        let m = Arc::new(Manifest {
+            entries: vec![Entry {
+                kind: gen::ENTRY_FILE,
+                mode: 0o644,
+                size: 4096,
+                mtime: 1,
+                path: "f".into(),
+                root: None,
+            }],
+        });
+        let mut o = SendOptions::upload("dest");
+        o.receiver_silent_timeout = Some(Duration::from_secs(2));
+        let err = tokio::time::timeout(
+            Duration::from_secs(20),
+            send_job(
+                &mut link,
+                m,
+                Arc::new(crate::source::LocalSource::new(dir.clone())),
+                o,
+            ),
+        )
+        .await
+        .expect("the sender waited forever on a receiver that went quiet")
+        .expect_err("the job never ended on the receiver");
+        assert!(
+            matches!(&err, SendError::Protocol(msg) if msg.contains("said nothing")),
+            "{err:?}"
+        );
+        // The receiver is told, so it lets go of the destination.
+        tokio::time::timeout(Duration::from_secs(10), async {
+            while cancel_seen.load(Ordering::SeqCst) != gen::ERR_STALLED as u32 {
+                tokio::time::sleep(Duration::from_millis(10)).await;
+            }
+        })
+        .await
+        .expect("the receiver saw the JobCancel (reason ERR_STALLED)");
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn a_receiver_that_never_sends_the_map_does_not_hold_the_sender_forever() {
+        quiet_receiver("quiet-map", true).await;
+    }
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn a_receiver_that_goes_quiet_after_the_data_does_not_hold_the_sender_forever() {
+        quiet_receiver("quiet-done", false).await;
     }
 
     #[tokio::test(flavor = "multi_thread")]

@@ -721,7 +721,12 @@ A finished upload or download leaves the table 10 s after its session lets go of
 (`job.copy`) stays listed for the full park age so `job.status` can still answer. Either peer ends a
 job with `JobCancel{job_id, reason}`, where `reason` is the `ERR_*` code the ender wants reported
 (`ERR_CANCELLED` for a user's cancel, `ERR_IO` or `ERR_VERIFY` when a sender's source fails); the
-receiver then ends the job with that status in `JobDone` and keeps the journal.
+receiver then ends the job with that status in `JobDone` and keeps the journal. A `job.cancel`
+on the console ends the job behind its peer's back, so the console tells the session the job is
+attached to before it stops it: `JobDone{ERR_CANCELLED}` for a job it receives, `JobCancel{ERR_CANCELLED}`
+for one it sends (a send to another console is ended by its own session, §18.2). A sender whose
+receiver says nothing at all about the job for 10 minutes on a live session (no `Status`, §16.9, nor
+any other frame) sends `JobCancel{ERR_STALLED}` and fails the job; that also bounds the wait for the map.
 
 11.8 Job flags (`JobOpen.flags`, `JobCopy.flags`, `JnlOpen.flags`). A receiver answers
 `ERR_PROTOCOL` to a flag it does not know.

@@ -1291,6 +1291,44 @@ static int c2c_send(const uint8_t *body, uint32_t len, const uint8_t peer[32], u
     return rc;
 }
 
+/* job.cancel ends a job behind its peer's back: the session it is attached to is told, or its
+ * sender would wait on a job that is gone (the session itself stays up). A receiver ends it
+ * with JobDone (SPEC.md §11.7), a sender with JobCancel. A send to another console is its
+ * watcher's to end (c2c_main), and a copy has no peer. */
+static void tell_cancelled(ava1_job_t *j) {
+    uint8_t b[96];
+    ava1_w_t w;
+    int fin, c2c;
+    if (j->kind == AVA1_JOB_COPY) return;
+    pthread_mutex_lock(&j->mu);
+    fin = j->finished || j->stopping;
+    c2c = j->c2c;
+    pthread_mutex_unlock(&j->mu);
+    if (fin || c2c) return;
+    ava1_w_init(&w, b, sizeof b);
+    if (j->on_frame) {
+        ava1_job_cancel_t c;
+        memset(&c, 0, sizeof c);
+        memcpy(c.job_id, j->id, 16);
+        c.reason = AVA1_ERR_CANCELLED;
+        if (ava1_job_cancel_encode(&c, &w) == 0) ava1_job_emit(j, AVA1_TYPE_JOB_CANCEL, 0, b, w.len);
+    } else {
+        static const char why[] = "cancelled on the console";
+        ava1_job_done_t d;
+        memset(&d, 0, sizeof d);
+        memcpy(d.job_id, j->id, 16);
+        d.status = AVA1_ERR_CANCELLED;
+        pthread_mutex_lock(&j->mu);
+        d.files = j->files_done;
+        d.bytes = j->bytes_durable;
+        pthread_mutex_unlock(&j->mu);
+        d.has_message = 1;
+        d.message = (const uint8_t *)why;
+        d.message_len = sizeof why - 1;
+        if (ava1_job_done_encode(&d, &w) == 0) ava1_job_emit(j, AVA1_TYPE_JOB_DONE, 0, b, w.len);
+    }
+}
+
 int ava1_data_rpc(uint16_t method, const uint8_t *body, uint32_t len, uint8_t *out, size_t cap,
                   size_t *out_len) {
     const uint8_t *peer = ava1_server_rpc_peer();
@@ -1363,7 +1401,10 @@ int ava1_data_rpc(uint16_t method, const uint8_t *body, uint32_t len, uint8_t *o
             st = encode_status(j, out, cap, out_len);
             if (st == AVA1_STATUS_OK && j->kind == AVA1_JOB_OPKIND) ava1_op_status_delivered(j, fin);
         } else if (j->kind == AVA1_JOB_OPKIND) ava1_op_cancel(j); /* an operation: stays listed, finished */
-        else ava1_recv_cancel(j); /* stops it and unlists it: the journal stays */
+        else {
+            tell_cancelled(j);
+            ava1_recv_cancel(j); /* stops it and unlists it: the journal stays */
+        }
         ava1_job_put(j);
         return st;
     }

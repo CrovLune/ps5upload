@@ -706,6 +706,7 @@ pub fn upload_with_seq_in(
                 settle_max: None,
                 open_ack_timeout: pool.open_ack_timeout(),
                 space_gate: Some(space_gate.clone()),
+                receiver_silent_timeout: None,
             };
             let (started, durable_before) = (
                 Instant::now(),
