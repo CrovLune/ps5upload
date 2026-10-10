@@ -36,6 +36,12 @@ fn rescan() {
 
 // ─── Move to Trash ─────────────────────────────────────────────────────
 
+/// `paths` in order, each once: a path named twice is one copy, counted and removed once.
+fn unique(paths: &[String]) -> Vec<&String> {
+    let mut seen = std::collections::HashSet::new();
+    paths.iter().filter(|p| seen.insert(p.as_str())).collect()
+}
+
 /// Whether `path` sits below (never at) one of the current local library folders, reached
 /// only through ordinary names. The index can be imported from elsewhere, so a copy's path is
 /// checked against the folders the user has now before anything is removed.
@@ -141,11 +147,7 @@ pub async fn post_trash_preview(Json(req): Json<TrashPreviewReq>) -> Response {
     };
     let roots = settings().roots;
     let mut items = Vec::new();
-    let mut seen = std::collections::HashSet::new();
-    for p in &req.paths {
-        if !seen.insert(p.as_str()) {
-            continue;
-        }
+    for p in unique(&req.paths) {
         let found = lib.games.values().find_map(|g| {
             g.locations
                 .iter()
@@ -1064,6 +1066,12 @@ mod tests {
         assert!(!strictly_under_a_root("/etc/passwd", &roots));
         assert!(!strictly_under_a_root("remote://abc/x/y.pkg", &roots));
         assert!(!strictly_under_a_root("/a.pkg", &[]));
+    }
+
+    #[test]
+    fn a_path_named_twice_is_previewed_once() {
+        let paths = vec!["/a".to_string(), "/b".to_string(), "/a".to_string()];
+        assert_eq!(unique(&paths), vec!["/a", "/b"]);
     }
 
     #[test]
