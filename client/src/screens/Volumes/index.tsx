@@ -455,8 +455,11 @@ export function StorageCard({
       : 0;
   return (
     <article className="flex flex-col gap-3 rounded-[var(--radius-panel)] border border-[var(--glass-edge)] bg-[var(--color-surface-raised)] p-5 shadow-[var(--edge-highlight),var(--shadow-1)]">
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
+      {/* Wraps: "Package copies are stored here" is wider than what is left
+          beside the path, and used to run out past the card's edge while
+          squeezing the line under the path onto two rows. */}
+      <div className="flex flex-wrap items-start justify-between gap-x-3 gap-y-2">
+        <div className="min-w-[9rem] flex-1">
           <div className="truncate font-mono text-sm">{v.path}</div>
           <div className="mt-0.5 text-xs text-[var(--color-muted)]">
             {v.mount_from ? `${v.mount_from} · ` : ""}
@@ -471,8 +474,8 @@ export function StorageCard({
           </Badge>
         )}
         {v.writable && isPackageDrive && (
-          <Badge tone="accent" variant="soft" size="md">
-            <PackageCheck size={12} className="mr-1 inline" aria-hidden />
+          <Badge tone="accent" variant="soft" size="md" className="max-w-full">
+            <PackageCheck size={12} className="me-1 inline" aria-hidden />
             {tr("volumes_pkg_copies_here", undefined, "Package copies are stored here")}
           </Badge>
         )}
