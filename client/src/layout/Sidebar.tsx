@@ -10,7 +10,7 @@ import { useUpdateStore } from "../state/update";
 import { useNavSidebarStore } from "../state/navSidebar";
 import { isTauriEnv } from "../lib/tauriEnv";
 import { useBetaFeaturesStore } from "../state/betaFeatures";
-import { Orb } from "../components/Orb";
+import { AppLogo } from "../components/AppLogo";
 import RosterPicker from "./RosterPicker";
 import { isPinnedNav, PINNED_NAV_ITEMS, sidebarGroups, type NavItem } from "./navItems";
 import { isMacOrLinuxDesktop } from "../lib/platform";
@@ -86,7 +86,7 @@ export default function Sidebar() {
           // Pills: the active one is the white pill with a coral icon
           // (`.nav-pill` in index.css keys off aria-current).
           className={[
-            "nav-pill relative flex min-h-11 items-center rounded-full text-[0.875rem] transition-[background-color,color,box-shadow]",
+            "nav-pill relative flex min-h-9 items-center rounded-[var(--radius-field)] text-[0.875rem] transition-[background-color,color,box-shadow]",
             "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[var(--color-accent)]",
             collapsed ? "justify-center px-2" : "gap-3 px-4",
           ].join(" ")}
@@ -133,8 +133,7 @@ export default function Sidebar() {
     <aside
       data-testid="desktop-sidebar"
       data-collapsed={collapsed ? "true" : "false"}
-      // Sits inside the shell's glass canvas, so it has no fill of its own.
-      className={`hidden min-h-0 shrink-0 flex-col transition-[width] duration-200 md:flex ${
+      className={`shell-sidebar hidden min-h-0 shrink-0 flex-col transition-[width] duration-200 md:flex ${
         collapsed ? "w-[5rem]" : "w-[17rem]"
       }`}
     >
@@ -150,7 +149,7 @@ export default function Sidebar() {
             collapsed ? "justify-center" : "flex-1"
           }`}
         >
-          <Orb size={collapsed ? 34 : 40} />
+          <AppLogo size={collapsed ? 34 : 38} />
           {!collapsed && (
             <span className="min-w-0">
               <span className="block truncate text-[1.25rem] leading-tight font-semibold tracking-[-0.02em]">
@@ -236,7 +235,7 @@ export default function Sidebar() {
           aria-label={
             collapsed ? tr("v5_tab_more", undefined, "More") : undefined
           }
-          className={`flex h-11 items-center rounded-full text-[0.875rem] text-[var(--color-text)] hover:bg-[var(--color-surface)] ${
+          className={`flex h-9 items-center rounded-[var(--radius-field)] text-[0.875rem] text-[var(--color-text)] hover:bg-[var(--color-surface)] ${
             collapsed ? "w-11 justify-center" : "min-w-0 flex-1 gap-3 px-4"
           }`}
         >

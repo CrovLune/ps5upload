@@ -66,7 +66,7 @@ import {
   MAX_REDEPLOYS_WITHOUT_RECOVERY,
 } from "../lib/autoRedeploy";
 import { CommandPalette, openCommandPalette } from "../components/CommandPalette";
-import { Orb } from "../components/Orb";
+import { AppLogo } from "../components/AppLogo";
 import NotificationInbox from "./NotificationInbox";
 import { useThemeStore } from "../state/theme";
 import { ShortcutsOverlay } from "../components/ShortcutsOverlay";
@@ -1397,7 +1397,7 @@ export default function AppShell() {
           tab bar. Only renders below md. */}
       <div className="h-top-bar flex items-center gap-2.5 px-4 pb-2 pt-[calc(env(safe-area-inset-top)_+_0.5rem)] md:hidden">
         <NavigationControls />
-        <Orb size={28} />
+        <AppLogo size={28} />
         <span className="text-base font-semibold tracking-[-0.02em]">PS5Upload</span>
       </div>
       <HelperVersionBanner />
@@ -1406,10 +1406,9 @@ export default function AppShell() {
       <AndroidLocalNetworkBanner />
       <AndroidStorageAccessBanner />
 
-      {/* Desktop: one big rounded glass canvas floating on the atmosphere, with
-          the sidebar inside it. Phones keep the full-bleed layout. */}
-      <div className="flex min-h-0 flex-1 md:px-4 md:pt-4 lg:px-5 lg:pt-5">
-        <div className="shell-canvas flex min-h-0 min-w-0 flex-1">
+      {/* Desktop: the sidebar runs to the window edge, the content beside it. */}
+      <div className="flex min-h-0 flex-1">
+        <div className="flex min-h-0 min-w-0 flex-1">
           {/* Desktop defaults to labeled navigation again. Users who prefer the
               compact v5 rail can collapse it explicitly; that choice persists. */}
           <Sidebar />

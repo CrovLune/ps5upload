@@ -1,10 +1,10 @@
-import { useMemo, useState, type CSSProperties } from "react";
+import { useMemo, useState } from "react";
 import PowerControl from "../Connection/PowerControl";
 import { Link } from "react-router";
 import {
   Activity as ActivityIcon,
   ArrowRight,
-  ArrowUpRight,
+  ChevronRight,
   Bell,
   Cable,
   Coffee,
@@ -26,7 +26,8 @@ import { useActivityHistoryStore } from "../../state/activityHistory";
 import { useNotificationsStore } from "../../state/notifications";
 import { useRunningTitleIds } from "../../state/runningApps";
 import { useSensors } from "../../state/sensors";
-import { Badge, Card, ConsoleChip, Orb, Sparkline, Spinner } from "../../components";
+import { AppLogo } from "../../components/AppLogo";
+import { Badge, Card, ConsoleChip, Sparkline, Spinner } from "../../components";
 import { useTr } from "../../state/lang";
 import { openExternalUrl } from "../../lib/openExternalUrl";
 import { COFFEE_URL } from "../../lib/supportLinks";
@@ -38,34 +39,6 @@ import {
   evaluateOperationReadiness,
   type Operation,
 } from "../../lib/operationReadiness";
-
-/** The soft generated "photo" behind each action tile: a blurred mesh of the
- *  reference palette, one per tile so they read apart at a glance. No images,
- *  no network. */
-const TILE_PHOTOS: Record<string, string> = {
-  upload:
-    "radial-gradient(60% 70% at 18% 30%, #b8a2ea 0%, transparent 70%), radial-gradient(55% 60% at 62% 45%, #ff8fc6 0%, transparent 70%), radial-gradient(50% 55% at 85% 20%, #c9b8ff 0%, transparent 70%), radial-gradient(60% 50% at 40% 85%, #ffb486 0%, transparent 70%), linear-gradient(165deg, #cdb9f2 0%, #f6c3da 60%, #fde4dc 100%)",
-  install:
-    "radial-gradient(60% 60% at 25% 70%, #f6c39c 0%, transparent 70%), radial-gradient(70% 60% at 70% 35%, #bfe3d0 0%, transparent 70%), radial-gradient(50% 50% at 50% 50%, #e8efe0 0%, transparent 70%), linear-gradient(170deg, #d9eee4 0%, #f3e5d4 70%, #fbf1ea 100%)",
-  games:
-    "radial-gradient(55% 60% at 25% 40%, #ffaf85 0%, transparent 70%), radial-gradient(45% 55% at 70% 30%, #7fd39b 0%, transparent 70%), radial-gradient(60% 50% at 55% 75%, #ffe0c2 0%, transparent 70%), linear-gradient(150deg, #ffc39f 0%, #d8efc9 55%, #f4f1e0 100%)",
-  files:
-    "radial-gradient(50% 70% at 30% 35%, #93b2ea 0%, transparent 70%), radial-gradient(45% 70% at 70% 45%, #f597b4 0%, transparent 70%), radial-gradient(60% 45% at 50% 90%, #e9e1f7 0%, transparent 70%), linear-gradient(180deg, #b9c8f0 0%, #f2bfd2 60%, #f1ecf7 100%)",
-  saves:
-    "radial-gradient(55% 60% at 30% 60%, #ff8d63 0%, transparent 70%), radial-gradient(50% 55% at 72% 35%, #ffd27a 0%, transparent 70%), radial-gradient(55% 50% at 60% 85%, #ffc0d2 0%, transparent 70%), linear-gradient(160deg, #ffb895 0%, #ffe3b8 55%, #fde8ee 100%)",
-  convert:
-    "radial-gradient(55% 60% at 25% 35%, #ff9ac2 0%, transparent 70%), radial-gradient(55% 60% at 75% 60%, #c8b3ff 0%, transparent 70%), radial-gradient(50% 45% at 50% 90%, #ffd1a6 0%, transparent 70%), linear-gradient(140deg, #ffc3d9 0%, #e1d2fb 60%, #fbe9e1 100%)",
-};
-
-/** How each tile's light streaks lie, so no two photos look stamped from one. */
-const TILE_STREAKS: Record<string, string> = {
-  upload: "rotate(-7deg)",
-  install: "rotate(4deg) scaleX(-1)",
-  games: "rotate(-14deg) translateY(8%)",
-  files: "rotate(78deg) scale(1.3)",
-  saves: "rotate(10deg) translateY(-6%)",
-  convert: "rotate(-3deg) scaleX(-1) translateY(10%)",
-};
 
 type RecentFilter = "all" | "done" | "failed";
 
@@ -177,27 +150,17 @@ export default function HomeScreen() {
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_21rem]">
         <div className="min-w-0 space-y-6">
-          {/* The main actions as framed photo tiles: one wide, the rest in a row. */}
-          {/* The main actions as framed photo tiles, a mosaic like the reference:
-              Upload large on the left, two stacked beside it, three below. */}
+          {/* The main actions: six even tiles, each a plain glass card. */}
           <section
             aria-label={tr("v5_home_quick_actions", "Quick actions")}
-            className="grid grid-cols-2 gap-4 sm:auto-rows-[10.5rem] sm:grid-cols-6"
+            className="grid grid-cols-2 gap-3 sm:grid-cols-3"
           >
-            <PhotoTile
-              to="/upload"
-              photo="upload"
-              icon={Upload}
-              label={tr("v5_qa_upload", "Upload files")}
-              readiness={readinessFor("upload")}
-              className="col-span-2 h-48 sm:col-span-4 sm:row-span-2 sm:h-auto"
-              large
-            />
-            <PhotoTile to="/install-package" photo="install" icon={PackageOpen} label={tr("v5_qa_install", "Install package")} readiness={readinessFor("install-package")} className="h-40 sm:col-span-2 sm:h-auto" />
-            <PhotoTile to="/games" photo="games" icon={Gamepad2} label={tr("v5_qa_games", "Open Games")} readiness={readinessFor("browse-console")} className="h-40 sm:col-span-2 sm:h-auto" />
-            <PhotoTile to="/files" photo="files" icon={FolderTree} label={tr("v5_qa_files", "Browse files")} readiness={readinessFor("browse-console")} className="h-40 sm:col-span-2 sm:h-auto" />
-            <PhotoTile to="/saves" photo="saves" icon={Save} label={tr("v5_qa_saves", "Back up saves")} readiness={readinessFor("browse-console")} className="h-40 sm:col-span-2 sm:h-auto" />
-            <PhotoTile to="/convert" photo="convert" icon={PackagePlus} label={tr("v5_qa_convert", "Convert")} readiness={readinessFor("local-only")} className="col-span-2 h-40 sm:col-span-2 sm:h-auto" />
+            <ActionTile to="/upload" icon={Upload} label={tr("v5_qa_upload", "Upload files")} readiness={readinessFor("upload")} />
+            <ActionTile to="/install-package" icon={PackageOpen} label={tr("v5_qa_install", "Install package")} readiness={readinessFor("install-package")} />
+            <ActionTile to="/games" icon={Gamepad2} label={tr("v5_qa_games", "Open Games")} readiness={readinessFor("browse-console")} />
+            <ActionTile to="/files" icon={FolderTree} label={tr("v5_qa_files", "Browse files")} readiness={readinessFor("browse-console")} />
+            <ActionTile to="/saves" icon={Save} label={tr("v5_qa_saves", "Back up saves")} readiness={readinessFor("browse-console")} />
+            <ActionTile to="/convert" icon={PackagePlus} label={tr("v5_qa_convert", "Convert")} readiness={readinessFor("local-only")} />
           </section>
 
           {/* The newest games from the Collection, framed like the reference's
@@ -276,11 +239,10 @@ export default function HomeScreen() {
           </section>
         </div>
 
-        {/* The greeting panel: the orb, a time-of-day hello, and everything about the console. */}
+        {/* The greeting panel: the app mark, a time-of-day hello, and everything about the console. */}
         <aside className="glass relative min-w-0 self-start overflow-hidden rounded-[var(--radius-panel)] p-6">
-          <div aria-hidden className="dot-texture pointer-events-none absolute inset-x-0 top-0 h-56" />
           <div className="relative flex flex-col items-center pt-2 text-center">
-            <Orb size={72} />
+            <AppLogo size={64} />
             <p className="mt-5 text-[1.6rem] leading-[1.2] tracking-[-0.02em]">
               <span className="font-semibold">{greeting},</span>{" "}
               <span>{tr("v5_home_greeting_question", "What are we sending today?")}</span>
@@ -324,9 +286,7 @@ export default function HomeScreen() {
               {connected
                 ? tr("v5_home_manage_connection", "Manage connection")
                 : tr("v5_home_connect", "Connect PS5")}
-              <span className="photo-tile-arrow h-9 w-9">
-                <ArrowRight size={16} aria-hidden />
-              </span>
+              <ArrowRight size={16} aria-hidden className="me-3 shrink-0 text-[var(--color-muted)] rtl:rotate-180" />
             </Link>
           </div>
 
@@ -460,72 +420,47 @@ function SensorMetric({ label, value }: { label: string; value: string }) {
   );
 }
 
-/** A main action as a framed photo: thick white frame, the soft generated
- *  photo, the label bottom-left and a white round arrow. When the action
- *  can't run yet it stays visible but inert, with the reason in place of
- *  "Ready". */
-function PhotoTile({
+/** A main action as a plain glass tile: icon, label, and whether it can run.
+ *  When it can't run yet it stays visible but inert, with the reason in place
+ *  of "Ready". */
+function ActionTile({
   to,
-  photo,
   icon: Icon,
   label,
   readiness,
-  className = "",
-  large = false,
 }: {
   to: string;
-  photo: keyof typeof TILE_PHOTOS;
   icon: LucideIcon;
   label: string;
   readiness: { ready: boolean; blockers: string[]; warnings: string[] };
-  className?: string;
-  large?: boolean;
 }) {
   const tr = useTr();
   const detail = readiness.ready
     ? readiness.warnings[0] || tr("v5_qa_ready", "Ready")
     : readiness.blockers[0] || tr("v5_qa_unavailable", "Unavailable");
-  const photoStyle: CSSProperties = { backgroundImage: TILE_PHOTOS[photo] };
   const content = (
-    <span className="photo-tile-image block" style={{ "--streak": TILE_STREAKS[photo] } as CSSProperties}>
-      {/* Blurred and slightly enlarged, so the mesh reads as a soft
-          long-exposure photo rather than a gradient. */}
-      <span aria-hidden className="absolute -inset-6 -z-10 block blur-xl saturate-[1.15]" style={photoStyle} />
-      <span className="absolute left-4 top-4 z-[1] grid h-9 w-9 place-items-center rounded-full bg-white/70 text-[#2a2224] shadow-sm backdrop-blur-sm">
-        <Icon size={16} aria-hidden />
+    <>
+      <span className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-[var(--color-accent-soft)] text-[var(--color-accent-bright)]">
+        <Icon size={18} aria-hidden />
       </span>
-      {/* The arrow sits beside the label on the wide tile, as in the reference;
-          on the narrow ones it moves to the top corner so the label keeps the
-          whole width. */}
-      {readiness.ready && !large && (
-        <span className="photo-tile-arrow absolute right-4 top-4 z-[1]">
-          <ArrowUpRight size={18} aria-hidden />
-        </span>
+      <span className="min-w-0 flex-1">
+        <span className="line-clamp-2 block text-[0.9375rem] font-medium leading-tight tracking-[-0.01em]">{label}</span>
+        <span className="mt-0.5 block truncate text-[0.6875rem] text-[var(--color-muted)]">{detail}</span>
+      </span>
+      {readiness.ready && (
+        <ChevronRight size={16} aria-hidden className="shrink-0 text-[var(--color-muted)] rtl:rotate-180" />
       )}
-      <span className="absolute inset-x-0 bottom-0 z-[1] flex items-end gap-3 p-4">
-        <span className="min-w-0 flex-1">
-          <span className={`line-clamp-2 block font-medium leading-tight tracking-[-0.01em] text-[var(--color-text)] ${large ? "text-[1.5rem]" : "text-[1rem]"}`}>
-            {label}
-          </span>
-          <span className="mt-0.5 block truncate text-[0.6875rem] text-[var(--color-muted)]">{detail}</span>
-        </span>
-        {readiness.ready && large && (
-          <span className="photo-tile-arrow shrink-0">
-            <ArrowUpRight size={18} aria-hidden />
-          </span>
-        )}
-      </span>
-    </span>
+    </>
   );
   if (!readiness.ready) {
     return (
-      <div aria-disabled="true" title={readiness.blockers.join(" ")} className={`photo-tile ${className}`}>
+      <div aria-disabled="true" title={readiness.blockers.join(" ")} className="action-tile">
         {content}
       </div>
     );
   }
   return (
-    <Link to={to} className={`photo-tile ${className}`}>
+    <Link to={to} className="action-tile">
       {content}
     </Link>
   );
@@ -535,8 +470,8 @@ function CompactEmpty({ icon: Icon, title, body }: { icon: LucideIcon; title: st
   return (
     <div className="flex min-h-24 items-center gap-4 rounded-[var(--radius-card)] bg-[var(--color-surface)] px-4 py-3">
       <span className="relative grid h-11 w-11 shrink-0 place-items-center">
-        <Orb size={44} className="[grid-area:1/1]" />
-        <Icon size={17} className="relative text-white [grid-area:1/1]" />
+        <span aria-hidden className="h-11 w-11 rounded-2xl bg-[var(--color-accent-soft)] [grid-area:1/1]" />
+        <Icon size={17} className="relative text-[var(--color-accent-bright)] [grid-area:1/1]" />
       </span>
       <div>
         <div className="text-xs font-semibold">{title}</div>

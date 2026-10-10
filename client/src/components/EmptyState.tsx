@@ -1,6 +1,5 @@
 import type { LucideIcon } from "lucide-react";
 
-import { Orb } from "./Orb";
 
 /**
  * v5 EmptyState primitive (§22.29).
@@ -63,17 +62,20 @@ export function EmptyState({
 
   const content = body ?? message;
   const Heading = headingTag;
-  // Pick the icon/hero node: hero wins, then icon. The icon sits on a small
-  // orb, the app's soft focal point.
+  // Pick the icon/hero node: hero wins, then icon. The icon sits on a soft
+  // accent-tinted disc.
   const big = size === "hero" || fill;
   const heroNode = hero ?? (Icon ? (
     <span
       className={`relative mx-auto grid place-items-center ${big ? "mb-5 h-16 w-16" : "mb-3 h-11 w-11"}`}
     >
-      <Orb size={big ? 64 : 44} className="[grid-area:1/1]" />
+      <span
+        aria-hidden
+        className={`rounded-full bg-[var(--color-accent-soft)] [grid-area:1/1] ${big ? "h-16 w-16" : "h-11 w-11"}`}
+      />
       <Icon
         size={big ? 26 : 18}
-        className="relative [grid-area:1/1] text-white drop-shadow-[0_1px_2px_rgb(120_30_40/0.4)]"
+        className="relative [grid-area:1/1] text-[var(--color-accent-bright)]"
         aria-hidden
       />
     </span>
