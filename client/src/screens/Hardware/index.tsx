@@ -794,7 +794,9 @@ function StatRow({
   // One metric row: label left, value right, the hint (if any) under the
   // value in small muted type rather than squeezed in beside it.
   return (
-    <div className="metric-row min-w-0 py-2">
+    // Baseline, not centre: with a hint under the value, the label lines up
+    // with the value instead of floating between the value and the hint.
+    <div className="metric-row min-w-0 py-2" style={{ alignItems: "baseline" }}>
       <dt className="min-w-0 text-[var(--color-muted)]">{label}</dt>
       <dd className="min-w-0 max-w-[65%] shrink-0 text-right" title={hint}>
         <div className="whitespace-nowrap font-mono tabular-nums">{value}</div>

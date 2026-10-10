@@ -152,7 +152,7 @@ export default function GameActivityScreen() {
           }
         />
 
-        {error && <div className="mb-4"><ErrorCard title={error} /></div>}
+        {error && <div className="mb-4"><ErrorCard title={error} onRetry={() => void refresh()} /></div>}
 
         <Tabs
           className="mb-5"

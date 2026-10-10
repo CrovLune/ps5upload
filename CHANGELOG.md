@@ -19,8 +19,7 @@ faster and harder to break.
   recent games, and a console panel that stays beside the page as you scroll.
 - Page content lines up with its header on every screen instead of sitting in a narrow centred
   column.
-- **Game covers** sit in white frames everywhere, and each game's page opens with a large cover
-  and the facts at a glance.
+- Each **game's page** opens with a large cover and the facts at a glance.
 - Every screen was brought into the new style, on desktop and on phones (a floating tab bar).
 - Light mode no longer shows dark bands or an invisible page title (the cause was in how the
   styles were built).
