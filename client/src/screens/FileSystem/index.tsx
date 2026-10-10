@@ -15,6 +15,7 @@ import {
   useState,
   type ComponentType,
 } from "react";
+import { createPortal } from "react-dom";
 import { useNavigate, useSearchParams } from "react-router";
 import { usePackageViewer } from "../../state/packageViewer";
 import { useShallow } from "zustand/react/shallow";
@@ -3876,7 +3877,11 @@ function RowMenu({
       window.removeEventListener("keydown", onKey);
     };
   }, [onClose]);
-  return (
+  // On <body>, not in the screen: the shell canvas clips its content and (having
+  // a backdrop filter) is what `position: fixed` measures from inside it, so a
+  // menu opened low on the page was cut off at the canvas edge and sat offset
+  // from the pointer.
+  return createPortal(
     <div
       ref={ref}
       role="menu"
@@ -3906,6 +3911,7 @@ function RowMenu({
           {it.label}
         </button>
       ))}
-    </div>
+    </div>,
+    document.body
   );
 }
