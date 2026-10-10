@@ -67,8 +67,10 @@ export function ActivitySummaryLine({
       type="button"
       onClick={onToggle}
       aria-expanded={open}
+      aria-controls={open ? ACTIVITY_PANEL_ID : undefined}
+      data-activity-toggle
       aria-label={tr("activity_toggle", undefined, "Show activity")}
-      className="flex min-w-0 max-w-[28rem] items-center gap-1.5 rounded px-1 hover:text-[var(--color-text)]"
+      className="flex min-w-0 max-w-[28rem] items-center gap-1.5 rounded-full px-1 hover:text-[var(--color-text)]"
     >
       {body}
       {summary.failedUnseen > 0 && (
@@ -80,6 +82,9 @@ export function ActivitySummaryLine({
     </button>
   );
 }
+
+/** The open panel's id: the summary line points `aria-controls` at it. */
+export const ACTIVITY_PANEL_ID = "activity-panel";
 
 export interface ActivityPanelProps {
   summary: ActivitySummary;
@@ -98,7 +103,15 @@ export function ActivityPanelView(props: ActivityPanelProps) {
   const tr = useTr();
   const { summary, onOpen } = props;
   return (
-    <div className="glass-float mx-4 mt-3 max-h-[50vh] space-y-3 overflow-y-auto rounded-[var(--radius-card)] px-5 py-4 text-xs lg:mx-5">
+    <div
+      id={ACTIVITY_PANEL_ID}
+      role="region"
+      aria-label={tr("activity_toggle", undefined, "Show activity")}
+      // Focusable by script: opening the panel moves focus here (ActivityBar),
+      // so the next Tab lands on its first control.
+      tabIndex={-1}
+      className="glass-float mx-4 mt-3 max-h-[50vh] space-y-3 overflow-y-auto rounded-[var(--radius-card)] px-5 py-4 text-xs outline-none lg:mx-5"
+    >
       {summary.running.length === 0 ? (
         <p className="text-[var(--color-muted)]">
           {tr("activity_nothing_running", undefined, "Nothing running")}
@@ -173,11 +186,11 @@ function RunningRow({ row, onOpen, onCancel, canCancel, consoleOf }: { row: Acti
           </button>
         )}
       </div>
-      <div className="mt-1 h-1 overflow-hidden rounded bg-[var(--color-surface-3)]">
+      <div className="mt-1 h-1 overflow-hidden rounded-full bg-[var(--color-surface-3)]">
         {pct != null ? (
-          <div className="h-1 rounded bg-[var(--color-accent)]" style={{ width: `${Math.min(100, pct)}%` }} />
+          <div className="h-1 rounded-full bg-[var(--color-accent)]" style={{ width: `${Math.min(100, pct)}%` }} />
         ) : (
-          <div className="h-1 w-1/3 animate-pulse rounded bg-[var(--color-accent)] opacity-60" />
+          <div className="h-1 w-1/3 animate-pulse rounded-full bg-[var(--color-accent)] opacity-60" />
         )}
       </div>
     </li>
