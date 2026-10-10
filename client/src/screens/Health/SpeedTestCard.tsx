@@ -78,21 +78,26 @@ export function SpeedTestCard({ host }: { host: string }) {
     <div className="mb-5" data-testid="speed-test-card">
       <Card className="p-4">
         <div className="flex flex-wrap items-center gap-3">
-          <Gauge
-            size={18}
-            aria-hidden
-            className="shrink-0 text-[var(--color-muted)]"
-          />
-          <div className="min-w-0 flex-1">
-            <div className="text-sm font-semibold">
-              {tr("speedtest.title", undefined, "Speed test")}
-            </div>
-            <div className="text-xs text-[var(--color-muted)]">
-              {tr(
-                "speedtest.help",
-                undefined,
-                "Sends a test file to the PS5 and reads it back, the same way a real copy goes, then removes it from both. It measures your network between this computer and the PS5, not your internet.",
-              )}
+          {/* Wants 18rem before it shares the row: on a phone the size picker
+              and the button drop under the text instead of squeezing it into a
+              column three words wide. */}
+          <div className="flex min-w-0 flex-[1_1_18rem] items-center gap-3">
+            <Gauge
+              size={18}
+              aria-hidden
+              className="shrink-0 text-[var(--color-muted)]"
+            />
+            <div className="min-w-0 flex-1">
+              <div className="text-sm font-semibold">
+                {tr("speedtest.title", undefined, "Speed test")}
+              </div>
+              <div className="text-xs text-[var(--color-muted)]">
+                {tr(
+                  "speedtest.help",
+                  undefined,
+                  "Sends a test file to the PS5 and reads it back, the same way a real copy goes, then removes it from both. It measures your network between this computer and the PS5, not your internet.",
+                )}
+              </div>
             </div>
           </div>
           <label className="flex items-center gap-2 text-xs text-[var(--color-muted)]">
@@ -101,7 +106,7 @@ export function SpeedTestCard({ host }: { host: string }) {
               value={sizeMib}
               disabled={running}
               onChange={(e) => setSizeMib(Number(e.currentTarget.value))}
-              className="rounded border border-[var(--color-border)] bg-[var(--color-surface)] px-2 py-1 text-sm text-[var(--color-text)]"
+              className="select w-auto!"
             >
               {SIZES.map((s) => (
                 <option key={s} value={s}>
