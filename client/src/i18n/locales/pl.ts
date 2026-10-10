@@ -129,6 +129,8 @@ processes_error: "Akcja na procesie nieudana",
 processes_truncated:
   "Lista procesów została skrócona — zbyt dużo procesów aby wyświetlić wszystkie.",
 processes_empty_title: "Brak procesów",
+processes_paused_title: "Oczekiwanie na zakończenie transferu",
+processes_paused_body: "Lista procesów nie jest odczytywana, gdy dane są przesyłane do tej PS5 lub z niej, aby transfer nie zwalniał. Odśwież odczyta ją teraz.",
 processes_empty_all: "Nic nie jest uruchomione.",
 processes_empty_user:
   "Brak gier lub działających payloadów. Zaznacz “Pokaż procesy systemowe” aby zobaczyć wszystko.",

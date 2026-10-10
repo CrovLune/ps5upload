@@ -143,6 +143,8 @@ processes_error: "Process action failed",
 processes_truncated:
   "The process list was cut short — too many processes to show all.",
 processes_empty_title: "No processes",
+processes_paused_title: "Waiting for the transfer to finish",
+processes_paused_body: "The process list is not read while data is moving to or from this PS5, so the transfer keeps its speed. Refresh reads it now.",
 processes_empty_all: "Nothing is running.",
 processes_empty_user:
   "No games or payloads are running. Toggle “Show system processes” to see everything.",

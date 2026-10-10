@@ -1,4 +1,4 @@
-import { usePoll } from "../../lib/usePoll";
+import { usePoll, useTransferBusy } from "../../lib/usePoll";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Cpu, RefreshCw, RotateCw, Skull, TriangleAlert, Layers } from "lucide-react";
 
@@ -13,6 +13,7 @@ import {
   Modal,
   Badge,
   Select,
+  SkeletonRows,
   Toggle,
   ConnectionGate,
 } from "../../components";
@@ -143,6 +144,8 @@ export default function ProcessesScreen() {
   // it still loads once on mount, on a console switch and when shown again.
   // The shared poller also stands aside while a transfer runs to this console.
   usePoll(refresh, autoRefresh ? REFRESH_MS : null, { host: addr, enabled: online && windowVisible });
+  // ...which means a screen opened mid-transfer has no first load to show.
+  const transferring = useTransferBusy(addr);
 
   const doKill = useCallback(
     async (p: ProcessInfo) => {
@@ -334,7 +337,28 @@ export default function ProcessesScreen() {
           </div>
         )}
 
-        {loadedOnce && visible.length === 0 && !error ? (
+        {!loadedOnce && !error ? (
+          // Nothing read yet. During a transfer the poll is standing aside, so
+          // say so (the page used to be blank under the toolbar); otherwise the
+          // first read is on its way.
+          transferring ? (
+            <EmptyState
+              icon={Cpu}
+              title={tr(
+                "processes_paused_title",
+                undefined,
+                "Waiting for the transfer to finish",
+              )}
+              message={tr(
+                "processes_paused_body",
+                undefined,
+                "The process list is not read while data is moving to or from this PS5, so the transfer keeps its speed. Refresh reads it now.",
+              )}
+            />
+          ) : (
+            <SkeletonRows rows={6} />
+          )
+        ) : loadedOnce && visible.length === 0 && !error ? (
           <EmptyState
             icon={Cpu}
             title={tr("processes_empty_title", undefined, "No processes")}

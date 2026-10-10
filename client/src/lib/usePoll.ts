@@ -139,6 +139,21 @@ export function transferBusy(
   return !!runningHosts[want];
 }
 
+/** `transferBusy` as a hook: true while data is moving to or from `host`.
+ *  This is exactly when `usePoll` stands aside, so a screen can say why its
+ *  list is not loading instead of sitting blank. */
+export function useTransferBusy(host?: string | null): boolean {
+  // Three narrow boolean selectors, so a progress tick re-renders nothing.
+  const busy = useTaskStore((s) => transferBusy(host, s.tasks, {}, {}));
+  const phaseBusy = useTransferStore((s) =>
+    transferBusy(host, [], s.phasesByHost, {}),
+  );
+  const queueBusy = useUploadQueueStore((s) =>
+    transferBusy(host, [], {}, s.runningHosts),
+  );
+  return busy || phaseBusy || queueBusy;
+}
+
 export interface UsePollOptions {
   /** The console the poll talks to; transfers to other consoles don't pause
    *  it. Omit to pause for a transfer to any console. */
@@ -170,17 +185,8 @@ export function usePoll(
     fnRef.current = fn;
   });
 
-  // Three narrow boolean selectors, so a progress tick re-renders nothing.
-  const busy = useTaskStore((s) =>
-    duringTransfers ? false : transferBusy(host, s.tasks, {}, {}),
-  );
-  const phaseBusy = useTransferStore((s) =>
-    duringTransfers ? false : transferBusy(host, [], s.phasesByHost, {}),
-  );
-  const queueBusy = useUploadQueueStore((s) =>
-    duringTransfers ? false : transferBusy(host, [], {}, s.runningHosts),
-  );
-  const paused = busy || phaseBusy || queueBusy;
+  const transferring = useTransferBusy(host);
+  const paused = duringTransfers ? false : transferring;
   const pausedRef = useRef(paused);
   useEffect(() => {
     pausedRef.current = paused;

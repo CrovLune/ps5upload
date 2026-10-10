@@ -138,6 +138,8 @@ processes_error: "A folyamatművelet sikertelen",
 processes_truncated:
   "A folyamatlista rövidítve lett — túl sok folyamat van az összes megjelenítéséhez.",
 processes_empty_title: "Nincs folyamat",
+processes_paused_title: "Várakozás az átvitel befejezésére",
+processes_paused_body: "A folyamatlistát nem olvassuk be, amíg adat mozog erre a PS5-re vagy róla, hogy az átvitel megtartsa a sebességét. A Frissítés most beolvassa.",
 processes_empty_all: "Semmi nem fut.",
 processes_empty_user:
   "Nem fut játék vagy payload. Kapcsold be a „Rendszerfolyamatok mutatása” opciót, hogy mindent láss.",
