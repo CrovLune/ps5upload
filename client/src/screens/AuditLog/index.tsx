@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { ShieldCheck } from "lucide-react";
 
-import { PageHeader } from "../../components";
+import { EmptyState, PageHeader } from "../../components";
 import { useTr } from "../../state/lang";
 import { useAuditLogStore, type AuditEntry } from "../../state/auditLog";
 import { formatDate } from "../../lib/formatDate";
@@ -46,13 +46,14 @@ export default function AuditLogScreen() {
         )}
       />
       {entries.length === 0 ? (
-        <p className="text-xs text-[var(--color-muted)]">
-          {tr(
+        <EmptyState
+          icon={ShieldCheck}
+          message={tr(
             "audit_empty_v2",
             undefined,
             "Nothing recorded yet. Power actions (wake, rest mode, restart, shut down), deletes, unregisters, uninstalls and installs appear here as you do them.",
           )}
-        </p>
+        />
       ) : (
         <div className="surface-panel max-h-[calc(100vh-12rem)] overflow-y-auto !rounded-[var(--radius-card)]">
           <div className="overflow-x-auto">
