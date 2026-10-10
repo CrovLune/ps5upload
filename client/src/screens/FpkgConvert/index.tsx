@@ -10,7 +10,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { PackagePlus } from "lucide-react";
 
-import { fpkg, type FpkgEstimates, type FpkgInspection, type ImageFormat } from "../../api/fpkg";
+import { fpkg, type AmprLz4Options, type FpkgEstimates, type FpkgInspection, type ImageFormat } from "../../api/fpkg";
 import { appLaunch } from "../../api/ps5";
 import { Callout, Card, PageHeader } from "../../components";
 import { FakeGameFirmwareNotice } from "../../components/FakeGameFirmwareNotice";
@@ -88,20 +88,25 @@ export default function FpkgConvertScreen() {
   const [imageCompress, setImageCompress] = useState(false);
   const [queueBuild, setQueueBuild] = useState<"pkg" | "image">("pkg");
   // AMPR LZ4 asset packs for this game's .exfat image, and the profile it packs with. Per game
-  // (they depend on the game's own ampr_emu), so the queue does not carry them.
+  // (they depend on the game's own ampr_emu), so only the game checked here carries them into
+  // the queue.
   const [lz4On, setLz4On] = useState(false);
   const [lz4Profile, setLz4Profile] = useState<{ name: string; text: string } | null>(null);
   const build: ConvertBuild =
     queueBuild === "image" ? { kind: "image", format: imageFormat, compress: imageCompress } : { kind: "pkg" };
   /** "skipped": an image was asked for a source that is not a game folder here. */
-  const queueAdd = (src: string, isFolder: boolean): boolean | "skipped" => {
+  const queueAdd = (
+    src: string,
+    isFolder: boolean,
+    lz4?: AmprLz4Options,
+  ): boolean | "skipped" => {
     if (build.kind === "image" && !isFolder) return "skipped";
     const u = useUploadStore.getState();
     return useConvertQueue.getState().add({
       source: src,
       outputDir: outputDir.trim() || undefined,
       compression,
-      build,
+      build: build.kind === "image" && lz4 ? { ...build, lz4 } : build,
       imageDest:
         build.kind === "image"
           ? { volume: u.destinationVolume, subpath: u.destinationSubpath || DEFAULT_IMAGE_SUBPATH }
@@ -520,7 +525,13 @@ export default function FpkgConvertScreen() {
             onBuild={setQueueBuild}
             canAddCurrent={!!source.trim() && !noFiles}
             onAddCurrent={() => {
-              const r = queueAdd(source.trim(), isLocalFolder);
+              const r = queueAdd(
+                source.trim(),
+                isLocalFolder,
+                build.kind === "image" && lz4Active(build.format, lz4Choice)
+                  ? { profileToml: lz4Profile?.text }
+                  : undefined,
+              );
               if (r === "skipped") skippedNote(1);
               else if (!r) setError(tr("cq_already", undefined, "This game is already in the queue."));
             }}

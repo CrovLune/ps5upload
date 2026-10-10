@@ -38,6 +38,7 @@ async function build(item: ConvertItem) {
             deleteAfter: !!item.deleteAfterInstall,
           }
         : undefined,
+      item.build.lz4,
     );
     await whenIdle();
     const p = useFpkgConversion.getState().pipeline;

@@ -51,11 +51,24 @@ describe("the Convert queue's runner (bug: a queued image came out as a .pkg)", 
     await flush();
     expect(calls).toHaveLength(1);
     expect(calls[0].kind).toBe("image");
-    // source, outputDir, compress, format, no upload
-    expect(calls[0].args).toEqual(["/games/Game-app", undefined, true, "ffpfs", undefined]);
+    // source, outputDir, compress, format, no upload, no LZ4 packs
+    expect(calls[0].args).toEqual(["/games/Game-app", undefined, true, "ffpfs", undefined, undefined]);
     const item = useConvertQueue.getState().items[0];
     expect(item.status).toBe("done");
     expect(item.packagePath).toBe("/out/Game.ffpfsc");
+  });
+
+  it("keeps the LZ4 asset-pack choice of a queued .exfat", async () => {
+    useConvertQueue.getState().add({
+      source: "/games/Ampr-app",
+      compression: "balanced",
+      build: { kind: "image", format: "exfat", compress: false, lz4: { profileToml: "[x]" } },
+      then: "keep",
+      host: null,
+    });
+    await useConvertQueue.getState().start();
+    await flush();
+    expect(calls[0].args[5]).toEqual({ profileToml: "[x]" });
   });
 
   it("sends a queued image on to the PS5 when asked", async () => {

@@ -6,15 +6,18 @@
 import { hostOf } from "../lib/addr";
 import { create } from "zustand";
 
-import type { FpkgCompression, ImageFormat } from "../api/fpkg";
+import type { AmprLz4Options, FpkgCompression, ImageFormat } from "../api/fpkg";
 import { safeGetItem, safeSetItem } from "../lib/safeStorage";
 
 export type ConvertThen = "keep" | "stream" | "upload";
 export type ConvertStatus = "pending" | "running" | "installing" | "handed" | "done" | "failed";
 
 /** What a queued game becomes: an installable package, or a game image (compressed into a
- *  .ffpfsc when `compress`). Only a game folder can become an image. */
-export type ConvertBuild = { kind: "pkg" } | { kind: "image"; format: ImageFormat; compress: boolean };
+ *  .ffpfsc when `compress`). Only a game folder can become an image. `lz4`: pack the game's
+ *  data into AMPR LZ4 asset packs (an .exfat of a game that reads through libSceAmpr). */
+export type ConvertBuild =
+  | { kind: "pkg" }
+  | { kind: "image"; format: ImageFormat; compress: boolean; lz4?: AmprLz4Options };
 
 /** The file a build makes, by its extension: what the queue row and the add button say. */
 export function buildExtension(build: ConvertBuild | undefined): string {
