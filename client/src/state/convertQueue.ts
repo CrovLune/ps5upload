@@ -25,6 +25,13 @@ export function buildExtension(build: ConvertBuild | undefined): string {
   return build.compress ? ".ffpfsc" : `.${build.format}`;
 }
 
+/** What is done after converting, as it can be done: an image is never streamed (it is
+ *  uploaded), and nothing is sent anywhere while no console answers. */
+export function thenFor(kind: ConvertBuild["kind"], then: ConvertThen, canInstall: boolean): ConvertThen {
+  if (!canInstall) return "keep";
+  return kind === "image" && then === "stream" ? "upload" : then;
+}
+
 export interface ConvertItem {
   id: string;
   /** A game folder, image or archive, here or on a server or console. */

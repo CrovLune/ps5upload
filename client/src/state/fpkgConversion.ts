@@ -116,6 +116,8 @@ export interface ConversionState {
       method?: InstallMethod;
       /** An archive's password (RAR); never stored. */
       password?: string;
+      /** Delete the package once its install is verified (Convert's "delete after"). */
+      deleteAfter?: boolean;
     },
   ) => Promise<void>;
   /** Compress an .exfat / .ffpkg image into a .ffpfsc. */
@@ -255,6 +257,8 @@ function fail(stage: PipelineStage, message: string, packagePath: string | null)
 
 /** The Upload plan of the image being built ("send this game folder as an image"). */
 let pendingImageUpload: ImageUploadPlan | null = null;
+/** The running Convert & install asked for its package to go once the install verified. */
+let deleteAfterInstall = false;
 
 /** Puts a finished image in the Upload queue and starts that console's queue. */
 function queueImage(imagePath: string, bytes: number, plan: ImageUploadPlan) {
@@ -401,6 +405,17 @@ function installDone(
       swap,
     },
   });
+  if (deleteAfterInstall) {
+    deleteAfterInstall = false;
+    void fpkg
+      .deletePackage(packagePath)
+      .then(() => {
+        const cur = useFpkgConversion.getState().pipeline;
+        if (cur.phase === "done" && cur.packagePath === packagePath)
+          useFpkgConversion.setState({ pipeline: { ...cur, deleted: true } });
+      })
+      .catch(() => {});
+  }
 }
 
 /** Bytes of the package being installed, remembered from the build (or the earlier result). */
@@ -662,9 +677,10 @@ function currentHost(): string | null {
 export const useFpkgConversion = create<ConversionState>((set, get) => ({
   pipeline: { phase: "idle" },
 
-  start: async (req, { install, host, method = "stream", password }) => {
+  start: async (req, { install, host, method = "stream", password, deleteAfter }) => {
     const then = install ? method : null;
     if (get().pipeline.phase === "running") return;
+    deleteAfterInstall = install && !!deleteAfter;
     if (needsPrep(req.source)) {
       beginRun(
         install ? "convert-install" : "convert",
@@ -733,6 +749,7 @@ export const useFpkgConversion = create<ConversionState>((set, get) => ({
       p.phase === "failed" ? p.packagePath : p.phase === "done" && !p.deleted ? p.packagePath : null;
     if (!path || (p.phase !== "failed" && p.phase !== "done")) return;
     if (p.phase === "done" && makesImage(p.mode)) return;
+    deleteAfterInstall = false;
     beginRun("install", p.source, host, "send");
     update({ packagePath: path, titleId: p.titleId });
     await runInstall(path, host, method);
