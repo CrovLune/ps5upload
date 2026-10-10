@@ -487,10 +487,8 @@ pub(crate) fn console_addr(addr: &str) -> String {
 /// name one: falling back to the engine's default console could delete files on, or power off,
 /// a console the user was not looking at. `None`: answer with [`missing_console_addr`].
 fn required_console_addr(addr: Option<String>) -> Option<String> {
-    addr.as_deref()
-        .map(str::trim)
-        .filter(|a| !a.is_empty())
-        .map(console_addr)
+    // Map first, then refuse an empty host: ":1234" names no console either.
+    addr.as_deref().map(console_addr).filter(|a| !a.is_empty())
 }
 
 /// The 400 for a destructive request that names no console.
@@ -2057,10 +2055,12 @@ struct CleanupReq {
 /// POST /api/ps5/cleanup — asks the PS5 payload to rm -rf a path.
 /// Safe: payload refuses paths outside `/data/ps5upload-{bench,sweep,smoke}/`.
 async fn ps5_cleanup(
-    State(state): State<AppState>,
+    State(_state): State<AppState>,
     Json(req): Json<CleanupReq>,
 ) -> impl IntoResponse {
-    let addr = console_addr_or_default(req.addr, &state.default_ps5_addr);
+    let Some(addr) = required_console_addr(req.addr) else {
+        return missing_console_addr();
+    };
     let path = req.path.clone();
     let started = std::time::Instant::now();
     crate::log_info!("cleanup: addr={addr} path={path}");
@@ -2365,10 +2365,12 @@ fn next_fs_op_id() -> u64 {
 }
 
 async fn ps5_fs_copy(
-    State(state): State<AppState>,
+    State(_state): State<AppState>,
     Json(req): Json<FsMoveReq>,
 ) -> impl IntoResponse {
-    let addr = console_addr_or_default(req.addr, &state.default_ps5_addr);
+    let Some(addr) = required_console_addr(req.addr) else {
+        return missing_console_addr();
+    };
     let from = req.from;
     let to = req.to;
     let started = std::time::Instant::now();
@@ -2554,10 +2556,12 @@ struct AppRegisterReq {
 }
 
 async fn ps5_app_register(
-    State(state): State<AppState>,
+    State(_state): State<AppState>,
     Json(req): Json<AppRegisterReq>,
 ) -> impl IntoResponse {
-    let addr = console_addr_or_default(req.addr, &state.default_ps5_addr);
+    let Some(addr) = required_console_addr(req.addr) else {
+        return missing_console_addr();
+    };
     let src_path = req.src_path;
     let patch_drm_type = req.patch_drm_type.unwrap_or(false);
     let started = std::time::Instant::now();
@@ -2662,10 +2666,12 @@ async fn ps5_app_unregister(
 }
 
 async fn ps5_fs_unmount(
-    State(state): State<AppState>,
+    State(_state): State<AppState>,
     Json(req): Json<FsUnmountReq>,
 ) -> impl IntoResponse {
-    let addr = console_addr_or_default(req.addr, &state.default_ps5_addr);
+    let Some(addr) = required_console_addr(req.addr) else {
+        return missing_console_addr();
+    };
     let mount_point = req.mount_point;
     let started = std::time::Instant::now();
     crate::log_info!("fs_unmount: addr={addr} mount_point={mount_point}");
@@ -2693,10 +2699,12 @@ async fn ps5_fs_unmount(
 }
 
 async fn ps5_fs_chmod(
-    State(state): State<AppState>,
+    State(_state): State<AppState>,
     Json(req): Json<FsChmodReq>,
 ) -> impl IntoResponse {
-    let addr = console_addr_or_default(req.addr, &state.default_ps5_addr);
+    let Some(addr) = required_console_addr(req.addr) else {
+        return missing_console_addr();
+    };
     let path = req.path;
     let mode = req.mode;
     let recursive = req.recursive;
@@ -3391,7 +3399,7 @@ struct AppLifecycleReq {
 /// directly, with no HTTP route behind it, so "Close game" simply did not
 /// exist on the web UI. Same missing-half class as fs_read_preview.
 async fn ps5_app_lifecycle(
-    State(state): State<AppState>,
+    State(_state): State<AppState>,
     Json(req): Json<AppLifecycleReq>,
 ) -> impl IntoResponse {
     let action = match req.action.as_str() {
@@ -3407,7 +3415,9 @@ async fn ps5_app_lifecycle(
             .into_response()
         }
     };
-    let addr = console_addr_or_default(req.addr, &state.default_ps5_addr);
+    let Some(addr) = required_console_addr(req.addr) else {
+        return missing_console_addr();
+    };
     let app_id = req.app_id;
     let r = tokio::task::spawn_blocking(move || app_lifecycle(&addr, action, app_id))
         .await
@@ -3926,10 +3936,12 @@ struct SmpImageRwBeginReq {
 }
 
 async fn ps5_smp_image_rw_begin(
-    State(state): State<AppState>,
+    State(_state): State<AppState>,
     Json(req): Json<SmpImageRwBeginReq>,
 ) -> impl IntoResponse {
-    let addr = console_addr_or_default(req.addr, &state.default_ps5_addr);
+    let Some(addr) = required_console_addr(req.addr) else {
+        return missing_console_addr();
+    };
     let r = tokio::task::spawn_blocking(move || {
         ps5upload_core::smp_image_rw::begin(&addr, &req.title_id)
     })
@@ -3983,11 +3995,13 @@ struct FsWriteBytesReq {
 /// payload applies the same `is_path_allowed` check regardless of caller, and
 /// the loopback + cross-site guards cover this route like every other one.
 async fn ps5_fs_write_bytes(
-    State(state): State<AppState>,
+    State(_state): State<AppState>,
     Json(req): Json<FsWriteBytesReq>,
 ) -> impl IntoResponse {
     use base64::Engine as _;
-    let addr = console_addr_or_default(req.addr, &state.default_ps5_addr);
+    let Some(addr) = required_console_addr(req.addr) else {
+        return missing_console_addr();
+    };
     let raw = match base64::engine::general_purpose::STANDARD.decode(req.bytes_b64.as_bytes()) {
         Ok(v) => v,
         Err(e) => {
@@ -5190,10 +5204,12 @@ struct HealthFixReq {
 /// so an unknown or arbitrary value is rejected by serde before any
 /// console operation runs.
 async fn health_fix_handler(
-    State(state): State<AppState>,
+    State(_state): State<AppState>,
     Json(req): Json<HealthFixReq>,
 ) -> impl IntoResponse {
-    let addr = console_addr_or_default(req.addr, &state.default_ps5_addr);
+    let Some(addr) = required_console_addr(req.addr) else {
+        return missing_console_addr();
+    };
     let action = req.action;
     let result = tokio::task::spawn_blocking(move || {
         ps5upload_core::health::apply_fix(&addr, &action, env!("CARGO_PKG_VERSION"))
@@ -6570,10 +6586,12 @@ async fn profile_local_username_handler(
 }
 
 async fn profile_activate_handler(
-    State(state): State<AppState>,
+    State(_state): State<AppState>,
     Json(req): Json<ProfileActivateReq>,
 ) -> impl IntoResponse {
-    let addr = console_addr_or_default(req.addr, &state.default_ps5_addr);
+    let Some(addr) = required_console_addr(req.addr) else {
+        return missing_console_addr();
+    };
     let slot = req.slot;
     let id = req.id.as_ref().and_then(AccountIdInput::to_u64);
     let r = tokio::task::spawn_blocking(move || {
@@ -7287,10 +7305,12 @@ struct SdkPatchReq {
 }
 
 async fn sdk_patch_handler(
-    State(state): State<AppState>,
+    State(_state): State<AppState>,
     Json(req): Json<SdkPatchReq>,
 ) -> impl IntoResponse {
-    let addr = console_addr_or_default(req.addr, &state.default_ps5_addr);
+    let Some(addr) = required_console_addr(req.addr) else {
+        return missing_console_addr();
+    };
     let title_id = req.title_id;
     let target_sdk = req.target_sdk;
     let patch_libc = req.patch_libc;
@@ -7313,10 +7333,12 @@ struct SdkRestoreReq {
 }
 
 async fn sdk_restore_handler(
-    State(state): State<AppState>,
+    State(_state): State<AppState>,
     Json(req): Json<SdkRestoreReq>,
 ) -> impl IntoResponse {
-    let addr = console_addr_or_default(req.addr, &state.default_ps5_addr);
+    let Some(addr) = required_console_addr(req.addr) else {
+        return missing_console_addr();
+    };
     let title_id = req.title_id;
     let r = tokio::task::spawn_blocking(move || {
         ps5upload_core::sdk_changer::sdk_restore(&addr, &title_id)
@@ -11113,7 +11135,13 @@ mod helpers_tests {
             required_console_addr(Some(" 10.0.0.7:1234 ".into())),
             Some("10.0.0.7".to_string())
         );
-        for missing in [None, Some(String::new()), Some("  ".into())] {
+        for missing in [
+            None,
+            Some(String::new()),
+            Some("  ".into()),
+            Some(":1234".into()),
+            Some(" :1234 ".into()),
+        ] {
             assert_eq!(required_console_addr(missing), None);
         }
         assert_eq!(missing_console_addr().status(), StatusCode::BAD_REQUEST);
