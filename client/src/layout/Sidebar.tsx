@@ -209,7 +209,7 @@ export default function Sidebar() {
             title={tr("sidebar_collapse", undefined, "Collapse navigation")}
             className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[var(--color-muted)] hover:bg-[var(--color-surface)] hover:text-[var(--color-text)]"
           >
-            <ChevronLeft size={18} aria-hidden />
+            <ChevronLeft size={18} aria-hidden className="rtl:rotate-180" />
           </button>
         )}
       </div>
@@ -238,7 +238,7 @@ export default function Sidebar() {
                   className="flex w-full items-center gap-1 rounded-full px-2 pb-2 text-left text-[0.6875rem] font-medium uppercase tracking-[0.08em] text-[var(--color-muted)] hover:text-[var(--color-text)]"
                 >
                   <span className="min-w-0 flex-1 truncate">{title}</span>
-                  {open ? <ChevronDown size={12} aria-hidden /> : <ChevronRight size={12} aria-hidden />}
+                  {open ? <ChevronDown size={12} aria-hidden /> : <ChevronRight size={12} aria-hidden className="rtl:rotate-180" />}
                 </button>
               )}
               {open && <ul className="space-y-1">{group.items.map((item) => renderItem(item, true))}</ul>}
@@ -287,7 +287,7 @@ export default function Sidebar() {
             title={tr("sidebar_expand", undefined, "Expand navigation")}
             className="flex h-10 w-10 items-center justify-center rounded-full text-[var(--color-muted)] hover:bg-[var(--color-surface)] hover:text-[var(--color-text)]"
           >
-            <ChevronRight size={18} aria-hidden />
+            <ChevronRight size={18} aria-hidden className="rtl:rotate-180" />
           </button>
         )}
       </div>

@@ -291,7 +291,7 @@ export function MoreRow({
         <ChevronRight
           size={18}
           aria-hidden
-          className="shrink-0 text-[var(--color-muted)]"
+          className="shrink-0 text-[var(--color-muted)] rtl:rotate-180"
         />
       </NavLink>
       {/* Sibling of the link, not a child: a <button> inside an <a> is

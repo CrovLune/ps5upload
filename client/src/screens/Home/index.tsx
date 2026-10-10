@@ -477,7 +477,7 @@ function CompactEmpty({ icon: Icon, title, body }: { icon: LucideIcon; title: st
 function InlineLink({ to, label }: { to: string; label: string }) {
   return (
     <Link to={to} className="inline-flex shrink-0 items-center gap-1 text-xs font-semibold text-[var(--color-accent)] hover:underline">
-      {label}<ArrowRight size={13} />
+      {label}<ArrowRight size={13} className="rtl:rotate-180" />
     </Link>
   );
 }

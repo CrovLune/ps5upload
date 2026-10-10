@@ -382,7 +382,7 @@ function LogRow({ entry }: { entry: LogEntry }) {
         <ChevronRight
           size={12}
           className={`mt-1 shrink-0 text-[var(--color-muted)] transition-transform ${
-            expanded ? "rotate-90" : ""
+            expanded ? "rotate-90" : "rtl:rotate-180"
           } ${hasDetail ? "" : "opacity-0"}`}
         />
         <span

@@ -95,7 +95,7 @@ export function RecentGames() {
             className="inline-flex shrink-0 items-center gap-1 text-xs font-semibold text-[var(--color-accent)] hover:underline"
           >
             {tr("home_recent_games_all_link", undefined, "Collection")}
-            <ArrowRight size={13} />
+            <ArrowRight size={13} className="rtl:rotate-180" />
           </Link>
         </div>
         {chips.length > 1 && (

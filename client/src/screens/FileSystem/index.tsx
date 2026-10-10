@@ -2578,7 +2578,7 @@ export default function FileSystemScreen() {
                     {i < arr.length - 1 && (
                       <ChevronRight
                         size={12}
-                        className="text-[var(--color-muted)]"
+                        className="text-[var(--color-muted)] rtl:rotate-180"
                       />
                     )}
                   </span>
@@ -3324,7 +3324,7 @@ function RecentPathsDropdown({
         {tr("fs_recent", "Recent")}
         <ChevronRight
           size={10}
-          className={`transition-transform ${open ? "rotate-90" : ""}`}
+          className={`transition-transform ${open ? "rotate-90" : "rtl:rotate-180"}`}
         />
       </button>
       {open && (

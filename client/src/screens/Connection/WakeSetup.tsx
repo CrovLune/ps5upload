@@ -47,7 +47,7 @@ function Requirements() {
         className="flex w-full items-center gap-1.5 p-2 text-left text-xs text-[var(--color-muted)] hover:text-[var(--color-fg)]"
         onClick={() => setOpen((v) => !v)}
       >
-        {open ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
+        {open ? <ChevronDown size={12} /> : <ChevronRight size={12} className="rtl:rotate-180" />}
         {tr(
           "power_wake_req_title_v2",
           undefined,
@@ -380,7 +380,7 @@ function ManualEntry(props: {
         className="flex items-center gap-1.5 text-xs text-[var(--color-muted)] hover:text-[var(--color-fg)]"
         onClick={() => setShow(!show)}
       >
-        {show ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
+        {show ? <ChevronDown size={12} /> : <ChevronRight size={12} className="rtl:rotate-180" />}
         {tr("power_wake_manual", undefined, "Enter keys manually")}
       </button>
       {show ? (

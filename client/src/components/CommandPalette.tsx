@@ -421,7 +421,7 @@ export function CommandPalette() {
                           {c.hint}
                         </span>
                       )}
-                      {isActive && <ArrowRight size={12} className="opacity-70" />}
+                      {isActive && <ArrowRight size={12} className="opacity-70 rtl:rotate-180" />}
                     </button>
                   );
                 })}

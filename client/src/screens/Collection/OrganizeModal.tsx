@@ -263,7 +263,7 @@ export function OrganizeModal({
                         <div className="mt-0.5 flex items-start gap-1 break-all font-mono text-[0.6875rem] text-[var(--color-text)]">
                           <ArrowRight
                             size={11}
-                            className="mt-0.5 shrink-0 text-[var(--color-accent)]"
+                            className="mt-0.5 shrink-0 text-[var(--color-accent)] rtl:rotate-180"
                           />
                           <span>{m.to}</span>
                         </div>

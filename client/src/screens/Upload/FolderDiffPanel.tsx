@@ -143,7 +143,7 @@ export default function FolderDiffPanel({
             onClick={() => setExpanded((v) => !v)}
             className="text-xs text-[var(--color-muted)] hover:text-[var(--color-text)]"
           >
-            {expanded ? <ChevronDown size={11} /> : <ChevronRight size={11} />}
+            {expanded ? <ChevronDown size={11} /> : <ChevronRight size={11} className="rtl:rotate-180" />}
           </button>
         )}
       </header>

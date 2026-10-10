@@ -88,7 +88,7 @@ export default function SmpPanel({ mgmtAddr }: { mgmtAddr: string | null }) {
           onClick={() => setExpanded((v) => !v)}
           aria-expanded={expanded}
         >
-          {expanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+          {expanded ? <ChevronDown size={14} /> : <ChevronRight size={14} className="rtl:rotate-180" />}
           <HardDrive size={14} />
           <div className="min-w-0 flex-1">
             <div className="text-sm font-semibold">
