@@ -450,6 +450,9 @@ pub fn pack_output_glob(pattern: &str) -> Result<String> {
     Ok(out)
 }
 
+/// The widest field `pack_pattern` may ask for (`{id:064d}`).
+const MAX_FIELD_WIDTH: usize = 64;
+
 /// `pack_pattern` with its fields filled, Python `str.format` style: `{id:03d}`, `{lane:02d}`,
 /// `{group}`; the integer specs support zero/space padding to a width.
 pub fn render_pattern(
@@ -496,9 +499,16 @@ pub fn render_pattern(
                 let width: usize = if width.is_empty() {
                     0
                 } else {
-                    width.parse().map_err(|_| {
-                        Error::Format(format!("unsupported format spec {spec:?} in pack_pattern"))
-                    })?
+                    width
+                        .parse()
+                        .ok()
+                        // A file name needs no wider field, and a huge one panics `format!`.
+                        .filter(|w| *w <= MAX_FIELD_WIDTH)
+                        .ok_or_else(|| {
+                            Error::Format(format!(
+                                "unsupported format spec {spec:?} in pack_pattern"
+                            ))
+                        })?
                 };
                 if zero {
                     format!("{n:0width$}")
@@ -1269,6 +1279,10 @@ mod tests {
             "ampr_assets-*.pak"
         );
         assert!(pack_output_glob("x-{name}.pak").is_err());
+        // A huge width is a profile error, not a panic.
+        assert!(render_pattern("x-{id:065536}.pak", "g", 0, 0, 0).is_err());
+        assert!(pack_output_glob("x-{id:065536}.pak").is_err());
+        assert!(render_pattern("x-{id:064d}.pak", "g", 0, 0, 0).is_ok());
         assert!(pack_output_glob("../x-{id}.pak").is_err());
     }
 

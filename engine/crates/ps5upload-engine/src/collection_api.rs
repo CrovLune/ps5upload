@@ -496,10 +496,8 @@ fn with_app_folders(
         .collect();
     for f in folders {
         let id = f.to_ascii_uppercase();
-        let shaped = id.len() == 9
-            && id[..4].bytes().all(|b| b.is_ascii_uppercase())
-            && id[4..].bytes().all(|b| b.is_ascii_digit());
-        if shaped {
+        // By bytes: a folder name with a multi-byte character must not be sliced mid-char.
+        if crate::collection::is_game_id(&id) {
             out.entry(id).or_insert(None);
         }
     }
@@ -722,6 +720,8 @@ mod installed_titles_tests {
                 "PPSA00001".to_string(),
                 "PPSA00002".to_string(),
                 "not-a-title".to_string(),
+                // Nine bytes, a multi-byte character inside: skipped, never sliced mid-char.
+                "PPP\u{e9}0001".to_string(),
             ],
         );
         assert_eq!(m.len(), 2);
