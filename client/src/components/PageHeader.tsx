@@ -30,7 +30,7 @@ export function PageHeader({
   description,
   right,
 }: {
-  /** A small coral glyph beside the title. Optional: the big title alone
+  /** A small accent glyph beside the title. Optional: the big title alone
    *  says where you are. */
   icon?: LucideIcon;
   title: string;

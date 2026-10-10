@@ -411,7 +411,7 @@ body {
   border-bottom: 0;
 }
 
-/* A panel header's icon: a small coral-on-blush disc, the same language as
+/* A panel header's icon: a small accent-tinted disc, the same language as
  * the Home tiles' icon buttons. */
 .icon-disc {
   display: inline-grid;
@@ -508,7 +508,7 @@ body {
 }
 
 /* Fields that already show focus their own way don't also get the heavy
- * ring: `.input` / `.select` turn coral-edged with a soft halo, and a
+ * ring: `.input` / `.select` turn accent-edged with a soft halo, and a
  * `.field-quiet` field sits in a `.field-shell` that lights up instead (the
  * command palette's search row). Keyboard focus stays visible everywhere. */
 .input:focus-visible,
@@ -1013,7 +1013,7 @@ input[type="radio"] {
  * Used by v4.3+ screens as a shorthand for the standard input/chip styling.
  * Keeps the Tailwind utility soup out of every form field while respecting
  * the theme system (all colors are CSS vars). */
-/* Fields are rounded glass: a white-edged well that turns coral-edged on
+/* Fields are rounded glass: a white-edged well that turns accent-edged on
  * focus. Single-line fields are pills; a textarea keeps a large radius
  * (`textarea.input` below) so its corners don't eat the text. */
 .input {
@@ -1031,7 +1031,7 @@ input[type="radio"] {
 }
 :root[data-theme="light"] .input,
 :root[data-theme="light"] .select {
-  border-color: rgb(92 60 70 / 0.12);
+  border-color: rgb(0 0 0 / 0.14);
 }
 textarea.input {
   border-radius: var(--radius-field);
@@ -1077,6 +1077,20 @@ textarea.input {
   transition:
     border-color 0.15s ease,
     box-shadow 0.15s ease;
+}
+/* Every drop-down draws its own chevron. Left to the system, WebKit paints
+ * its native pop-up button and ignores the field's shape and height, so a
+ * select never lined up with the text field beside it. */
+select:not([multiple]) {
+  -webkit-appearance: none;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238e8e93' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
+  padding-inline-end: 2rem;
+}
+[dir="rtl"] select:not([multiple]) {
+  background-position: left 0.75rem center;
 }
 /* Native option lists are drawn by the OS on an opaque sheet; glass tokens
  * would leave them transparent. */

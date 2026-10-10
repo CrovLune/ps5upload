@@ -107,7 +107,7 @@ export default function Sidebar() {
           title={collapsed ? label : undefined}
           aria-label={collapsed ? label : undefined}
           onKeyDown={hideable && !collapsed ? towardHideButton : undefined}
-          // Pills: the active one is the white pill with a coral icon
+          // Pills: the active one is a tinted row with an accent icon
           // (`.nav-pill` in index.css keys off aria-current).
           className={[
             "nav-pill relative flex min-h-9 items-center rounded-[var(--radius-field)] text-[0.875rem] transition-[background-color,color,box-shadow]",

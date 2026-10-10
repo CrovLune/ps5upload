@@ -5292,16 +5292,19 @@ async fn ps5_readiness(
         .into_response()
 }
 
+#[cfg(not(target_os = "android"))]
 /// Consecutive console stalls (36 s each) a link download rides out with nothing made
 /// durable in between: twelve minutes of a host delivering nothing.
 const LINK_STALL_TRIES: u32 = 20;
 
+#[cfg(not(target_os = "android"))]
 #[derive(Debug, PartialEq, Eq)]
 enum LinkStall {
     Retry,
     Done,
 }
 
+#[cfg(not(target_os = "android"))]
 /// What a link download does with one attempt's result: a console stall is retried while
 /// the host still makes progress (or has not yet used up its tries); anything else, a
 /// cancel included, is the job's result.

@@ -19,7 +19,7 @@ export interface ButtonProps
 /**
  * Shared button primitive. Four variants cover every in-app use:
  *
- *   primary   — the main CTA on a screen; a coral pill with a soft glow.
+ *   primary   — the main CTA on a screen; an accent-filled capsule.
  *   secondary — neutral action (Refresh, Choose file); a white glass pill.
  *   ghost     — subtle tertiary (Dismiss, icon-only); bare until hovered.
  *   danger    — destructive (Delete, Uninstall); glass pill in red.
