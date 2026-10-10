@@ -78,6 +78,30 @@ describe("one-shot upload — status polls that fail", () => {
     expect(startFile).toHaveBeenCalledTimes(1);
   });
 
+  it("Check again while a status read is still out does not start a second poll loop", async () => {
+    status.mockRejectedValue(new Error("connection refused"));
+    await startUpload();
+    for (let i = 0; i < MAX_POLL_FAILURES; i++) await vi.advanceTimersByTimeAsync(600);
+    // The next read hangs; Check again is pressed twice meanwhile.
+    let release: (v: unknown) => void = () => {};
+    status.mockImplementationOnce(() => new Promise((r) => (release = r)) as never);
+    useTransferStore.getState().reattach(ADDR);
+    await vi.advanceTimersByTimeAsync(10);
+    const callsBefore = status.mock.calls.length;
+    useTransferStore.getState().reattach(ADDR);
+    useTransferStore.getState().reattach(ADDR);
+    await vi.advanceTimersByTimeAsync(10);
+    expect(status.mock.calls.length).toBe(callsBefore);
+    status.mockResolvedValue({ status: "running", bytes_sent: 1, total_bytes: 100 } as never);
+    release({ status: "running", bytes_sent: 1, total_bytes: 100 });
+    await vi.advanceTimersByTimeAsync(10);
+    // One loop: one read per 500 ms interval from here on.
+    const at = status.mock.calls.length;
+    await vi.advanceTimersByTimeAsync(2000);
+    expect(status.mock.calls.length - at).toBeLessThanOrEqual(4);
+    useTransferStore.getState().reset(ADDR);
+  });
+
   it("keeps polling slowly while out of contact and picks the job back up", async () => {
     status.mockRejectedValue(new Error("connection refused"));
     await startUpload();

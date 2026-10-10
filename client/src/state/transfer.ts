@@ -213,6 +213,10 @@ export const MAX_POLL_FAILURES = 6;
 /** How often a lost-contact upload is polled again. */
 export const LOST_POLL_INTERVAL_MS = 5000;
 const POLL_INITIAL_DELAY_MS = 200;
+/** A job's file list that can't be read is retried after 2 s, 4 s, 8 s… and
+ *  given up on after this many failures in a row. */
+export const MAX_FILES_FETCH_FAILURES = 5;
+const FILES_RETRY_BASE_MS = 2000;
 
 /** Read one console's phase from a store snapshot. Falls back to the shared
  *  IDLE_PHASE singleton so selectors stay referentially stable. */
@@ -477,11 +481,23 @@ export const useTransferStore = create<TransferState>((set) => {
       // snapshot only carries `files_count`.
       let files: PlannedFile[] = [];
       let filesFetch: Promise<void> | null = null;
+      // A list that can't be read is retried with a growing pause and then
+      // left alone: it is only the per-file detail, and a megabyte list
+      // fetched every 500 ms poll would compete with the upload itself.
+      let filesFailures = 0;
+      let filesRetryAtMs = 0;
       const loadFiles = (want: number) => {
         if (filesFetch || files.length >= want) return;
+        if (filesFailures >= MAX_FILES_FETCH_FAILURES || Date.now() < filesRetryAtMs) return;
         filesFetch = fetchJobFiles(jobId)
           .then((got) => {
-            if (got) files = got;
+            if (got) {
+              files = got;
+              filesFailures = 0;
+            } else {
+              filesFailures++;
+              filesRetryAtMs = Date.now() + FILES_RETRY_BASE_MS * 2 ** (filesFailures - 1);
+            }
           })
           .finally(() => {
             filesFetch = null;
@@ -489,7 +505,19 @@ export const useTransferStore = create<TransferState>((set) => {
       };
 
       let pollFailures = 0;
+      // True while a status read is out. "Check again" must not start a second
+      // read beside it: both would reschedule, and the poll would run twice.
+      let polling = false;
       const poll = async () => {
+        if (polling) return;
+        polling = true;
+        try {
+          await pollOnce();
+        } finally {
+          polling = false;
+        }
+      };
+      const pollOnce = async () => {
         if (!isLive()) return;
         let snap: JobSnapshot;
         try {
@@ -845,7 +873,7 @@ export const useTransferStore = create<TransferState>((set) => {
         }
       };
       pollers.set(key, () => {
-        if (!isLive()) return;
+        if (!isLive() || polling) return;
         clearTimerFor(key);
         void poll();
       });

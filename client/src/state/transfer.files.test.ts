@@ -32,7 +32,7 @@ vi.mock("../lib/jobFiles", () => ({
 }));
 
 import { fetchJobFiles } from "../lib/jobFiles";
-import { phaseForHost, useTransferStore } from "./transfer";
+import { MAX_FILES_FETCH_FAILURES, phaseForHost, useTransferStore } from "./transfer";
 
 beforeEach(() => {
   vi.useFakeTimers();
@@ -60,5 +60,20 @@ describe("one-shot transfer file list", () => {
     expect(fetchJobFiles).toHaveBeenCalledTimes(1);
     expect(fetchJobFiles).toHaveBeenCalledWith("dir-job");
     useTransferStore.getState().reset("10.0.0.2");
+  });
+
+  it("backs off and then stops asking for a file list the engine can't give", async () => {
+    vi.mocked(fetchJobFiles).mockResolvedValue(null);
+    await useTransferStore.getState().start({
+      sourceKind: "folder",
+      srcPath: "/a",
+      dest: "/b",
+      addr: "10.0.0.3",
+    });
+    // 60 s of 500 ms polls: 120 chances to refetch.
+    await vi.advanceTimersByTimeAsync(60_000);
+    expect(vi.mocked(fetchJobFiles).mock.calls.length).toBeLessThanOrEqual(MAX_FILES_FETCH_FAILURES);
+    expect(vi.mocked(fetchJobFiles).mock.calls.length).toBeGreaterThan(1);
+    useTransferStore.getState().reset("10.0.0.3");
   });
 });
