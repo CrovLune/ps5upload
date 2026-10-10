@@ -48,20 +48,20 @@ export async function pickPath(opts: PickPathOptions): Promise<string | null> {
 }
 
 /**
- * Pick one OR MORE real file paths. Lets a user build a list in one
- * gesture — e.g. select several payloads to seed a playlist. The system
- * dialog multi-selects on desktop; Android, the web build and a saved
- * server tick rows in the in-app browser. Returns [] if cancelled. Files
- * only — multi-folder select isn't a use case here.
+ * Pick one OR MORE real paths: files (the default), or folders with `mode: "folder"`. Lets a
+ * user build a list in one gesture — e.g. several payloads for a playlist, or several game
+ * folders to convert. The system dialog multi-selects on desktop; Android, the web build and a
+ * saved server tick rows in the in-app browser. Returns [] if cancelled.
  */
 export async function pickPaths(
-  opts: Omit<PickPathOptions, "mode"> = {},
+  opts: Omit<PickPathOptions, "mode"> & { mode?: "file" | "folder" } = {},
 ): Promise<string[]> {
+  const mode = opts.mode ?? "file";
   if (opts.source || isAndroid() || !engineIsOnThisDevice()) {
-    return pickLocalPaths({ mode: "file", title: opts.title, filters: opts.filters, source: opts.source });
+    return pickLocalPaths({ mode, title: opts.title, filters: opts.filters, source: opts.source });
   }
   const sel = await openDialog({
-    directory: false,
+    directory: mode === "folder",
     multiple: true,
     title: opts.title,
     filters: opts.filters,

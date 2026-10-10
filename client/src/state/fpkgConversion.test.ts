@@ -214,6 +214,33 @@ describe("fpkg pipeline", () => {
     });
   });
 
+  it("deletes the package once its install is verified when asked, and only then", async () => {
+    jobStatus.mockResolvedValue({ status: "done", dest: "/out/a.pkg", bytes_sent: 1 });
+    installStream.mockResolvedValueOnce({ ok: false, message: "unreachable" });
+    await useFpkgConversion.getState().start(req, { install: true, host: "10.0.0.2", deleteAfter: true });
+    await tick();
+    await tick();
+    expect(deletePackage).not.toHaveBeenCalled();
+    expect(useFpkgConversion.getState().pipeline).toMatchObject({ phase: "failed", packagePath: "/out/a.pkg" });
+
+    installStream.mockResolvedValue({ ok: true });
+    await useFpkgConversion.getState().start(req, { install: true, host: "10.0.0.2", deleteAfter: true });
+    await tick();
+    await tick();
+    await vi.waitFor(() =>
+      expect(useFpkgConversion.getState().pipeline).toMatchObject({ phase: "done", deleted: true }),
+    );
+    expect(deletePackage).toHaveBeenCalledWith("/out/a.pkg");
+
+    // A later run that did not ask keeps its package.
+    deletePackage.mockClear();
+    await useFpkgConversion.getState().start(req, { install: true, host: "10.0.0.2" });
+    await tick();
+    await tick();
+    expect(useFpkgConversion.getState().pipeline).toMatchObject({ phase: "done", deleted: false });
+    expect(deletePackage).not.toHaveBeenCalled();
+  });
+
   it("installs again from a finished result, but not after the package is deleted", async () => {
     jobStatus.mockResolvedValue({ status: "done", dest: "/out/a.pkg", bytes_sent: 1 });
     installStream.mockResolvedValue({ ok: true });

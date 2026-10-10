@@ -37,9 +37,8 @@ import { OptionsCard } from "./OptionsCard";
 import { RunCard, lz4Active, type Lz4Choice } from "./RunCard";
 import { SwapJournals } from "./SwapJournals";
 import { QueueCard } from "./QueueCard";
-import { useConvertQueue, type ConvertBuild, type ConvertThen } from "../../state/convertQueue";
-import { scanChildren } from "../../lib/folderScan";
-import { classifyScanEntry } from "../../lib/uploadBatch";
+import { thenFor, useConvertQueue, type ConvertBuild, type ConvertThen } from "../../state/convertQueue";
+import { gameFoldersAmong, gamesInFolder } from "../../lib/folderScan";
 import { usePackageViewer } from "../../state/packageViewer";
 import { consoleSwapDeps } from "../../lib/dumpSwapConsole";
 
@@ -78,22 +77,24 @@ export default function FpkgConvertScreen() {
   const finishReplace = useFpkgConversion((s) => s.finishReplace);
   const queueItems = useConvertQueue((s) => s.items);
   const queueRunning = useConvertQueue((s) => s.running);
-  const [queueThen, setQueueThen] = useState<ConvertThen>("keep");
-  const [queueDeleteAfter, setQueueDeleteAfter] = useState(false);
+  // ③'s one choice of what happens after converting, for Convert and the queue alike.
+  const [thenChoice, setThen] = useState<ConvertThen>("keep");
+  const [deleteAfter, setDeleteAfter] = useState(false);
   // Per game, not remembered: the wrong language carried into the next game would be a surprise.
   const [language, setLanguage] = useState("");
-  // The image picked under ③ (format, compressed), and whether the queue makes packages or images.
-  // Touching the image options means an image is wanted: the queue follows (#433 report).
+  // ③'s one choice of what to make: a package, or the image picked (format, compressed). The
+  // queue builds exactly this, never a package in place of the image picked (#433 report).
   const [imageFormat, setImageFormat] = useState<ImageFormat>("ffpkg");
   const [imageCompress, setImageCompress] = useState(false);
-  const [queueBuild, setQueueBuild] = useState<"pkg" | "image">("pkg");
+  const [make, setMake] = useState<"pkg" | "image">("pkg");
   // AMPR LZ4 asset packs for this game's .exfat image, and the profile it packs with. Per game
   // (they depend on the game's own ampr_emu), so only the game checked here carries them into
   // the queue.
   const [lz4On, setLz4On] = useState(false);
   const [lz4Profile, setLz4Profile] = useState<{ name: string; text: string } | null>(null);
   const build: ConvertBuild =
-    queueBuild === "image" ? { kind: "image", format: imageFormat, compress: imageCompress } : { kind: "pkg" };
+    make === "image" ? { kind: "image", format: imageFormat, compress: imageCompress } : { kind: "pkg" };
+  const then = thenFor(build.kind, thenChoice, canInstall);
   /** "skipped": an image was asked for a source that is not a game folder here. */
   const queueAdd = (
     src: string,
@@ -112,10 +113,30 @@ export default function FpkgConvertScreen() {
           ? { volume: u.destinationVolume, subpath: u.destinationSubpath || DEFAULT_IMAGE_SUBPATH }
           : undefined,
       language: language || undefined,
-      then: queueThen,
-      host: queueThen !== "keep" && canInstall ? host : null,
-      deleteAfterInstall: queueThen !== "keep" && queueDeleteAfter,
+      then,
+      host: then !== "keep" ? host : null,
+      deleteAfterInstall: then !== "keep" && deleteAfter,
     });
+  };
+  /** Queue what was picked or found, then say what was left out. */
+  const queueAll = (sources: { path: string; isDir: boolean }[], notGames: number) => {
+    const results = sources.map((x) => queueAdd(x.path, x.isDir));
+    const notes: string[] = [];
+    if (notGames)
+      notes.push(
+        tr("cq_not_games", { count: notGames }, "{count} folder(s) were not games and were skipped."),
+      );
+    const skipped = results.filter((r) => r === "skipped").length;
+    if (skipped)
+      notes.push(
+        tr(
+          "cq_image_folders_only",
+          { count: skipped },
+          "Only a game folder on this computer can become a game image: {count} skipped.",
+        ),
+      );
+    if (results.some((r) => r === false)) notes.push(tr("cq_already", undefined, "This game is already in the queue."));
+    setError(notes.length ? notes.join(" ") : null);
   };
   const skippedNote = (n: number) =>
     setError(
@@ -275,12 +296,39 @@ export default function FpkgConvertScreen() {
     }
   }, [setOutputDir]);
 
-  const run = (install: boolean) => {
+  /** Convert the current game as chosen under ③. */
+  const run = () => {
     if (!source.trim()) return;
     setError(null);
+    if (build.kind === "image") {
+      const u = useUploadStore.getState();
+      void buildImage(
+        src,
+        outputDir.trim() || undefined,
+        build.compress && !lz4Active(build.format, lz4Choice),
+        build.format,
+        then === "upload"
+          ? {
+              host,
+              volume: u.destinationVolume,
+              subpath: u.destinationSubpath || DEFAULT_IMAGE_SUBPATH,
+              deleteAfter,
+            }
+          : undefined,
+        lz4Active(build.format, lz4Choice) ? { profileToml: lz4Profile?.text } : undefined,
+      );
+      return;
+    }
+    const install = then !== "keep";
     void start(
       { source: source.trim(), outputDir: outputDir.trim() || undefined, compression, language: language || undefined },
-      { install, host: install ? host : null, password: password || undefined },
+      {
+        install,
+        host: install ? host : null,
+        method: then === "upload" ? "upload" : "stream",
+        password: password || undefined,
+        deleteAfter: install && deleteAfter,
+      },
     );
   };
 
@@ -443,30 +491,37 @@ export default function FpkgConvertScreen() {
             deleteArmed={deleteArmed}
             title={inspection?.title ?? null}
             sourceBytes={inspection?.bytes ?? 0}
-            onConvert={() => run(false)}
-            onConvertInstall={() => run(true)}
-            onCompress={() => void compress(source.trim(), outputDir.trim() || undefined)}
-            imageFormat={imageFormat}
-            imageCompress={imageCompress}
-            onImageChoice={(f, c) => {
-              setImageFormat(f);
-              setImageCompress(c);
-              setQueueBuild("image");
+            choice={{
+              make,
+              onMake: setMake,
+              imageFormat,
+              imageCompress,
+              onImageChoice: (f, c) => {
+                setImageFormat(f);
+                setImageCompress(c);
+              },
+              then,
+              onThen: setThen,
+              deleteAfter,
+              onDeleteAfter: setDeleteAfter,
+              canInstall,
+              lz4: lz4Choice,
             }}
-            lz4={lz4Choice}
-            onMakeImage={
-              isLocalFolder
-                ? (thenCompress, format) =>
-                    void buildImage(
-                      src,
-                      outputDir.trim() || undefined,
-                      thenCompress,
-                      format,
-                      undefined,
-                      lz4Active(format, lz4Choice) ? { profileToml: lz4Profile?.text } : undefined,
-                    )
-                : undefined
-            }
+            onRun={run}
+            canImage={isLocalFolder}
+            canQueue={!!source.trim() && !noFiles}
+            onQueue={() => {
+              const r = queueAdd(
+                source.trim(),
+                isLocalFolder,
+                build.kind === "image" && lz4Active(build.format, lz4Choice)
+                  ? { profileToml: lz4Profile?.text }
+                  : undefined,
+              );
+              if (r === "skipped") skippedNote(1);
+              else if (!r) setError(tr("cq_already", undefined, "This game is already in the queue."));
+            }}
+            onCompress={() => void compress(source.trim(), outputDir.trim() || undefined)}
             onCancel={() => void cancel()}
             onInstall={(method) => void retryInstall(host, method)}
             onLaunch={onLaunch}
@@ -516,25 +571,6 @@ export default function FpkgConvertScreen() {
           <QueueCard
             items={queueItems}
             running={queueRunning}
-            then={queueThen}
-            onThen={setQueueThen}
-            deleteAfter={queueDeleteAfter}
-            onDeleteAfter={setQueueDeleteAfter}
-            canInstall={canInstall}
-            build={build}
-            onBuild={setQueueBuild}
-            canAddCurrent={!!source.trim() && !noFiles}
-            onAddCurrent={() => {
-              const r = queueAdd(
-                source.trim(),
-                isLocalFolder,
-                build.kind === "image" && lz4Active(build.format, lz4Choice)
-                  ? { profileToml: lz4Profile?.text }
-                  : undefined,
-              );
-              if (r === "skipped") skippedNote(1);
-              else if (!r) setError(tr("cq_already", undefined, "This game is already in the queue."));
-            }}
             onScanFolder={() =>
               void (async () => {
                 const folder = !isTauriEnv()
@@ -542,29 +578,37 @@ export default function FpkgConvertScreen() {
                   : await pickPath({ mode: "folder", title: tr("batch_scan_pick", undefined, "Choose the folder that holds your games") });
                 if (!folder) return;
                 try {
-                  let skipped = 0;
-                  for (const e of await scanChildren(folder)) {
-                    const name = e.path.split(/[\\/]/).pop() ?? e.path;
-                    const kind = classifyScanEntry(name, e.isDir);
-                    if (kind === "folder" || kind === "image" || kind === "archive")
-                      if (queueAdd(e.path, kind === "folder") === "skipped") skipped++;
-                  }
-                  if (skipped) skippedNote(skipped);
+                  const found = await gamesInFolder(folder);
+                  queueAll(found.sources, found.skipped);
                 } catch (err) {
                   setError(err instanceof Error ? err.message : String(err));
                 }
               })()
             }
-            onPickSeveral={() =>
+            onPickFolders={() =>
+              void (async () => {
+                const picked = await pickPaths({
+                  mode: "folder",
+                  title: tr("cq_pick_folders", undefined, "Pick game folders…"),
+                }).catch(() => [] as string[]);
+                if (!picked.length) return;
+                const { games, skipped } = await gameFoldersAmong(picked);
+                queueAll(
+                  games.map((path) => ({ path, isDir: true })),
+                  skipped,
+                );
+              })()
+            }
+            onPickFiles={() =>
               void (async () => {
                 const picked = await pickPaths({
                   title: tr("fpkg.pickImage", undefined, "Choose a game image or archive"),
                   filters: [{ name: "Game image or archive", extensions: ["exfat", "ffpkg", "ffpfs", "ffpfsc", "zip", "7z", "rar"] }],
                 }).catch(() => [] as string[]);
-                const results = picked.map((p) => queueAdd(p, false));
-                const skipped = results.filter((r) => r === "skipped").length;
-                if (skipped) skippedNote(skipped);
-                else if (results.some((r) => !r)) setError(tr("cq_already", undefined, "This game is already in the queue."));
+                queueAll(
+                  picked.map((path) => ({ path, isDir: false })),
+                  0,
+                );
               })()
             }
             onStart={() => void useConvertQueue.getState().start()}

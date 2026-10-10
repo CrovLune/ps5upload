@@ -1,11 +1,13 @@
-// Card ③ Build & install: the start buttons, then the stage list while a run goes, then the
-// result with the actions that fit it. Every action targets the package the pipeline names.
+// Card ③ Build & install: the one set of choices (what to make, what happens after) that both
+// Convert and the queue use, with the start buttons; then the stage list while a run goes, then
+// the result with the actions that fit it. Every action targets the package the pipeline names.
 
 import { useEffect, useState } from "react";
 
-import { CheckCircle2, Circle, Loader2, XCircle } from "lucide-react";
+import { CheckCircle2, Circle, ListPlus, Loader2, XCircle } from "lucide-react";
 
-import { Button, Card, Checkbox, ProgressBar } from "../../components";
+import { Button, Card, Checkbox, ProgressBar, SegmentedControl, Toggle } from "../../components";
+import { buildExtension, type ConvertThen } from "../../state/convertQueue";
 import { makesImage } from "../../state/fpkgConversion";
 import type { InstallMethod, Pipeline, PipelineStage } from "../../state/fpkgConversion";
 import { useTr } from "../../state/lang";
@@ -65,18 +67,16 @@ export interface RunCardProps {
   title?: string | null;
   /** The game's size, for the package's share of it. */
   sourceBytes?: number;
-  onConvert: () => void;
-  onConvertInstall: () => void;
+  /** What to make and what happens after: the one choice Convert and the queue both use. */
+  choice: OutputChoiceProps;
+  /** Convert the current game as chosen. */
+  onRun: () => void;
+  /** The source is a game folder on this computer, so it can become an image here. */
+  canImage?: boolean;
+  /** Add the current game to the queue, with the same choice. */
+  onQueue?: () => void;
+  canQueue?: boolean;
   onCompress: () => void;
-  /** The source is a game folder on this computer: write it as an image (`compress`: then
-   *  compress it into a .ffpfsc). Absent when it cannot be made into one from here. */
-  onMakeImage?: (compress: boolean, format: ImageFormat) => void;
-  /** The image picked (format, compressed): also what the queue makes when it makes images. */
-  imageFormat?: ImageFormat;
-  imageCompress?: boolean;
-  onImageChoice?: (format: ImageFormat, compress: boolean) => void;
-  /** For a libSceAmpr game: the AMPR LZ4 asset-pack option of an .exfat image. */
-  lz4?: Lz4Choice;
   onCancel: () => void;
   /** Install the kept package: streamed from this computer, or uploaded to the PS5 first. */
   onInstall: (method: InstallMethod) => void;
@@ -157,51 +157,50 @@ export function RunCard(props: RunCardProps) {
   );
 
   if (p.phase === "idle") {
+    const c = props.choice;
+    const image = c.make === "image";
+    const packing = image && lz4Active(c.imageFormat, c.lz4);
+    const sends = c.then !== "keep";
+    const canRun = props.canConvert !== false && (!image || !!props.canImage);
+    const runLabel = image
+      ? c.imageCompress && !packing
+        ? tr("fpkg.image.make_compressed", undefined, "Make compressed image")
+        : tr("fpkg.image.make", undefined, "Make game image")
+      : !sends
+        ? tr("fpkg.convertOnly", undefined, "Convert only")
+        : props.replaces
+          ? tr("fpkg.convertReplace", undefined, "Convert & replace")
+          : tr("fpkg.convertInstall", undefined, "Convert & install");
     return (
       <Card>
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-col gap-3">
           {title}
-          <div className="flex flex-wrap gap-2">
-            <Button
-              variant="primary"
-              onClick={props.onConvertInstall}
-              disabled={!props.canInstall || props.canConvert === false}
-            >
-              {props.replaces
-                ? tr("fpkg.convertReplace", undefined, "Convert & replace")
-                : tr("fpkg.convertInstall", undefined, "Convert & install")}
+          <OutputChoice {...c} />
+          <div className="flex flex-wrap gap-2 border-t border-[var(--color-border)] pt-3">
+            <Button variant="primary" onClick={props.onRun} disabled={!canRun}>
+              {runLabel}
             </Button>
-            <Button onClick={props.onConvert} disabled={props.canConvert === false}>
-              {tr("fpkg.convertOnly", undefined, "Convert only")}
-            </Button>
+            {props.onQueue && (
+              <Button leftIcon={<ListPlus size={14} />} onClick={props.onQueue} disabled={!props.canQueue}>
+                {tr("cq_add_current", undefined, "Add this game to the queue")}
+              </Button>
+            )}
             {props.isImage && (
               <Button variant="ghost" onClick={props.onCompress}>
                 {tr("fpkg.compress", undefined, "Compress to .ffpfsc")}
               </Button>
             )}
           </div>
-          {/* A folder can also become a game image: the kind ShadowMount+ mounts from a
-              drive, instead of a package the PS5 installs. */}
-          {props.onMakeImage && (
-            <div className="mt-1 border-t border-[var(--color-border)] pt-2">
-              <div className="mb-1 text-xs text-[var(--color-muted)]">
-                {tr(
-                  "fpkg.image.lead",
-                  undefined,
-                  "Or make a game image instead of a package: one file you copy to a PS5 drive, which ShadowMount+ mounts and shows on the home screen. Nothing is installed.",
-                )}
-              </div>
-              <ImageChoice
-                disabled={props.canConvert === false}
-                format={props.imageFormat ?? "ffpkg"}
-                compress={props.imageCompress ?? false}
-                onChoice={(f, c) => props.onImageChoice?.(f, c)}
-                onMake={(compress, format) => props.onMakeImage?.(compress, format)}
-                lz4={props.lz4}
-              />
+          {image && !props.canImage && props.canConvert !== false && (
+            <div className="text-xs text-[var(--color-muted)]">
+              {tr(
+                "fpkg.image.folderOnly",
+                undefined,
+                "Only a game folder on this computer can become a game image.",
+              )}
             </div>
           )}
-          {props.replaces && props.canInstall && (
+          {props.replaces && props.canInstall && !image && sends && (
             <div className="text-xs text-[var(--color-muted)]">
               {tr(
                 "fpkg.replaceHint",
@@ -593,21 +592,121 @@ function Lz4Option({ lz4 }: { lz4: Lz4Choice }) {
   );
 }
 
+/** What Convert makes and what happens after: one set of choices, used by Convert and by
+ *  the queue alike. */
+export interface OutputChoiceProps {
+  make: "pkg" | "image";
+  onMake: (make: "pkg" | "image") => void;
+  /** The image picked (format, compressed into a .ffpfsc). */
+  imageFormat: ImageFormat;
+  imageCompress: boolean;
+  onImageChoice: (format: ImageFormat, compress: boolean) => void;
+  /** After converting, as it can be done now (see `thenFor`). */
+  then: ConvertThen;
+  onThen: (then: ConvertThen) => void;
+  deleteAfter: boolean;
+  onDeleteAfter: (on: boolean) => void;
+  /** A console answers: installing or uploading is possible. */
+  canInstall: boolean;
+  /** For a libSceAmpr game: the AMPR LZ4 asset-pack option of an .exfat image. */
+  lz4?: Lz4Choice;
+}
+
+function OutputChoice(c: OutputChoiceProps) {
+  const tr = useTr();
+  const image = c.make === "image";
+  const imageExt = buildExtension({ kind: "image", format: c.imageFormat, compress: c.imageCompress });
+  return (
+    <div className="flex flex-col gap-3" data-testid="output-choice">
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-sm">
+        <span className="min-w-28 text-[var(--color-muted)]">{tr("cq_build", undefined, "Make")}</span>
+        <SegmentedControl
+          ariaLabel={tr("cq_build", undefined, "Make")}
+          value={c.make}
+          onChange={(v) => {
+            const make = v as "pkg" | "image";
+            c.onMake(make);
+            if (make === "image" && c.then === "stream") c.onThen("upload");
+          }}
+          segments={[
+            { value: "pkg", label: tr("cq_build_pkg", undefined, "A package (.pkg)") },
+            { value: "image", label: tr("cq_build_image", { ext: imageExt }, "A game image ({ext})") },
+          ]}
+        />
+      </div>
+      {image && (
+        <div className="flex flex-col gap-1">
+          <div className="text-xs text-[var(--color-muted)]">
+            {tr(
+              "fpkg.image.what",
+              undefined,
+              "One file you copy to a PS5 drive, which ShadowMount+ mounts and shows on the home screen. Nothing is installed.",
+            )}
+          </div>
+          <ImageChoice
+            format={c.imageFormat}
+            compress={c.imageCompress}
+            onChoice={c.onImageChoice}
+            lz4={c.lz4}
+          />
+        </div>
+      )}
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-sm">
+        <label className="flex flex-wrap items-center gap-x-3 gap-y-2">
+          <span className="min-w-28 text-[var(--color-muted)]">{tr("cq_after", undefined, "After converting")}</span>
+          <select
+            value={c.then}
+            onChange={(e) => c.onThen(e.target.value as ConvertThen)}
+            className="select w-auto!"
+            data-testid="convert-then"
+          >
+            {image ? (
+              <>
+                <option value="keep">{tr("cq_then_keep_image", undefined, "Keep the image")}</option>
+                <option value="upload" disabled={!c.canInstall}>
+                  {tr("cq_then_upload_image", undefined, "Upload it to the PS5")}
+                </option>
+              </>
+            ) : (
+              <>
+                <option value="keep">{tr("cq_then_keep", undefined, "Keep the package")}</option>
+                <option value="stream" disabled={!c.canInstall}>
+                  {tr("cq_then_stream", undefined, "Stream & install")}
+                </option>
+                <option value="upload" disabled={!c.canInstall}>
+                  {tr("cq_then_upload", undefined, "Upload & install")}
+                </option>
+              </>
+            )}
+          </select>
+        </label>
+        {c.then !== "keep" && (
+          <Toggle
+            checked={c.deleteAfter}
+            onChange={c.onDeleteAfter}
+            label={
+              image
+                ? tr("cq_delete_after_image", undefined, "Delete the image once it is on the PS5")
+                : tr("cq_delete_after", undefined, "Delete the package once installed")
+            }
+          />
+        )}
+      </div>
+    </div>
+  );
+}
+
 /** Which image to make: the filesystem (UFS2 .ffpkg, what ShadowMount+ recommends, or exFAT),
  *  and whether to compress it into a .ffpfsc. */
 function ImageChoice({
-  disabled,
   format,
   compress,
   onChoice,
-  onMake,
   lz4,
 }: {
-  disabled: boolean;
   format: ImageFormat;
   compress: boolean;
   onChoice: (format: ImageFormat, compress: boolean) => void;
-  onMake: (compress: boolean, format: ImageFormat) => void;
   lz4?: Lz4Choice;
 }) {
   const tr = useTr();
@@ -685,11 +784,6 @@ function ImageChoice({
         </span>
       </label>
       {lz4 && format === "exfat" && <Lz4Option lz4={lz4} />}
-      <Button onClick={() => onMake(compress && !packing, format)} disabled={disabled}>
-        {compress && !packing
-          ? tr("fpkg.image.make_compressed", undefined, "Make compressed image")
-          : tr("fpkg.image.make", undefined, "Make game image")}
-      </Button>
     </div>
   );
 }

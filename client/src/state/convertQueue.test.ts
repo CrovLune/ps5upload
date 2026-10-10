@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("@tauri-apps/api/core", () => ({ invoke: vi.fn() }));
 
-import { hydrateConvertQueue, setConvertRunner, useConvertQueue, type ConvertRunner } from "./convertQueue";
+import { hydrateConvertQueue, setConvertRunner, thenFor, useConvertQueue, type ConvertRunner } from "./convertQueue";
 
 const flush = async () => {
   for (let i = 0; i < 10; i++) await new Promise((r) => setTimeout(r, 0));
@@ -91,5 +91,19 @@ describe("the Convert queue", () => {
     await flush();
     expect(builds).toHaveLength(1);
     expect(useConvertQueue.getState().items).toHaveLength(1);
+  });
+});
+
+describe("what happens after converting", () => {
+  it("installs a package streamed or uploaded, but only uploads an image", () => {
+    expect(thenFor("pkg", "stream", true)).toBe("stream");
+    expect(thenFor("pkg", "upload", true)).toBe("upload");
+    expect(thenFor("image", "stream", true)).toBe("upload");
+    expect(thenFor("image", "keep", true)).toBe("keep");
+  });
+
+  it("keeps the result when no console answers", () => {
+    expect(thenFor("pkg", "stream", false)).toBe("keep");
+    expect(thenFor("image", "upload", false)).toBe("keep");
   });
 });
