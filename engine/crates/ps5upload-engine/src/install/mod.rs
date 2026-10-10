@@ -875,7 +875,7 @@ async fn run_install(state: PkgInstallStateHandle, job: String, mut req: Install
                     .into(),
             );
         });
-        finalize(&state, &job, &req, started);
+        finalize(&state, &job, &req, started).await;
         return;
     }
 
@@ -919,7 +919,7 @@ async fn run_install(state: PkgInstallStateHandle, job: String, mut req: Install
             s.reason = mapped.reason;
             s.hint = mapped.hint.clone();
         });
-        finalize(&state, &job, &req, started);
+        finalize(&state, &job, &req, started).await;
         return;
     }
 
@@ -1200,7 +1200,7 @@ async fn run_install(state: PkgInstallStateHandle, job: String, mut req: Install
             }
             s.metrics.phase_ms.insert("deliver".into(), deliver_ms);
         });
-        finalize(&state, &job, &req, started);
+        finalize(&state, &job, &req, started).await;
         return;
     }
 
@@ -1289,7 +1289,7 @@ async fn run_install(state: PkgInstallStateHandle, job: String, mut req: Install
             s.shortened = shortened;
             s.metrics.phase_ms.insert("deliver".into(), deliver_ms);
         });
-        finalize(&state, &job, &req, started);
+        finalize(&state, &job, &req, started).await;
         return;
     }
     if delivery == DeliveryProgress::Stalled {
@@ -1366,7 +1366,7 @@ async fn run_install(state: PkgInstallStateHandle, job: String, mut req: Install
                 s.shortened = shortened;
                 s.metrics.phase_ms.insert("deliver".into(), deliver_ms);
             });
-            finalize(&state, &job, &req, started);
+            finalize(&state, &job, &req, started).await;
             return;
         }
     }
@@ -1473,7 +1473,7 @@ async fn run_install(state: PkgInstallStateHandle, job: String, mut req: Install
         s.metrics.phase_ms.insert("deliver".into(), deliver_ms);
         s.metrics.phase_ms.insert("verify".into(), verify_ms);
     });
-    finalize(&state, &job, &req, started);
+    finalize(&state, &job, &req, started).await;
 }
 
 /// Reuse the existing start handler in serve-only mode to create a pkg-host
@@ -1541,7 +1541,7 @@ async fn create_serve_session_for(
 }
 
 /// Record history and release the console's active-job guard. Always runs.
-fn finalize(
+async fn finalize(
     state: &PkgInstallStateHandle,
     job: &str,
     req: &InstallRequest,
@@ -1569,7 +1569,14 @@ fn finalize(
             code: st.code,
             metrics: st.metrics.clone(),
         };
-        let _ = history::append(&history_dir(), &req.ps5_addr, &entry, history::HISTORY_CAP);
+        // The history file is rewritten on a blocking thread, not an async worker.
+        {
+            let (addr, entry) = (req.ps5_addr.clone(), entry.clone());
+            let _ = tokio::task::spawn_blocking(move || {
+                history::append(&history_dir(), &addr, &entry, history::HISTORY_CAP)
+            })
+            .await;
+        }
         ps5upload_core::events::emit_detail(
             ps5upload_core::events::Cat::Install,
             if entry.code == 0 {
@@ -1588,7 +1595,7 @@ fn finalize(
         // placed on the console themselves (console_path / remote / url).
         if req.options.delete_source_copy_after && st.verdict == Some(Verdict::Installed) {
             if let Source::HostFile(path) = &req.source {
-                let _ = std::fs::remove_file(path);
+                let _ = tokio::fs::remove_file(path).await;
             }
         }
     }

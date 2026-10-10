@@ -221,9 +221,9 @@ pub(crate) enum JobState {
         #[serde(
             rename = "files_count",
             serialize_with = "serialize_len",
-            skip_serializing_if = "Vec::is_empty"
+            skip_serializing_if = "files_is_empty"
         )]
-        files: Vec<PlannedFile>,
+        files: Arc<Vec<PlannedFile>>,
         /// Files already present on the PS5 that were skipped this run
         /// (reconcile mode only). 0 for non-reconcile uploads.
         #[serde(default)]
@@ -330,9 +330,12 @@ pub(crate) enum JobState {
 }
 
 /// Serializes a list as its length (see `JobState::Running::files`).
-#[allow(clippy::ptr_arg)] // serde hands the field over as `&Vec<_>`
-fn serialize_len<S: serde::Serializer, T>(v: &Vec<T>, s: S) -> Result<S::Ok, S::Error> {
+fn serialize_len<S: serde::Serializer, T>(v: &Arc<Vec<T>>, s: S) -> Result<S::Ok, S::Error> {
     s.serialize_u64(v.len() as u64)
+}
+
+fn files_is_empty<T>(v: &Arc<Vec<T>>) -> bool {
+    v.is_empty()
 }
 
 /// Build a `JobState::Failed` from a transfer error, populating the
@@ -1713,7 +1716,7 @@ async fn ps5_to_ps5_handler(
             started_at_ms,
             bytes_sent: 0,
             total_bytes: 0,
-            files: vec![],
+            files: Default::default(),
             skipped_files: 0,
             skipped_bytes: 0,
             files_processing: 0,
@@ -5431,7 +5434,7 @@ async fn transfer_file_handler(
             started_at_ms,
             bytes_sent: 0,
             total_bytes,
-            files: files.clone(),
+            files: files.clone().into(),
             skipped_files: 0,
             skipped_bytes: 0,
             files_processing: 0,
@@ -5625,7 +5628,7 @@ async fn transfer_dir_handler(
             started_at_ms,
             bytes_sent: 0,
             total_bytes: 0, // unknown until the walk below finishes
-            files: vec![],
+            files: Default::default(),
             skipped_files: 0,
             skipped_bytes: 0,
             files_processing: 0,
@@ -5757,7 +5760,7 @@ async fn transfer_dir_handler(
                 started_at_ms,
                 bytes_sent: 0,
                 total_bytes,
-                files,
+                files: files.into(),
                 skipped_files: 0,
                 skipped_bytes: 0,
                 files_processing: 0,
@@ -6177,7 +6180,7 @@ async fn transfer_zip_handler(
             started_at_ms,
             bytes_sent: 0,
             total_bytes,
-            files,
+            files: files.into(),
             skipped_files: 0,
             skipped_bytes: 0,
             files_processing: 0,
@@ -7572,7 +7575,7 @@ async fn transfer_7z_handler(
             started_at_ms,
             bytes_sent: 0,
             total_bytes,
-            files,
+            files: files.into(),
             skipped_files: 0,
             skipped_bytes: 0,
             files_processing: 0,
@@ -7791,7 +7794,7 @@ async fn transfer_rar_handler(
             started_at_ms,
             bytes_sent: 0,
             total_bytes,
-            files,
+            files: files.into(),
             skipped_files: 0,
             skipped_bytes: 0,
             files_processing: 0,
@@ -8151,7 +8154,8 @@ async fn link_download_handler(
             files: vec![PlannedFile {
                 rel_path: name.clone(),
                 size: total,
-            }],
+            }]
+            .into(),
             skipped_files: 0,
             skipped_bytes: 0,
             files_processing: 0,
@@ -8405,7 +8409,7 @@ async fn transfer_file_list_handler(
             started_at_ms,
             bytes_sent: 0,
             total_bytes,
-            files,
+            files: files.into(),
             skipped_files: 0,
             skipped_bytes: 0,
             files_processing: 0,
@@ -8584,7 +8588,7 @@ fn start_ava1_download(
             started_at_ms,
             bytes_sent: 0,
             total_bytes: 0,
-            files: Vec::new(),
+            files: Default::default(),
             skipped_files: 0,
             skipped_bytes: 0,
             files_processing: 0,
@@ -9058,17 +9062,23 @@ async fn get_job_files(State(state): State<AppState>, Path(id): Path<String>) ->
         Ok(u) => u,
         Err(_) => return json_err(StatusCode::BAD_REQUEST, "invalid job id").into_response(),
     };
-    let files = match state
+    // Only the Arc is cloned under the lock; a list of tens of thousands of files is
+    // serialized after it is released, so progress ticks are not held up behind it.
+    let files: Arc<Vec<PlannedFile>> = match state
         .jobs
         .lock()
         .unwrap_or_else(|e| e.into_inner())
         .get(&uuid)
     {
-        Some(JobState::Running { files, .. }) => serde_json::json!(files),
-        Some(_) => serde_json::json!([]),
+        Some(JobState::Running { files, .. }) => Arc::clone(files),
+        Some(_) => Arc::default(),
         None => return json_err(StatusCode::NOT_FOUND, "job not found").into_response(),
     };
-    (StatusCode::OK, Json(serde_json::json!({ "files": files }))).into_response()
+    (
+        StatusCode::OK,
+        Json(serde_json::json!({ "files": &*files })),
+    )
+        .into_response()
 }
 
 /// POST /api/jobs/{id}/cancel — truly stop a running transfer. Flips the job's
@@ -10888,7 +10898,8 @@ mod helpers_tests {
                     rel_path: format!("dir/file{i}.bin"),
                     size: 10,
                 })
-                .collect(),
+                .collect::<Vec<_>>()
+                .into(),
             skipped_files: 0,
             skipped_bytes: 0,
             files_processing: 0,
@@ -11048,7 +11059,7 @@ mod helpers_tests {
                 started_at_ms: 1,
                 bytes_sent: 0,
                 total_bytes: 0,
-                files: vec![],
+                files: Default::default(),
                 skipped_files: 0,
                 skipped_bytes: 0,
                 files_processing: 0,
@@ -11749,7 +11760,7 @@ mod job_stage_tests {
             started_at_ms: 1,
             bytes_sent: 10,
             total_bytes: 100,
-            files: Vec::new(),
+            files: Default::default(),
             skipped_files: 0,
             skipped_bytes: 0,
             files_processing: 0,

@@ -112,7 +112,7 @@ fn running(started_at_ms: u64, bytes_sent: u64, total_bytes: u64) -> JobState {
         started_at_ms,
         bytes_sent,
         total_bytes,
-        files: Vec::new(),
+        files: Default::default(),
         skipped_files: 0,
         skipped_bytes: 0,
         files_processing: 0,

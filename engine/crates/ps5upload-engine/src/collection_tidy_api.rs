@@ -341,7 +341,10 @@ pub struct PlanResponse {
 
 /// POST /api/collection/organize/plan: what the organizer would do. Touches nothing.
 pub async fn post_organize_plan() -> Response {
-    let containers = all_containers();
+    // Off the async workers: it stats every package folder.
+    let containers = tokio::task::spawn_blocking(all_containers)
+        .await
+        .unwrap_or_default();
     if containers.is_empty() {
         return err(
             StatusCode::BAD_REQUEST,
@@ -506,7 +509,10 @@ pub async fn post_organize_apply(Json(req): Json<OrganizeApplyReq>) -> Response 
             "no data folder for the undo log",
         );
     };
-    let containers = all_containers();
+    // Off the async workers: it stats every package folder.
+    let containers = tokio::task::spawn_blocking(all_containers)
+        .await
+        .unwrap_or_default();
     let result = tokio::task::spawn_blocking(move || {
         let lib = library();
         let roots = roots();
