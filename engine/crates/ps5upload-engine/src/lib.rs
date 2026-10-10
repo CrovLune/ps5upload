@@ -139,7 +139,8 @@ fn bandwidth_cap_from_env(
 ) -> Option<u64> {
     let (v, _) = renamed_env_with(BANDWIDTH_ENV.0, BANDWIDTH_ENV.1, get, warned);
     let mbps = v?.trim().parse::<f64>().ok().filter(|n| *n > 0.0)?;
-    Some((mbps * 1024.0 * 1024.0) as u64)
+    // At least 1 B/s: a tiny cap must not round to 0, which reads as "no cap".
+    Some(((mbps * 1024.0 * 1024.0) as u64).max(1))
 }
 
 /// Apply a per-request bandwidth cap to the config. None / 0 / negative
@@ -148,7 +149,7 @@ fn bandwidth_cap_from_env(
 fn apply_per_request_bandwidth(cfg: &mut TransferConfig, cap_mbps: Option<f64>) {
     if let Some(n) = cap_mbps {
         if n > 0.0 {
-            cfg.bandwidth_cap_bps = Some((n * 1024.0 * 1024.0) as u64);
+            cfg.bandwidth_cap_bps = Some(((n * 1024.0 * 1024.0) as u64).max(1));
         } else if n == 0.0 {
             // Explicit 0 = "unlimited".
             cfg.bandwidth_cap_bps = None;
@@ -1680,6 +1681,9 @@ struct Ps5ToPs5Req {
     to: String,
     dest: String,
     tx_id: Option<String>,
+    /// Paces the relay like an upload's cap (the environment's cap otherwise).
+    #[serde(default)]
+    bandwidth_cap_mbps: Option<f64>,
 }
 
 async fn ps5_to_ps5_handler(
@@ -1689,6 +1693,11 @@ async fn ps5_to_ps5_handler(
     let tx_id = match parse_or_random_tx_id(req.tx_id.as_deref()) {
         Ok(id) => id,
         Err(e) => return json_err(StatusCode::BAD_REQUEST, e.to_string()).into_response(),
+    };
+    let relay_cap = {
+        let mut cfg = make_transfer_config(&req.to);
+        apply_per_request_bandwidth(&mut cfg, req.bandwidth_cap_mbps);
+        cfg.bandwidth_cap_bps
     };
     let job_id = Uuid::new_v4();
     telemetry::tag(job_id, "relay");
@@ -1785,6 +1794,7 @@ async fn ps5_to_ps5_handler(
                 tx_id,
                 progress.clone(),
                 cancel,
+                relay_cap,
                 |route| match route {
                     ps5upload_ava1::c2c::Route::Direct => route_notes.route.store(
                         ps5upload_core::transfer::LIVE_ROUTE_DIRECT,

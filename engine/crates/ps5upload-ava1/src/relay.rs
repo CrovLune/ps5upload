@@ -510,6 +510,26 @@ pub fn ps5_to_ps5_between(
     progress: Arc<Progress>,
     cancel: Arc<AtomicBool>,
 ) -> Result<SendReport> {
+    ps5_to_ps5_capped(
+        from_pool, from, src, to_pool, to, dest, job_id, progress, cancel, None,
+    )
+}
+
+/// [`ps5_to_ps5_between`] with an outbound cap (bytes per second) on what this computer sends
+/// on to the receiving console, the same cap an upload honours.
+#[allow(clippy::too_many_arguments)]
+pub fn ps5_to_ps5_capped(
+    from_pool: &Pool,
+    from: &str,
+    src: &str,
+    to_pool: &Pool,
+    to: &str,
+    dest: &str,
+    job_id: [u8; 16],
+    progress: Arc<Progress>,
+    cancel: Arc<AtomicBool>,
+    bandwidth_cap: Option<u64>,
+) -> Result<SendReport> {
     if std::ptr::eq(from_pool, to_pool) && from.split(':').next() == to.split(':').next() {
         return Err(anyhow!(
             "relay source and destination must be different consoles"
@@ -602,6 +622,7 @@ pub fn ps5_to_ps5_between(
             let mut o = SendOptions::upload(dest);
             o.progress = progress.clone();
             o.cancel = cancel.clone();
+            o.bandwidth_cap = bandwidth_cap;
             o.persist = Some(persist.clone());
             // Must be one reader: parallel file reads can fill the cap with later files.
             o.readers = 1;

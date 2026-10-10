@@ -54,6 +54,9 @@ enum Direct {
 
 /// Copies `src` on `from` to `dest` on `to`: directly when it can, else through this computer.
 /// `on_route` hears the route as soon as it is known (and again if it changes).
+/// `bandwidth_cap` (bytes per second) paces the relay, which sends from this computer. The
+/// direct route is not paced: its bytes never cross this computer, and the console-to-console
+/// protocol carries no rate for the sending console to honour.
 #[allow(clippy::too_many_arguments)]
 pub fn ps5_to_ps5_routed(
     from: &str,
@@ -63,9 +66,10 @@ pub fn ps5_to_ps5_routed(
     job_id: [u8; 16],
     progress: Arc<Progress>,
     cancel: Arc<AtomicBool>,
+    bandwidth_cap: Option<u64>,
     on_route: impl Fn(&Route),
 ) -> Result<(SendReport, Route)> {
-    ps5_to_ps5_routed_between(
+    routed(
         pool(),
         from,
         src,
@@ -75,6 +79,7 @@ pub fn ps5_to_ps5_routed(
         job_id,
         progress,
         cancel,
+        bandwidth_cap,
         on_route,
     )
 }
@@ -91,6 +96,25 @@ pub fn ps5_to_ps5_routed_between(
     job_id: [u8; 16],
     progress: Arc<Progress>,
     cancel: Arc<AtomicBool>,
+    on_route: impl Fn(&Route),
+) -> Result<(SendReport, Route)> {
+    routed(
+        from_pool, from, src, to_pool, to, dest, job_id, progress, cancel, None, on_route,
+    )
+}
+
+#[allow(clippy::too_many_arguments)]
+fn routed(
+    from_pool: &Pool,
+    from: &str,
+    src: &str,
+    to_pool: &Pool,
+    to: &str,
+    dest: &str,
+    job_id: [u8; 16],
+    progress: Arc<Progress>,
+    cancel: Arc<AtomicBool>,
+    bandwidth_cap: Option<u64>,
     on_route: impl Fn(&Route),
 ) -> Result<(SendReport, Route)> {
     let direct = crate::block_on(direct(
@@ -111,8 +135,17 @@ pub fn ps5_to_ps5_routed_between(
         reason: reason.clone(),
     };
     on_route(&route);
-    let r = crate::relay::ps5_to_ps5_between(
-        from_pool, from, src, to_pool, to, dest, job_id, progress, cancel,
+    let r = crate::relay::ps5_to_ps5_capped(
+        from_pool,
+        from,
+        src,
+        to_pool,
+        to,
+        dest,
+        job_id,
+        progress,
+        cancel,
+        bandwidth_cap,
     )
     .map_err(|e| with_route_reason(e, &reason))?;
     Ok((r, route))
