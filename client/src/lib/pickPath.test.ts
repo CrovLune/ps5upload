@@ -2,10 +2,11 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 // Mock the three boundaries pickPath dispatches across: platform
 // detection, the in-app picker (Android), and the native dialog (desktop).
-const { mockIsAndroid, mockIsTauri, mockPickLocal, mockOpenDialog } = vi.hoisted(() => ({
+const { mockIsAndroid, mockIsTauri, mockPickLocal, mockPickLocalMany, mockOpenDialog } = vi.hoisted(() => ({
   mockIsAndroid: vi.fn(),
   mockIsTauri: vi.fn(),
   mockPickLocal: vi.fn(),
+  mockPickLocalMany: vi.fn(),
   mockOpenDialog: vi.fn(),
 }));
 
@@ -13,17 +14,19 @@ vi.mock("./platform", () => ({ isAndroid: () => mockIsAndroid() }));
 vi.mock("./tauriEnv", () => ({ isTauriEnv: () => mockIsTauri() }));
 vi.mock("../state/localPicker", () => ({
   pickLocalPath: (...a: unknown[]) => mockPickLocal(...a),
+  pickLocalPaths: (...a: unknown[]) => mockPickLocalMany(...a),
 }));
 vi.mock("@tauri-apps/plugin-dialog", () => ({
   open: (...a: unknown[]) => mockOpenDialog(...a),
 }));
 
-import { pickPath } from "./pickPath";
+import { pickPath, pickPaths } from "./pickPath";
 
 beforeEach(() => {
   mockIsAndroid.mockReset();
   mockIsTauri.mockReset().mockReturnValue(true);
   mockPickLocal.mockReset();
+  mockPickLocalMany.mockReset();
   mockOpenDialog.mockReset();
 });
 
@@ -126,5 +129,34 @@ describe("pickPath with a remote engine", () => {
     } finally {
       useEngineStore.getState().setEngineUrl("http://127.0.0.1:19113");
     }
+  });
+});
+
+describe("pickPaths: several at once", () => {
+  it("multi-selects files in the system dialog by default", async () => {
+    mockIsAndroid.mockReturnValue(false);
+    mockOpenDialog.mockResolvedValue(["/g/a.exfat", "/g/b.7z"]);
+    expect(await pickPaths({ title: "Pick" })).toEqual(["/g/a.exfat", "/g/b.7z"]);
+    expect(mockOpenDialog).toHaveBeenCalledWith(expect.objectContaining({ directory: false, multiple: true }));
+  });
+
+  it("multi-selects folders in the system dialog", async () => {
+    mockIsAndroid.mockReturnValue(false);
+    mockOpenDialog.mockResolvedValue(["/g/Game A", "/g/Game B"]);
+    expect(await pickPaths({ mode: "folder" })).toEqual(["/g/Game A", "/g/Game B"]);
+    expect(mockOpenDialog).toHaveBeenCalledWith(expect.objectContaining({ directory: true, multiple: true }));
+    expect(mockPickLocalMany).not.toHaveBeenCalled();
+  });
+
+  it("ticks folders in the in-app browser on Android and in the web build", async () => {
+    mockIsAndroid.mockReturnValue(true);
+    mockPickLocalMany.mockResolvedValue(["/storage/emulated/0/G"]);
+    expect(await pickPaths({ mode: "folder", title: "Pick" })).toEqual(["/storage/emulated/0/G"]);
+    expect(mockPickLocalMany).toHaveBeenCalledWith(expect.objectContaining({ mode: "folder", title: "Pick" }));
+    mockIsAndroid.mockReturnValue(false);
+    mockIsTauri.mockReturnValue(false);
+    mockPickLocalMany.mockResolvedValue([]);
+    expect(await pickPaths({ mode: "folder" })).toEqual([]);
+    expect(mockOpenDialog).not.toHaveBeenCalled();
   });
 });
