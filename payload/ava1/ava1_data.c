@@ -1153,16 +1153,19 @@ static void *c2c_main(void *arg) {
     c2c_run_t *r = arg;
     ava1_job_t *j = r->j;
     for (;;) {
-        int fin, stop;
+        int fin, stop, replaced;
         ava1_job_t *listed = ava1_job_find(j->id);
+        replaced = listed && listed != j;
         pthread_mutex_lock(&j->mu);
         fin = j->finished;
-        stop = j->stopping || listed != j; /* replaced (a relay took the job over) is as good as cancelled */
+        stop = j->stopping || listed != j;
         pthread_mutex_unlock(&j->mu);
         if (listed) ava1_job_put(listed);
         if (fin) break;
         if (stop) {
-            c2c_cancel_peer(r->sid, j->id);
+            /* Replaced (the relay took the job over, under the same id) only hangs up: the job
+             * on the other console is the relay's now, and must not be cancelled. */
+            if (!replaced) c2c_cancel_peer(r->sid, j->id);
             break;
         }
         if (!ava1_server_alive(r->sid)) ava1_data_fail_soon(j, AVA1_ERR_IO, "the connection to the other console dropped");
@@ -1201,14 +1204,28 @@ static int c2c_send(const uint8_t *body, uint32_t len, const uint8_t peer[32], u
     memcpy(dest, c.dest, c.dest_len);
     dest[c.dest_len] = 0;
     if (!D.running) return AVA1_ERR_BUSY;
+    /* may_read first: a denied path must not tell whether it exists. */
+    if (!D.cfg.may_read || !D.cfg.may_read(src, (c.flags & AVA1_JF_UNSAFE_READ) != 0)) {
+        ava1_rpc_msg(out, cap, out_len, "reading %s is not allowed", src);
+        return AVA1_ERR_PATH;
+    }
     if (stat(src, &st) != 0) {
         ava1_rpc_msg(out, cap, out_len, "%s: %s", src, strerror(errno));
         return AVA1_ERR_PATH;
     }
-    /* A retry of the same job replaces the earlier send (its watcher hangs up). */
+    /* A retry of the same job replaces the earlier send (its watcher hangs up), but only a send
+     * this device started: any other job under this id is left alone. */
     if ((j = ava1_job_find(c.job_id)) != NULL) {
-        if (j->c2c) ava1_recv_cancel(j);
+        int mine;
+        pthread_mutex_lock(&j->mu);
+        mine = j->c2c && memcmp(j->c2c_by, peer, 32) == 0;
+        pthread_mutex_unlock(&j->mu);
+        if (mine) ava1_recv_cancel(j);
         ava1_job_put(j);
+        if (!mine) {
+            ava1_rpc_msg(out, cap, out_len, "another job is running under this id");
+            return AVA1_ERR_BUSY;
+        }
     }
     if (ava1_server_dial(host, c.port, c.key, c.token, c.job_id, C2C_LANES, sid, why, sizeof why) != 0) {
         ava1_rpc_msg(out, cap, out_len, "%s", why);
@@ -1487,9 +1504,17 @@ static int route(const uint8_t sid[16], const uint8_t peer[32], uint8_t type, co
             }
         }
         break;
-    case AVA1_TYPE_JOB_CANCEL:
-        if (ava1_data_spawn(cancel_main, j) == 0) return 0; /* the thread has our reference */
+    case AVA1_TYPE_JOB_CANCEL: {
+        /* A cancel reaches a parked job or one attached to the session it came on: a late one
+         * from an earlier session (a direct send the relay has since taken over) must not
+         * stop the job another session now drives. */
+        int other;
+        pthread_mutex_lock(&j->cmu);
+        other = j->attached && memcmp(j->sid, sid, 16) != 0;
+        pthread_mutex_unlock(&j->cmu);
+        if (!other && ava1_data_spawn(cancel_main, j) == 0) return 0; /* the thread has our reference */
         break;
+    }
     case AVA1_TYPE_MANIFEST_PAGE:
     case AVA1_TYPE_MANIFEST_END:
     case AVA1_TYPE_FILE_ROOT: {

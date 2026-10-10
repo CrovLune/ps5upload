@@ -786,3 +786,24 @@ async fn many_large_files_download_bench() {
     assert_eq!(r.files as usize, n);
     assert!(same_tree(&src, &d.join("got")));
 }
+
+/// A receiver repeating FileRetry cannot grow the sender's list without bound: a file already
+/// waiting is queued once, and once the reader has taken it, it may be asked for again.
+#[test]
+fn a_repeated_file_retry_is_queued_once() {
+    let w = CSendWindow::new(100);
+    for _ in 0..10_000 {
+        assert_eq!(w.file_retry(3, 8), 0);
+    }
+    assert_eq!(w.file_retry(5, 8), 0);
+    assert_eq!(w.retries(false), 2);
+    assert_eq!(w.retries(true), 2, "the reader takes both");
+    assert_eq!(w.retries(false), 0);
+    assert_eq!(w.file_retry(3, 8), 0, "asked again after its re-read");
+    assert_eq!(w.retries(false), 1);
+    assert_eq!(
+        w.file_retry(8, 8),
+        1,
+        "a file id past the manifest closes the session"
+    );
+}

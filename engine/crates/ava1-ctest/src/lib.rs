@@ -493,6 +493,8 @@ pub mod ffi {
         pub fn ava1_send_test_credit(n: u64);
         pub fn ava1_send_test_stopping();
         pub fn ava1_send_test_state(out: *mut u64);
+        pub fn ava1_send_test_file_retry(id: u32, files: u32) -> c_int;
+        pub fn ava1_send_test_retries(take: c_int) -> u32;
     }
 }
 
@@ -1477,6 +1479,14 @@ impl CSendWindow {
     /// The job is ending (j->stopping).
     pub fn stopping(&self) {
         unsafe { ffi::ava1_send_test_stopping() }
+    }
+    /// A FileRetry for file `id` of a `files`-file job: on_frame's answer (1 = close).
+    pub fn file_retry(&self, id: u32, files: u32) -> i32 {
+        unsafe { ffi::ava1_send_test_file_retry(id, files) }
+    }
+    /// The files waiting for a re-read; `take` hands them to the reader, as its loop does.
+    pub fn retries(&self, take: bool) -> u32 {
+        unsafe { ffi::ava1_send_test_retries(take as c_int) }
     }
     pub fn state(&self) -> CSendState {
         let mut o = [0u64; 4];

@@ -491,9 +491,8 @@ int main(void) {
     startup_trace("UMASK_ZEROED");
 
     /* Run the elevation once at startup. May fail silently if
-     * kernel R/W isn't yet available (kstuff not loaded). In
-     * that case shellui_rpc_init() will retry on first sensor
-     * read so users who load kstuff later are still served. */
+     * kernel R/W isn't yet available (kstuff not loaded);
+     * shellui_rpc_init() applies it again before a ShellUI launch. */
     runtime_apply_ucred_jailbreak();
     startup_trace("UCRED_JAILBREAK_DONE");
 

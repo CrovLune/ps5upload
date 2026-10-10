@@ -1710,8 +1710,8 @@ void ava1_test_set_protected(const char *dir) {
 }
 static int t_refuse_link(const char *p) { return __atomic_load_n(&g_protect_links, __ATOMIC_SEQ_CST) && path_tree_op_refused(p); }
 static int t_allow_read(const char *p, int u) {
-    (void)p;
     (void)u;
+    if (strstr(p, "/ps5-denied/")) return 0; /* the c2c tests' denied source */
     return __atomic_load_n(&g_allow_read, __ATOMIC_SEQ_CST);
 }
 

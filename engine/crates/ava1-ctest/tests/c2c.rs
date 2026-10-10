@@ -14,8 +14,11 @@ use std::time::Duration;
 
 use ava1::gen::{self, C2cAllow, C2cSend, C2cTicket, JobRef, Status};
 use ava1::keys::Identity;
+use ava1::manifest;
 use ava1::peers::PeerStore;
+use ava1::send::{send_job, SendOptions};
 use ava1::session::{connect, Session};
+use ava1::source::LocalSource;
 use ava1::wire::Message;
 use ava1_ctest::CServer;
 use common::*;
@@ -149,8 +152,19 @@ struct Pair {
 }
 
 async fn pair(d: &Path, b_fsync_delay_us: u32) -> Pair {
+    pair_with(d, b_fsync_delay_us, false).await
+}
+
+/// `a_paired_on_b`: B also knows A's key as a paired device.
+async fn pair_with(d: &Path, b_fsync_delay_us: u32, a_paired_on_b: bool) -> Pair {
     ava1_ctest::c_set_read_allowed(true);
     let (me, mine) = engine(&d.join("a-peers"), &d.join("b-peers"));
+    if a_paired_on_b {
+        PeerStore::load(&d.join("b-peers"))
+            .unwrap()
+            .add(Identity::from_secret(SECRET).public(), "A")
+            .unwrap();
+    }
     let srv = CServer::start_data(
         SECRET,
         &d.join("a-peers"),
@@ -453,4 +467,140 @@ async fn two_sends_to_the_same_console_run_side_by_side() {
     assert_eq!(e1.state, Some(1), "{:?}", e1.current);
     assert_eq!(e2.state, Some(1), "{:?}", e2.current);
     assert!(same_tree(&src1, &dest1) && same_tree(&src2, &dest2));
+}
+
+/// The engine took the job over on B (a relay re-attached it to its own session) while A's
+/// direct send was still running: A's late JobCancel, on the old session, must not cancel the
+/// job the relay now drives.
+#[tokio::test(flavor = "multi_thread")]
+async fn a_late_cancel_from_the_old_direct_session_spares_the_relay() {
+    let d = dir("c2c-late-cancel");
+    let src = d.join("a/game");
+    write_tree(&src, 600, |i| 2000 + i);
+    let dest = d.join("b/game");
+    // B syncs slowly, so both sends are still running when A's cancel lands.
+    let p = pair(&d, 3000).await;
+    let job = [0xC9; 16];
+    let token = allow(&p.b, job, &dest).await;
+    let (st, why) = send(&p.a, job, p.peer.port, b_key(), token, &src, &dest).await;
+    assert_eq!(st, gen::STATUS_OK, "{why}");
+    tokio::time::sleep(Duration::from_millis(300)).await;
+    // The relay: the engine opens the same job on B over its own session.
+    let s = LocalSource::new(src.clone());
+    let m = manifest::walk(&s, &|_: &str| false).unwrap();
+    let mut link = p.b.job(job);
+    let relay = send_job(
+        &mut link,
+        Arc::new(m),
+        Arc::new(s),
+        SendOptions::upload(dest.to_str().unwrap()),
+    );
+    let cancel_a = async {
+        tokio::time::sleep(Duration::from_millis(500)).await;
+        let r =
+            p.a.rpc(
+                gen::METHOD_JOB_CANCEL,
+                &JobRef { job_id: job }.to_bytes().unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(r.status, gen::STATUS_OK);
+    };
+    let (report, ()) = tokio::join!(
+        async {
+            tokio::time::timeout(Duration::from_secs(60), relay)
+                .await
+                .expect("the relay's send did not end")
+        },
+        cancel_a
+    );
+    let report = report.expect("the relay's send");
+    assert_eq!(report.status, gen::STATUS_OK, "{:?}", report.message);
+    assert!(same_tree(&src, &dest));
+}
+
+/// c2c.send replaces only an earlier send this device started under the same id: any other job
+/// (here an upload into A) is left alone and the send is refused before anything is dialled.
+#[tokio::test(flavor = "multi_thread")]
+async fn a_send_never_replaces_another_job_under_its_id() {
+    let d = dir("c2c-same-id");
+    let src = d.join("a/game");
+    write_tree(&src, 20, |i| 300 + i);
+    let into_a = d.join("a/uploaded");
+    let p = pair(&d, 0).await;
+    let job = [0xCA; 16];
+    let s = LocalSource::new(src.clone());
+    let m = manifest::walk(&s, &|_: &str| false).unwrap();
+    let mut link = p.a.job(job);
+    let r = send_job(
+        &mut link,
+        Arc::new(m),
+        Arc::new(s),
+        SendOptions::upload(into_a.to_str().unwrap()),
+    )
+    .await
+    .unwrap();
+    assert_eq!(r.status, gen::STATUS_OK, "{:?}", r.message);
+    let before = status(&p.a, job).await.expect("the upload is listed");
+    let dest = d.join("b/game");
+    let token = allow(&p.b, job, &dest).await;
+    let (st, why) = send(&p.a, job, p.peer.port, b_key(), token, &src, &dest).await;
+    assert_eq!(st, gen::ERR_BUSY, "{why}");
+    let after = status(&p.a, job).await.expect("the upload is still listed");
+    assert_eq!(after.state, before.state);
+    assert_eq!(after.bytes_total, before.bytes_total);
+    assert!(!dest.exists());
+}
+
+/// A source the read policy denies is refused the same whether or not it exists.
+#[tokio::test(flavor = "multi_thread")]
+async fn a_denied_source_does_not_say_whether_it_exists() {
+    let d = dir("c2c-denied");
+    let there = d.join("ps5-denied/there");
+    write_tree(&there, 1, |_| 10);
+    let p = pair(&d, 0).await;
+    let mut texts = Vec::new();
+    for src in [there, d.join("ps5-denied/missing")] {
+        let (st, why) = send(
+            &p.a,
+            [0xCB; 16],
+            p.peer.port,
+            b_key(),
+            [1; 16],
+            &src,
+            &d.join("b/x"),
+        )
+        .await;
+        assert_eq!(st, gen::ERR_PATH, "{why}");
+        assert!(why.contains("not allowed"), "{why}");
+        texts.push(why.replace(src.to_str().unwrap(), "<src>"));
+    }
+    assert_eq!(texts[0], texts[1]);
+}
+
+/// A console B already knows as a paired device still gets only the ticket's session when it
+/// dials with a ticket: the job on B is the ticket owner's, and it may write only the ticket's root.
+#[tokio::test(flavor = "multi_thread")]
+async fn a_ticket_decides_even_for_a_paired_key() {
+    let d = dir("c2c-ticket-paired");
+    let src = d.join("a/game");
+    write_tree(&src, 5, |i| 100 + i);
+    let p = pair_with(&d, 0, true).await;
+    // Another destination than the ticket's: refused there.
+    let job = [0xCC; 16];
+    let token = allow(&p.b, job, &d.join("b/allowed")).await;
+    let elsewhere = d.join("b/elsewhere");
+    let (st, why) = send(&p.a, job, p.peer.port, b_key(), token, &src, &elsewhere).await;
+    assert_eq!(st, gen::STATUS_OK, "{why}");
+    assert_eq!(wait_end(&p.a, job).await.state, Some(2));
+    assert!(!elsewhere.exists());
+    // The ticket's own destination: the job on B is the engine's (the ticket's owner).
+    let job = [0xCD; 16];
+    let dest = d.join("b/allowed2");
+    let token = allow(&p.b, job, &dest).await;
+    let (st, why) = send(&p.a, job, p.peer.port, b_key(), token, &src, &dest).await;
+    assert_eq!(st, gen::STATUS_OK, "{why}");
+    assert_eq!(wait_end(&p.a, job).await.state, Some(1));
+    assert_eq!(wait_end(&p.b, job).await.state, Some(1));
+    assert!(same_tree(&src, &dest));
 }
