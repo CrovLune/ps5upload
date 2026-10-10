@@ -772,6 +772,7 @@ roster_notes_placeholder: "Notizen (z. B. Firmware-Eigenheiten, Nicht-aktualisie
 roster_remove_body: "Profil und Notizen werden aus dieser App gelöscht. Die PS5 selbst bleibt unberührt.",
 roster_remove_title: "„{name}“ entfernen?",
 running_apps_empty: "Derzeit keine Apps aktiv.",
+running_apps_unknown: "Unbekannte App",
 running_apps_kill: "Kill",
 running_apps_kill_confirm_body: "{label} beenden? Nicht gespeicherter Fortschritt geht verloren.",
 running_apps_kill_confirm_title: "App beenden",

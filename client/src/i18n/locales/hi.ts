@@ -772,6 +772,7 @@ roster_notes_placeholder: "नोट्स (जैसे फ़र्मवे�
 roster_remove_body: "प्रोफ़ाइल और नोट्स इस ऐप से हटा दिए जाते हैं। PS5 को कुछ नहीं होता।",
 roster_remove_title: "\"{name}\" हटाएँ?",
 running_apps_empty: "वर्तमान में कोई ऐप नहीं चल रहा।",
+running_apps_unknown: "अज्ञात ऐप",
 running_apps_kill: "Kill",
 running_apps_kill_confirm_body: "{label} बंद करें? सहेजी न गई प्रगति चली जाएगी।",
 running_apps_kill_confirm_title: "ऐप बंद करें",

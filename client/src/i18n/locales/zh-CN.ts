@@ -778,6 +778,7 @@ roster_notes_placeholder: "备注（例如固件怪癖、请勿更新的提醒�
 roster_remove_body: "配置和备注会从本应用中删除。PS5 本身不受影响。",
 roster_remove_title: "要移除“{name}”吗？",
 running_apps_empty: "当前没有运行的应用。",
+running_apps_unknown: "未知应用",
 running_apps_kill: "Kill",
 running_apps_kill_confirm_body: "要结束 {label} 吗？未保存的进度将会丢失。",
 running_apps_kill_confirm_title: "结束应用",

@@ -1051,6 +1051,7 @@ roster_notes_placeholder: "Notatki (np. dziwactwa firmware, ostrzeżenia przed a
 roster_remove_body: "Profil i notatki zostaną usunięte z tej aplikacji. Sama konsola PS5 nie zostanie zmieniona.",
 roster_remove_title: "Usunąć \"{name}\"?",
 running_apps_empty: "Brak uruchomionych aplikacji.",
+running_apps_unknown: "Nieznana aplikacja",
 running_apps_kill: "Zakończ",
 running_apps_kill_confirm_body: "Zakończyć {label}? Niezapisane postępy zostaną utracone.",
 running_apps_kill_confirm_title: "Zakończ aplikację",

@@ -1307,6 +1307,7 @@ roster_notes_placeholder: "Notes (e.g. firmware quirks, do-not-update warnings)"
 roster_remove_body: "Profile and notes are deleted from this app. The PS5 itself isn't touched.",
 roster_remove_title: "Remove \"{name}\"?",
 running_apps_empty: "No apps currently running.",
+running_apps_unknown: "Unknown app",
 running_apps_kill: "Kill",
 running_apps_kill_confirm_body: "Kill {label}? Unsaved progress will be lost.",
 running_apps_kill_confirm_title: "Kill app",

@@ -771,6 +771,7 @@ roster_notes_placeholder: "Notlar (ör. yazılım tuhaflıkları, güncelleme ya
 roster_remove_body: "Profil ve notlar bu uygulamadan silinir. PS5'in kendisine dokunulmaz.",
 roster_remove_title: "\"{name}\" kaldırılsın mı?",
 running_apps_empty: "Şu anda çalışan uygulama yok.",
+running_apps_unknown: "Bilinmeyen uygulama",
 running_apps_kill: "Kill",
 running_apps_kill_confirm_body: "{label} kapatılsın mı? Kaydedilmemiş ilerleme kaybolacak.",
 running_apps_kill_confirm_title: "Uygulamayı kapat",

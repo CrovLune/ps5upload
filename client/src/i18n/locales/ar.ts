@@ -771,6 +771,7 @@ roster_notes_placeholder: "ملاحظات (مثل خصائص البرنامج ا
 roster_remove_body: "يُحذف الملف التعريفي والملاحظات من هذا التطبيق. أما جهاز PS5 نفسه فلا يتأثر.",
 roster_remove_title: "إزالة «{name}»؟",
 running_apps_empty: "لا توجد تطبيقات قيد التشغيل.",
+running_apps_unknown: "تطبيق غير معروف",
 running_apps_kill: "Kill",
 running_apps_kill_confirm_body: "إنهاء {label}؟ سيُفقد التقدم غير المحفوظ.",
 running_apps_kill_confirm_title: "إنهاء التطبيق",

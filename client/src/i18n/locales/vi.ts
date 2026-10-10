@@ -773,6 +773,7 @@ roster_notes_placeholder: "Ghi chú (ví dụ: đặc điểm firmware, cảnh b
 roster_remove_body: "Hồ sơ và ghi chú sẽ bị xóa khỏi ứng dụng này. Bản thân chiếc PS5 không bị đụng tới.",
 roster_remove_title: "Gỡ \"{name}\"?",
 running_apps_empty: "Không có ứng dụng nào đang chạy.",
+running_apps_unknown: "Ứng dụng không xác định",
 running_apps_kill: "Kill",
 running_apps_kill_confirm_body: "Tắt {label}? Tiến trình chưa lưu sẽ mất.",
 running_apps_kill_confirm_title: "Tắt ứng dụng",

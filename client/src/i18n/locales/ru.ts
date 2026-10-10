@@ -771,6 +771,7 @@ roster_notes_placeholder: "Заметки (например, особеннос�
 roster_remove_body: "Профиль и заметки удаляются из этого приложения. Саму PS5 это не затрагивает.",
 roster_remove_title: "Удалить «{name}»?",
 running_apps_empty: "Сейчас нет запущенных приложений.",
+running_apps_unknown: "Неизвестное приложение",
 running_apps_kill: "Kill",
 running_apps_kill_confirm_body: "Закрыть {label}? Несохранённый прогресс будет потерян.",
 running_apps_kill_confirm_title: "Закрыть приложение",

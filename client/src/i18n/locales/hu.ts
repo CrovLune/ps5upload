@@ -1160,6 +1160,7 @@ roster_notes_placeholder: "Megjegyzések (pl. firmware-sajátosságok, ne-friss�
 roster_remove_body: "A profil és a megjegyzések törlődnek ebből az alkalmazásból. Magát a PS5-öt ez nem érinti.",
 roster_remove_title: "Eltávolítod: „{name}”?",
 running_apps_empty: "Jelenleg nem fut alkalmazás.",
+running_apps_unknown: "Ismeretlen alkalmazás",
 running_apps_kill: "Kilövés",
 running_apps_kill_confirm_body: "Kilövöd: {label}? A nem mentett folyamat elvész.",
 running_apps_kill_confirm_title: "Alkalmazás kilövése",

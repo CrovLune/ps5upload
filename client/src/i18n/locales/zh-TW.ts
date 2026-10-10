@@ -772,6 +772,7 @@ roster_notes_placeholder: "備註（例如韌體特性、請勿更新的提醒�
 roster_remove_body: "設定檔與備註會從本應用程式中刪除。PS5 本身不受影響。",
 roster_remove_title: "要移除「{name}」嗎？",
 running_apps_empty: "目前沒有執行中的應用程式。",
+running_apps_unknown: "未知的應用程式",
 running_apps_kill: "Kill",
 running_apps_kill_confirm_body: "要結束 {label} 嗎？未儲存的進度將會遺失。",
 running_apps_kill_confirm_title: "結束應用程式",

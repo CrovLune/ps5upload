@@ -771,6 +771,7 @@ roster_notes_placeholder: "บันทึกย่อ (เช่น ลัก�
 roster_remove_body: "โปรไฟล์และบันทึกย่อจะถูกลบออกจากแอปนี้ ตัวเครื่อง PS5 ไม่ถูกแตะต้อง",
 roster_remove_title: "นำ “{name}” ออกหรือไม่",
 running_apps_empty: "ไม่มีแอปทำงานในขณะนี้",
+running_apps_unknown: "แอปที่ไม่รู้จัก",
 running_apps_kill: "Kill",
 running_apps_kill_confirm_body: "ปิด {label} หรือไม่ ความคืบหน้าที่ยังไม่บันทึกจะหายไป",
 running_apps_kill_confirm_title: "ปิดแอป",

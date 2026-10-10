@@ -772,6 +772,7 @@ roster_notes_placeholder: "メモ（例: ファームウェアの癖、アップ
 roster_remove_body: "このアプリからプロファイルとメモを削除します。PS5 本体には影響しません。",
 roster_remove_title: "「{name}」を削除しますか？",
 running_apps_empty: "現在実行中のアプリはありません。",
+running_apps_unknown: "不明なアプリ",
 running_apps_kill: "Kill",
 running_apps_kill_confirm_body: "{label} を強制終了しますか？未保存の進行状況は失われます。",
 running_apps_kill_confirm_title: "アプリを終了",

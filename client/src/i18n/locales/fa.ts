@@ -1218,6 +1218,7 @@ roster_notes_placeholder: "یادداشت‌ها (مثلاً نکات فریم�
 roster_remove_body: "پروفایل و یادداشت‌ها از این برنامه حذف می‌شوند. خود PS5 دست نمی‌خورد.",
 roster_remove_title: "«{name}» حذف شود؟",
 running_apps_empty: "هیچ اپلیکیشنی در حال حاضر اجرا نمی‌شود.",
+running_apps_unknown: "برنامهٔ ناشناخته",
 running_apps_kill: "کشتن",
 running_apps_kill_confirm_body: "{label} کشته شود؟ پیشرفت ذخیره‌نشده از دست می‌رود.",
 running_apps_kill_confirm_title: "کشتن اپلیکیشن",

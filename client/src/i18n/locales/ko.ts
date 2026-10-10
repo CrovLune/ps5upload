@@ -772,6 +772,7 @@ roster_notes_placeholder: "메모(예: 펌웨어 특이 사항, 업데이트 금
 roster_remove_body: "프로필과 메모가 이 앱에서 삭제됩니다. PS5 본체에는 영향이 없습니다.",
 roster_remove_title: "\"{name}\"을(를) 제거할까요?",
 running_apps_empty: "실행 중인 앱이 없습니다.",
+running_apps_unknown: "알 수 없는 앱",
 running_apps_kill: "Kill",
 running_apps_kill_confirm_body: "{label}을(를) 종료할까요? 저장하지 않은 진행 상황은 사라집니다.",
 running_apps_kill_confirm_title: "앱 종료",

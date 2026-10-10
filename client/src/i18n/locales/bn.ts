@@ -771,6 +771,7 @@ roster_notes_placeholder: "নোট (যেমন ফার্মওয়্�
 roster_remove_body: "প্রোফাইল ও নোট এই অ্যাপ থেকে মুছে যায়। PS5-এ কিছুই হয় না।",
 roster_remove_title: "“{name}” সরাবেন?",
 running_apps_empty: "বর্তমানে কোন অ্যাপ চলছে না।",
+running_apps_unknown: "অজানা অ্যাপ",
 running_apps_kill: "Kill",
 running_apps_kill_confirm_body: "{label} বন্ধ করবেন? সংরক্ষণ না করা অগ্রগতি হারিয়ে যাবে।",
 running_apps_kill_confirm_title: "অ্যাপ বন্ধ করুন",

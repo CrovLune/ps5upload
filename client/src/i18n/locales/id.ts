@@ -771,6 +771,7 @@ roster_notes_placeholder: "Catatan (mis. keanehan firmware, peringatan jangan di
 roster_remove_body: "Profil dan catatan dihapus dari aplikasi ini. PS5-nya sendiri tidak disentuh.",
 roster_remove_title: "Hapus \"{name}\"?",
 running_apps_empty: "Tidak ada aplikasi yang berjalan.",
+running_apps_unknown: "Aplikasi tidak dikenal",
 running_apps_kill: "Kill",
 running_apps_kill_confirm_body: "Hentikan {label}? Kemajuan yang belum disimpan akan hilang.",
 running_apps_kill_confirm_title: "Hentikan aplikasi",
