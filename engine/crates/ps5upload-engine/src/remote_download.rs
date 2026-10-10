@@ -415,7 +415,7 @@ async fn start_handler(
     };
     let (complete, may_resume) = match prep {
         Ok(Ok(v)) => v,
-        Ok(Err(resp)) => return resp,
+        Ok(Err(resp)) => return *resp,
         Err(e) => {
             return json_err(
                 StatusCode::INTERNAL_SERVER_ERROR,
@@ -516,12 +516,12 @@ fn prepare_files(
     total: u64,
     existing: Option<&str>,
     meta: &PartialMeta,
-) -> Result<(bool, bool), Response> {
+) -> Result<(bool, bool), Box<Response>> {
     if let Err(e) = std::fs::create_dir_all(dir) {
-        return Err(json_err(
+        return Err(Box::new(json_err(
             StatusCode::BAD_REQUEST,
             &format!("cannot create {}: {e}", dir.display()),
-        ));
+        )));
     }
     // A file already under the final name is either this link's finished download (same
     // size: done, nothing to fetch) or an unrelated file, never resumed into or clobbered:
@@ -533,7 +533,7 @@ fn prepare_files(
         Ok(meta) if meta.len() == total => return Ok((true, false)),
         Ok(meta) => {
             if let Err(e) = take_over_existing(path, partial, existing) {
-                return Err(match e {
+                return Err(Box::new(match e {
                     TakeOver::Refused => (
                         StatusCode::CONFLICT,
                         Json(serde_json::json!({
@@ -553,7 +553,7 @@ fn prepare_files(
                         StatusCode::INTERNAL_SERVER_ERROR,
                         &format!("cannot take over {}: {e}", path.display()),
                     ),
-                });
+                }));
             }
             took_over = existing == Some("resume");
         }

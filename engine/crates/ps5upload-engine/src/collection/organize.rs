@@ -825,7 +825,7 @@ pub fn apply(container: &Path, moves: Vec<Move>, log_path: &Path) -> std::io::Re
         }
         log.completed.push(mv);
         // Kept current as it goes, so a run that dies part way can still be undone.
-        if log.completed.len() % LOG_EVERY == 0 {
+        if log.completed.len().is_multiple_of(LOG_EVERY) {
             let _ = write_log(log_path, &log);
         }
     }

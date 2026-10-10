@@ -763,7 +763,10 @@ mod tests {
             0x9d, 0xfa, 0xa8, 0xc2, 0x2f, 0x1e, 0x60, 0xc6,
         ];
         d.resize(256, 0);
-        let e = Manifest::parse(&d).err().expect("refused").to_string();
+        let e = Manifest::parse(&d)
+            .err()
+            .map(|e| e.to_string())
+            .unwrap_or_default();
         assert!(e.contains("pack count overflows"), "{e}");
     }
 
