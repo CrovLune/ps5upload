@@ -6,17 +6,19 @@ What's new in ps5upload, written for humans.
 
 ## 7.0.0
 
-A new look for the whole app, built around a soft, calm feel, plus a long list of fixes that
-make it faster and harder to break.
+A new look for the whole app, modelled on macOS 27, plus a long list of fixes that make it
+faster and harder to break.
 
 ### New look
 
-- **Two themes, light and dark,** both new: a warm peach-to-lavender light theme and a deep,
-  glowing dark one. Panels are frosted glass with rounded corners, navigation and buttons are
-  pills, and the app uses the Poppins typeface. Your old theme choice carries over (OLED becomes
-  dark, Rose becomes light).
-- **Home** opens with large tiles for Upload, Install, Games, Files, Save data and Convert, a
-  greeting panel with your console's status, and a row of your most recent games.
+- **Two themes, light and dark,** both new: a calm neutral window, a sidebar that runs to the
+  window edge, soft rounded cards and one blue accent, the blue of the app's logo. Text uses
+  your system's own typeface. Your old theme choice carries over (OLED becomes dark, Rose
+  becomes light).
+- **Home** opens with tiles for Upload, Install, Games, Files, Save data and Convert, your most
+  recent games, and a console panel that stays beside the page as you scroll.
+- Page content lines up with its header on every screen instead of sitting in a narrow centred
+  column.
 - **Game covers** sit in white frames everywhere, and each game's page opens with a large cover
   and the facts at a glance.
 - Every screen was brought into the new style, on desktop and on phones (a floating tab bar).
@@ -51,6 +53,20 @@ make it faster and harder to break.
 - Package builder fixes: DLC packages get the DLC content class, and failed builds leave no
   partial files behind.
 - Retry buttons on error cards across the app.
+- Keyboard: dialogs and the command palette keep focus inside them, Escape works from anywhere
+  in the palette, and the console picker is a proper menu.
+- Right-to-left languages: switches, task status rails and scrolling strips are mirrored.
+- At narrow window widths the console tabs, page headers and Collection totals no longer clip.
+- Processes says it is waiting during a transfer instead of showing a blank page; task progress
+  counted in items is no longer printed as bytes.
+- The engine refuses console actions that do not name a console, keeps Collection covers, trash
+  and organizer moves inside their own folders, and never resumes a link download into a
+  partial file left by a different link.
+- A second build of the same output is refused instead of racing the first.
+- PS5 to PS5: a direct send that gets no answer always falls back and frees the receiving
+  console, a late cancel from the old route no longer stops the fallback, and a send never
+  replaces another job that happens to share its id.
+- In the web UI, copying into an existing folder merges as it does in the desktop app.
 
 ### Changed
 
