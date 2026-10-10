@@ -1474,6 +1474,14 @@ function TopBarActions() {
   const theme = useThemeStore((s) => s.theme);
   const toggleTheme = useThemeStore((s) => s.toggleTheme);
   const searchLabel = tr("topbar_search_label", undefined, "Search screens and commands");
+  // With several consoles the tab strip shares this row. Between 1024 and
+  // 1280 the full search field left it room for less than one tab (the pill
+  // on show was cut mid-name), so there the field is the round button it
+  // already is on narrower windows. A single console has no strip: keep it.
+  const sharesRow = useRosterStore((s) => s.profiles.length > 1);
+  const fold = sharesRow
+    ? { box: "max-xl:w-11 max-xl:justify-center max-xl:px-0", text: "max-xl:hidden" }
+    : { box: "max-lg:w-11 max-lg:justify-center max-lg:px-0", text: "max-lg:hidden" };
   return (
     <div className="hidden shrink-0 items-center gap-2.5 md:flex">
       <button
@@ -1482,13 +1490,13 @@ function TopBarActions() {
         aria-label={searchLabel}
         title={searchLabel}
         aria-keyshortcuts="Control+K Meta+K"
-        className="flex h-11 w-60 items-center gap-2.5 rounded-full border border-[var(--glass-edge)] bg-[var(--color-surface-raised)] px-4 text-sm text-[var(--color-muted)] shadow-[var(--edge-highlight),var(--shadow-1)] transition-colors hover:bg-[var(--color-float)] max-lg:w-11 max-lg:justify-center max-lg:px-0"
+        className={`flex h-11 w-60 items-center gap-2.5 rounded-full border border-[var(--glass-edge)] bg-[var(--color-surface-raised)] px-4 text-sm text-[var(--color-muted)] shadow-[var(--edge-highlight),var(--shadow-1)] transition-colors hover:bg-[var(--color-float)] ${fold.box}`}
       >
         <Search size={17} className="shrink-0 text-[var(--color-text)]" aria-hidden />
-        <span className="min-w-0 flex-1 truncate text-left max-lg:hidden">
+        <span className={`min-w-0 flex-1 truncate text-start ${fold.text}`}>
           {tr("topbar_search", undefined, "Search…")}
         </span>
-        <kbd className="rounded-full border border-[var(--color-border)] px-2 py-0.5 font-sans text-[0.625rem] max-lg:hidden">
+        <kbd className={`rounded-full border border-[var(--color-border)] px-2 py-0.5 font-sans text-[0.625rem] ${fold.text}`}>
           {typeof navigator !== "undefined" && /mac/i.test(navigator.platform) ? "⌘K" : "Ctrl K"}
         </kbd>
       </button>

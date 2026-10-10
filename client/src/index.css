@@ -324,6 +324,43 @@ body {
   mask-image: radial-gradient(closest-side, #000 30%, transparent 100%);
 }
 
+/* A sideways-scrolling strip that fades out at an edge with more content past
+ * it, instead of cutting a pill in half. The two widths come from
+ * lib/edgeFade.ts (0 when nothing is hidden on that side) and follow the
+ * reading direction, hence the mirrored gradient for right-to-left. */
+.fade-x {
+  -webkit-mask-image: linear-gradient(
+    to right,
+    transparent,
+    #000 var(--fade-start, 0px),
+    #000 calc(100% - var(--fade-end, 0px)),
+    transparent
+  );
+  mask-image: linear-gradient(
+    to right,
+    transparent,
+    #000 var(--fade-start, 0px),
+    #000 calc(100% - var(--fade-end, 0px)),
+    transparent
+  );
+}
+[dir="rtl"] .fade-x {
+  -webkit-mask-image: linear-gradient(
+    to left,
+    transparent,
+    #000 var(--fade-start, 0px),
+    #000 calc(100% - var(--fade-end, 0px)),
+    transparent
+  );
+  mask-image: linear-gradient(
+    to left,
+    transparent,
+    #000 var(--fade-start, 0px),
+    #000 calc(100% - var(--fade-end, 0px)),
+    transparent
+  );
+}
+
 /* The brand orb: a glossy coral-to-pink sphere with a soft highlight. Sized
  * by the component (components/Orb.tsx); everything else is here so it
  * renders the same everywhere. */
