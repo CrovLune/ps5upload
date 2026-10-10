@@ -3882,7 +3882,10 @@ function RowMenu({
       role="menu"
       data-testid="fs-row-menu"
       style={{ left: pos.left, top: pos.top }}
-      className="rounded-[var(--radius-card)] border border-[var(--glass-edge)] bg-[var(--color-surface)] fixed z-50 min-w-[12rem] py-1 text-sm shadow-lg"
+      // The same floating glass as the app's other menus (components/Menu).
+      // `--color-surface` is the translucent page tint: with it the rows under
+      // the menu read straight through the items.
+      className="glass-float elev-2 fixed z-50 min-w-[12rem] rounded-[var(--radius-card)] p-1.5 text-sm"
     >
       {items.map((it) => (
         <button
@@ -3895,7 +3898,7 @@ function RowMenu({
             it.run();
           }}
           className={
-            "flex w-full items-center gap-2 px-3 py-1.5 text-left hover:bg-[var(--color-surface-3)] disabled:opacity-40 " +
+            "flex w-full items-center gap-2 rounded-full px-3 py-1.5 text-start hover:bg-[var(--color-surface-3)] disabled:opacity-40 " +
             (it.destructive ? "text-[var(--color-bad)]" : "")
           }
         >
