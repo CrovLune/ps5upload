@@ -256,21 +256,45 @@ pub fn install() {
     });
     let _ = std::thread::Builder::new()
         .name("event-journal".into())
-        .spawn(move || loop {
-            match rx.recv_timeout(Duration::from_secs(1)) {
-                Ok(e) => {
+        .spawn(move || {
+            writer_loop(
+                rx,
+                Duration::from_secs(1),
+                |e| {
                     if let Ok(mut g) = j.lock() {
                         g.push(e)
                     }
-                }
-                Err(std::sync::mpsc::RecvTimeoutError::Timeout) => {
+                },
+                || {
                     if let Ok(mut g) = j.lock() {
                         g.flush_due(false)
                     }
-                }
-                Err(_) => break,
-            }
+                },
+            )
         });
+}
+
+/// Feeds events to `on_event` and calls `on_tick` (flush what is due, prune old files) about
+/// once per `tick`, on a clock rather than only when the channel is idle: a steady stream of
+/// events must not put the pruning off for ever.
+fn writer_loop(
+    rx: std::sync::mpsc::Receiver<Event>,
+    tick: Duration,
+    mut on_event: impl FnMut(Event),
+    mut on_tick: impl FnMut(),
+) {
+    let mut last_tick = std::time::Instant::now();
+    loop {
+        match rx.recv_timeout(tick.saturating_sub(last_tick.elapsed())) {
+            Ok(e) => on_event(e),
+            Err(std::sync::mpsc::RecvTimeoutError::Timeout) => {}
+            Err(_) => break,
+        }
+        if last_tick.elapsed() >= tick {
+            on_tick();
+            last_tick = std::time::Instant::now();
+        }
+    }
 }
 
 /// Writes everything still collecting repeats. Called when the engine stops, so a quit does not
@@ -543,6 +567,35 @@ mod tests {
         j.push(ev(base + 50_000, "reconnect"));
         j.flush();
         assert_eq!(j.read_range(base + 40_000, u64::MAX, None).len(), 1);
+    }
+
+    #[test]
+    fn the_writer_ticks_on_a_clock_even_when_events_never_stop() {
+        let (tx, rx) = std::sync::mpsc::sync_channel::<Event>(64);
+        let feeder = std::thread::spawn(move || {
+            let until = std::time::Instant::now() + Duration::from_millis(400);
+            while std::time::Instant::now() < until {
+                let _ = tx.try_send(Event::new(
+                    Cat::App,
+                    Level::Info,
+                    "x",
+                    None,
+                    "m".into(),
+                    None,
+                ));
+                std::thread::sleep(Duration::from_millis(5));
+            }
+        });
+        let (mut events, mut ticks) = (0, 0);
+        writer_loop(
+            rx,
+            Duration::from_millis(50),
+            |_| events += 1,
+            || ticks += 1,
+        );
+        feeder.join().unwrap();
+        assert!(events > 10);
+        assert!(ticks >= 3, "ticked {ticks} times under a steady stream");
     }
 
     #[test]

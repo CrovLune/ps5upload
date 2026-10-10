@@ -68,18 +68,32 @@ pub fn plan(cur: &Cursor, size_now: u64, head_now: &[u8]) -> Plan {
     }
 }
 
+/// The longest partial line kept between reads; a "line" longer than this is not a log line
+/// (a binary file, a log with no newlines) and is cut there.
+const MAX_CARRY: usize = 64 * 1024;
+
 /// Complete lines from `buf`, keeping a trailing partial line in `carry` for the next read.
 pub fn split_lines(buf: &[u8], carry: &mut Vec<u8>) -> Vec<String> {
     carry.extend_from_slice(buf);
     let mut out = Vec::new();
-    while let Some(i) = carry.iter().position(|&b| b == b'\n') {
-        let line: Vec<u8> = carry.drain(..=i).collect();
-        let s = String::from_utf8_lossy(&line[..line.len() - 1])
+    let mut push = |line: &[u8]| {
+        let s = String::from_utf8_lossy(line)
             .trim_end_matches('\r')
             .to_string();
         if !s.is_empty() {
             out.push(s);
         }
+    };
+    // One pass, one drain: draining per line moved the rest of the buffer every time.
+    let mut start = 0;
+    while let Some(i) = carry[start..].iter().position(|&b| b == b'\n') {
+        push(&carry[start..start + i]);
+        start += i + 1;
+    }
+    carry.drain(..start);
+    if carry.len() > MAX_CARRY {
+        push(&carry[..MAX_CARRY]);
+        carry.clear();
     }
     out
 }
@@ -524,6 +538,25 @@ mod tests {
             vec!["two", "three"]
         );
         assert!(carry.is_empty());
+    }
+
+    #[test]
+    fn a_line_that_never_ends_does_not_grow_the_carry_without_bound() {
+        let mut carry = Vec::new();
+        let mut lines = Vec::new();
+        for _ in 0..40 {
+            lines.extend(split_lines(&[b'x'; 4096], &mut carry));
+            assert!(carry.len() <= MAX_CARRY);
+        }
+        assert_eq!(lines.len(), 2, "cut at the bound");
+        assert_eq!(lines[0].len(), MAX_CARRY);
+        // Many lines in one read come out in order.
+        let many: Vec<u8> = (0..1000)
+            .flat_map(|i| format!("l{i}\n").into_bytes())
+            .collect();
+        let mut carry = Vec::new();
+        let got = split_lines(&many, &mut carry);
+        assert_eq!((got.len(), got[999].as_str()), (1000, "l999"));
     }
 
     #[test]
