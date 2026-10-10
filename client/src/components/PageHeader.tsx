@@ -41,8 +41,12 @@ export function PageHeader({
 }) {
   return (
     <header className="mb-7">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex min-w-0 items-center gap-3">
+      {/* From `sm` the row wraps: the title and the actions share a line when
+          both fit, and otherwise the actions drop under the title. The actions
+          never shrink, so without the wrap a screen with several of them (the
+          Collection) squeezed its own title down to "C…". */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+        <div className="flex min-w-0 max-w-full items-center gap-3">
           {Icon && (
             <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full border border-[var(--glass-edge)] bg-[var(--color-surface-raised)] text-[var(--color-accent-bright)] shadow-[var(--edge-highlight),var(--shadow-1)]">
               <Icon size={18} />
@@ -62,7 +66,7 @@ export function PageHeader({
         {/* On a phone the actions sit under the title: let their row wrap, so a
             button keeps its label instead of shrinking to "Ref…". */}
         {right && (
-          <div className="shrink-0 [&>div]:flex-wrap max-sm:[&>div]:justify-start">{right}</div>
+          <div className="max-w-full shrink-0 [&>div]:flex-wrap max-sm:[&>div]:justify-start">{right}</div>
         )}
       </div>
       {description && (

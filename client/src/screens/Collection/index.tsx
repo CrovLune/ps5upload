@@ -50,6 +50,7 @@ import type { GameConsoleState } from "../../api/collection";
 import { consoleCounts, type ConsoleFilter } from "../../lib/collectionView";
 import { installOffers } from "../GameHub/collectionInstall";
 import { useTr } from "../../state/lang";
+import { useResponsiveTier } from "../../lib/platform";
 import { CollectionCard } from "./CollectionCard";
 import { CollectionTable } from "./CollectionTable";
 import { CleanupModal } from "./CleanupModal";
@@ -197,6 +198,7 @@ export default function CollectionScreen() {
     );
   }
   const roots = s.settings?.roots ?? [];
+  const phone = useResponsiveTier() === "xs";
   const scanning = s.scanning;
   const summary = s.library?.summary;
 
@@ -287,16 +289,29 @@ export default function CollectionScreen() {
                 {tr("collection.scan", undefined, "Scan")}
               </Button>
             )}
-            <Button
-              size="sm"
-              variant="secondary"
-              leftIcon={<FolderSearch size={12} />}
-              onClick={() => setFoldersOpen(true)}
-            >
-              {tr("collection.folders", undefined, "Folders")}
-            </Button>
+            {/* On a phone three buttons fill the row and the "…" menu was left
+                alone on a line of its own: Folders goes into the menu there. */}
+            {!phone && (
+              <Button
+                size="sm"
+                variant="secondary"
+                leftIcon={<FolderSearch size={12} />}
+                onClick={() => setFoldersOpen(true)}
+              >
+                {tr("collection.folders", undefined, "Folders")}
+              </Button>
+            )}
             <OverflowMenu
               items={[
+                ...(phone
+                  ? [
+                      {
+                        label: tr("collection.folders", undefined, "Folders"),
+                        icon: <FolderSearch size={12} />,
+                        onSelect: () => setFoldersOpen(true),
+                      },
+                    ]
+                  : []),
                 {
                   label: tr(
                     "collection.rescan_all",
@@ -408,11 +423,16 @@ export default function CollectionScreen() {
               "The collection could not be read",
             )}
             detail={s.error}
+            // Nothing loaded at all: the way out is to read it again.
+            onRetry={s.settings ? undefined : () => void loadCollection()}
+            retrying={s.loading}
           />
         </div>
       )}
 
-      {roots.length === 0 ? (
+      {/* Not loaded (the read failed): an unread collection is not an empty
+          one, so no "add the folder that holds your games" under the error. */}
+      {!s.settings ? null : roots.length === 0 ? (
         <EmptyState
           fill
           icon={Library}
@@ -473,7 +493,10 @@ export default function CollectionScreen() {
 
           {summary && (
             <div
-              className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-5"
+              // Five tiles: two a row on a phone, 3 + 2 (as sixths) up to `xl`,
+              // one row only where each tile is wide enough for its number.
+              // Five across from `sm` broke "DUPLICAT/ES" and "195.58/GB".
+              className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-6 xl:grid-cols-5"
               data-testid="collection-summary"
             >
               <Stat
@@ -489,6 +512,7 @@ export default function CollectionScreen() {
                 value={formatCollectionBytes(summary.total_size_bytes)}
               />
               <Stat
+                row="two"
                 label={tr(
                   "collection.stat.duplicates",
                   undefined,
@@ -498,6 +522,7 @@ export default function CollectionScreen() {
               />
               <Stat
                 wide
+                row="two"
                 label={tr(
                   "collection.stat.reclaimable",
                   undefined,
@@ -757,27 +782,32 @@ function ScanProgress() {
   );
 }
 
+const SPAN = { three: "sm:col-span-2", two: "sm:col-span-3" } as const;
+
 function Stat({
   label,
   value,
   hint,
   wide,
+  row = "three",
 }: {
   label: string;
   value: string;
   hint?: string;
   /** Spans both columns on a phone (the odd fifth tile). */
   wide?: boolean;
+  /** Which row the tile is on between `sm` and `xl`: three a row, then two. */
+  row?: "three" | "two";
 }) {
   return (
     <div
-      className={`surface-panel !rounded-[var(--radius-card)] px-4 py-3 ${wide ? "col-span-2 sm:col-span-1" : ""}`}
+      className={`surface-panel !rounded-[var(--radius-card)] min-w-0 px-4 py-3 xl:col-span-1 ${SPAN[row]} ${wide ? "col-span-2" : ""}`}
       title={hint}
     >
       <div className="text-[0.6875rem] font-medium uppercase tracking-[0.08em] text-[var(--color-muted)]">
         {label}
       </div>
-      <div className="mt-0.5 text-lg font-semibold tracking-[-0.01em] tabular-nums">{value}</div>
+      <div className="mt-0.5 whitespace-nowrap text-lg font-semibold tracking-[-0.01em] tabular-nums">{value}</div>
     </div>
   );
 }
