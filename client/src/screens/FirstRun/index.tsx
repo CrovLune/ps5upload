@@ -566,7 +566,7 @@ export default function FirstRunScreen() {
               <Button
                 variant="primary"
                 size="md"
-                rightIcon={<ArrowRight size={14} />}
+                rightIcon={<ArrowRight size={14} className="rtl:rotate-180" />}
                 onClick={() => navigate("/games")}
               >
                 {tr("first_run_go_library", undefined, "Open Games")}

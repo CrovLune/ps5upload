@@ -39,7 +39,7 @@ export function WhySlowPanel({ jobId }: { jobId: string | undefined }) {
         onClick={() => setOpen((o) => !o)}
         data-testid="why-slow-toggle"
       >
-        <Chevron size={12} aria-hidden />
+        <Chevron size={12} aria-hidden className={open ? undefined : "rtl:rotate-180"} />
         {tr("job_why_title", undefined, "Why was this slow?")}
       </button>
       {open && (

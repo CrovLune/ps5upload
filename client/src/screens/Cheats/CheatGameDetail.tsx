@@ -187,7 +187,7 @@ export function CheatGameDetail({
         onClick={onBack}
         className="flex items-center gap-1 self-start text-sm text-[var(--color-muted)] hover:text-[var(--color-text)] md:hidden"
       >
-        <ArrowLeft size={14} />
+        <ArrowLeft size={14} className="rtl:rotate-180" />
         {tr("cheats_back", undefined, "All games")}
       </button>
 

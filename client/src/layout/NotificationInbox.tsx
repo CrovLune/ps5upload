@@ -299,7 +299,7 @@ function NotificationRow({
                 className="inline-flex items-center gap-0.5 text-[var(--color-accent)] hover:underline"
               >
                 {tr("notifications_jump", undefined, "open")}
-                <ArrowRight size={9} />
+                <ArrowRight size={9} className="rtl:rotate-180" />
               </button>
             )}
           </div>

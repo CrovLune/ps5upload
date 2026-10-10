@@ -444,7 +444,7 @@ export default function SendPanel() {
             >
               <ChevronRight
                 size={12}
-                className={`shrink-0 transition-transform ${portsOpen ? "rotate-90" : ""}`}
+                className={`shrink-0 transition-transform ${portsOpen ? "rotate-90" : "rtl:rotate-180"}`}
               />
               {tr(
                 "sendpayload_typical_ports_summary",

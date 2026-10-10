@@ -348,7 +348,7 @@ export default function GameHubScreen() {
             <Button
               variant="ghost"
               size="sm"
-              leftIcon={<ArrowLeft size={16} />}
+              leftIcon={<ArrowLeft size={16} className="rtl:rotate-180" />}
               onClick={goBack}
             >
               {tr("game_hub_back_games", undefined, "Back")}
@@ -385,7 +385,7 @@ export default function GameHubScreen() {
           onClick={goBack}
           className="inline-flex min-h-9 items-center gap-1.5 rounded-full px-3 text-sm font-medium text-[var(--color-muted)] transition-colors hover:bg-[var(--color-surface)] hover:text-[var(--color-text)]"
         >
-          <ArrowLeft size={15} />
+          <ArrowLeft size={15} className="rtl:rotate-180" />
           {tr("game_hub_back_games", undefined, "Back")}
         </button>
       </div>

@@ -573,7 +573,7 @@ function ConsoleGroup({
           <ChevronRight
             size={14}
             className={`shrink-0 text-[var(--color-muted)] transition-transform ${
-              collapsed ? "" : "rotate-90"
+              collapsed ? "rtl:rotate-180" : "rotate-90"
             }`}
           />
           <span aria-hidden>🖥</span>

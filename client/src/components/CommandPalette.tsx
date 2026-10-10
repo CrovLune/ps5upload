@@ -263,7 +263,15 @@ export function CommandPalette() {
     const active = document.activeElement;
     const previous = active instanceof HTMLElement ? active : null;
     const id = window.setTimeout(() => inputRef.current?.focus(), 0);
-    const releaseTrap = activateFocusTrap(() => panelRef.current);
+    // Escape rides the shared modal stack like every other modal surface.
+    const releaseTrap = activateFocusTrap(() => panelRef.current, window, {
+      onEscape: (e) => {
+        e.preventDefault();
+        setOpen(false);
+        setQuery("");
+        setActiveIdx(0);
+      },
+    });
     return () => {
       window.clearTimeout(id);
       releaseTrap();
@@ -316,11 +324,6 @@ export function CommandPalette() {
   if (!open) return null;
 
   const handleKey = (e: React.KeyboardEvent) => {
-    if (e.key === "Escape") {
-      e.preventDefault();
-      close();
-      return;
-    }
     if (e.key === "ArrowDown") {
       e.preventDefault();
       setActiveIdx((i) => Math.min(i + 1, filtered.length - 1));
@@ -355,7 +358,7 @@ export function CommandPalette() {
         aria-modal="true"
         aria-label={tr("cmdpalette_title", "Command palette")}
         tabIndex={-1}
-        // On the panel, not the input: Escape and the arrow keys have to work
+        // On the panel, not the input: the arrow keys and Enter have to work
         // wherever focus is inside the palette (a clicked row, the panel
         // itself), not only while the caret is in the search field.
         onKeyDown={handleKey}
@@ -418,7 +421,7 @@ export function CommandPalette() {
                           {c.hint}
                         </span>
                       )}
-                      {isActive && <ArrowRight size={12} className="opacity-70" />}
+                      {isActive && <ArrowRight size={12} className="opacity-70 rtl:rotate-180" />}
                     </button>
                   );
                 })}

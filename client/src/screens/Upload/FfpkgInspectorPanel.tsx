@@ -126,7 +126,7 @@ export default function FfpkgInspectorPanel({ path }: { path: string }) {
             onClick={() => setOpen((v) => !v)}
             className="rounded-full p-1.5 text-[var(--color-muted)] hover:bg-[var(--color-surface-2)] hover:text-[var(--color-text)]"
           >
-            {open ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+            {open ? <ChevronDown size={14} /> : <ChevronRight size={14} className="rtl:rotate-180" />}
           </button>
         )}
       </div>

@@ -25,3 +25,18 @@ export function menuKeyTarget(
       return null;
   }
 }
+
+/**
+ * What a key does inside an open menu: "close" for Escape and Tab (Tab closes
+ * rather than walking out of the menu into the page; focus then goes back to
+ * whatever opened it), an index to focus for a movement key, or null to leave
+ * the key to the focused item (Enter / Space press it).
+ */
+export function menuKeyAction(
+  key: string,
+  current: number,
+  count: number,
+): "close" | number | null {
+  if (key === "Escape" || key === "Tab") return "close";
+  return menuKeyTarget(key, current, count);
+}

@@ -578,7 +578,7 @@ export default function ConnectionScreen() {
             <Button
               variant="primary"
               size="sm"
-              rightIcon={<ArrowRight size={11} />}
+              rightIcon={<ArrowRight size={11} className="rtl:rotate-180" />}
               onClick={() => navigate("/first-run")}
             >
               {tr(
@@ -730,7 +730,7 @@ export default function ConnectionScreen() {
             <Button
               variant="primary"
               size="md"
-              rightIcon={<ArrowRight size={14} />}
+              rightIcon={<ArrowRight size={14} className="rtl:rotate-180" />}
               onClick={() => navigate("/upload")}
             >
               {tr("connection_go_upload", undefined, "Go to Upload")}
@@ -1289,7 +1289,7 @@ function CompanionSuggestion() {
       <Button
         variant="primary"
         size="sm"
-        rightIcon={<ArrowRight size={11} />}
+        rightIcon={<ArrowRight size={11} className="rtl:rotate-180" />}
         onClick={() => navigate("/payloads?tab=catalog")}
       >
         {tr("companion_suggest_open_payloads", undefined, "Open Payloads")}

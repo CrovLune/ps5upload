@@ -1,8 +1,9 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Keyboard, X } from "lucide-react";
 
 import { useTr } from "../state/lang";
 import { isMobile } from "../lib/platform";
+import { activateFocusTrap } from "../lib/focusTrap";
 
 /**
  * Press `?` to display every keybinding the app supports. Modeled
@@ -81,6 +82,7 @@ const SHORTCUTS: Array<{
 export function ShortcutsOverlay() {
   const tr = useTr();
   const [open, setOpen] = useState(false);
+  const panelRef = useRef<HTMLDivElement | null>(null);
   // Touch devices have no `?` key to press and no keyboard shortcuts
   // worth documenting — don't register listeners or render anything.
   // isMobile() is UA-based and stable for the session, so gating the
@@ -102,16 +104,33 @@ export function ShortcutsOverlay() {
         }
         e.preventDefault();
         setOpen((v) => !v);
-        return;
-      }
-      if (e.key === "Escape" && open) {
-        e.preventDefault();
-        setOpen(false);
       }
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [open, mobile]);
+  }, [mobile]);
+
+  // While open: focus moves into the panel, Tab stays there, Escape closes it
+  // (through the shared modal stack, so it never also closes a Modal beneath),
+  // and focus goes back to whatever had it.
+  useEffect(() => {
+    if (!open) return;
+    const active = document.activeElement;
+    const previous = active instanceof HTMLElement ? active : null;
+    queueMicrotask(() => panelRef.current?.focus({ preventScroll: true }));
+    const releaseTrap = activateFocusTrap(() => panelRef.current, window, {
+      onEscape: (e) => {
+        e.preventDefault();
+        setOpen(false);
+      },
+    });
+    return () => {
+      releaseTrap();
+      queueMicrotask(() => {
+        if (previous?.isConnected) previous.focus({ preventScroll: true });
+      });
+    };
+  }, [open]);
 
   if (mobile || !open) return null;
 
@@ -122,7 +141,14 @@ export function ShortcutsOverlay() {
         if (e.target === e.currentTarget) setOpen(false);
       }}
     >
-      <div className="anim-pop glass-float elev-3 w-[480px] max-w-[90vw] overflow-hidden rounded-[var(--radius-panel)]">
+      <div
+        ref={panelRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label={tr("shortcuts_title", "Keyboard shortcuts")}
+        tabIndex={-1}
+        className="anim-pop glass-float elev-3 w-[480px] max-w-[90vw] overflow-hidden rounded-[var(--radius-panel)] outline-none"
+      >
         <header className="flex items-center justify-between border-b border-[var(--color-border)] px-4 py-3">
           <div className="flex items-center gap-2">
             <Keyboard size={14} className="text-[var(--color-muted)]" />
@@ -133,6 +159,8 @@ export function ShortcutsOverlay() {
           <button
             type="button"
             onClick={() => setOpen(false)}
+            aria-label={tr("close", undefined, "Close")}
+            title={tr("close", undefined, "Close")}
             className="text-[var(--color-muted)] hover:text-[var(--color-text)]"
           >
             <X size={14} />

@@ -53,7 +53,7 @@ export default function NavigationControls() {
         onClick={() => navigate(-1)}
         className="inline-flex h-8 w-8 items-center justify-center rounded-full text-[var(--color-text)] transition-colors hover:bg-[var(--color-surface-3)] disabled:cursor-not-allowed disabled:opacity-35"
       >
-        <ArrowLeft size={16} />
+        <ArrowLeft size={16} className="rtl:rotate-180" />
       </button>
       <button
         type="button"
@@ -63,7 +63,7 @@ export default function NavigationControls() {
         onClick={() => navigate(1)}
         className="inline-flex h-8 w-8 items-center justify-center rounded-full text-[var(--color-text)] transition-colors hover:bg-[var(--color-surface-3)] disabled:cursor-not-allowed disabled:opacity-35"
       >
-        <ArrowRight size={16} />
+        <ArrowRight size={16} className="rtl:rotate-180" />
       </button>
     </nav>
   );
