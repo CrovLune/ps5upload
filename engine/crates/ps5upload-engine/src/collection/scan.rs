@@ -369,7 +369,7 @@ pub fn scan(
             let gid = pkg
                 .as_ref()
                 .map(|p| p.title_id.to_ascii_uppercase())
-                .filter(|t| !t.is_empty())
+                .filter(|t| super::is_game_id(t))
                 .or_else(|| game_id_in(&name))
                 .or_else(|| game_id_in(&it.rel));
             progress.done.fetch_add(1, Ordering::Relaxed);
@@ -437,6 +437,9 @@ pub fn scan(
 /// `force`.
 fn cover_for(g: &super::Game, dir: &Path, force: bool) -> Option<String> {
     let name = format!("{}.png", g.game_id);
+    if !super::is_bare_file_name(&name) {
+        return None;
+    }
     let out = dir.join(&name);
     if !force && std::fs::metadata(&out).is_ok_and(|m| m.len() > 0) {
         return Some(name);
@@ -564,6 +567,31 @@ mod tests {
         )
         .unwrap();
         assert_eq!(again.games, lib.games);
+        let _ = std::fs::remove_dir_all(&root);
+    }
+
+    #[test]
+    fn a_title_id_that_is_not_a_game_id_never_names_a_file() {
+        let root = tmp("evilid");
+        let covers = root.join("covers");
+        let game = root.join("lib/PPSA06666-app");
+        app(&game, "../../x", "Evil", "01.000.000");
+        std::fs::write(game.join("sce_sys/icon0.png"), b"\x89PNG fake").unwrap();
+        let lib = scan(
+            &[s(&root.join("lib"))],
+            None,
+            false,
+            Some(&covers),
+            false,
+            &AtomicBool::new(false),
+            &Progress::default(),
+            None,
+        )
+        .unwrap();
+        // The bad id is ignored and the name's id is used instead.
+        assert_eq!(lib.games.keys().collect::<Vec<_>>(), vec!["PPSA06666"]);
+        assert!(!root.join("x.png").exists());
+        assert!(!covers.join("../../x.png").exists());
         let _ = std::fs::remove_dir_all(&root);
     }
 

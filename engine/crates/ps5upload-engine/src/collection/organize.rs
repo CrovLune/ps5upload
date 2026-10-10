@@ -128,8 +128,23 @@ pub fn sanitize(s: &str) -> String {
 }
 
 /// The third content-ID segment: `UP1001-PPSA14251_00-DONPACK…` → `DONPACK…`.
+/// Only letters, digits and `_` are kept as a suffix: the segment comes from the package and
+/// ends up in a file name.
 pub fn content_suffix(cid: &str) -> &str {
-    cid.split('-').nth(2).unwrap_or("")
+    let seg = cid.split('-').nth(2).unwrap_or("");
+    if seg.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'_') {
+        seg
+    } else {
+        ""
+    }
+}
+
+/// A move's `from`/`to` must stay inside its container: relative, ordinary names only.
+fn contained(rel: &str) -> bool {
+    let p = Path::new(rel);
+    p.components().next().is_some()
+        && p.components()
+            .all(|c| matches!(c, std::path::Component::Normal(_)))
 }
 
 fn region_short(region: &str) -> &str {
@@ -754,6 +769,9 @@ fn prune_empty(container: &Path, started_in: &HashSet<PathBuf>) -> (Vec<String>,
     (removed, kept)
 }
 
+/// How many moves run between rewrites of the log.
+const LOG_EVERY: usize = 16;
+
 /// Runs `moves` (all in `container`), the log written before the first one.
 pub fn apply(container: &Path, moves: Vec<Move>, log_path: &Path) -> std::io::Result<UndoLog> {
     let mut log = UndoLog {
@@ -770,6 +788,13 @@ pub fn apply(container: &Path, moves: Vec<Move>, log_path: &Path) -> std::io::Re
     write_log(log_path, &log)?;
     let mut started_in = HashSet::new();
     for mv in moves {
+        if !contained(&mv.from) || !contained(&mv.to) {
+            log.failed.push(FailedMove {
+                mv,
+                error: "path leaves the folder".into(),
+            });
+            continue;
+        }
         let src = container.join(&mv.from);
         let dst = container.join(&mv.to);
         if dst.exists() {
@@ -799,6 +824,10 @@ pub fn apply(container: &Path, moves: Vec<Move>, log_path: &Path) -> std::io::Re
             started_in.insert(dir.to_path_buf());
         }
         log.completed.push(mv);
+        // Kept current as it goes, so a run that dies part way can still be undone.
+        if log.completed.len() % LOG_EVERY == 0 {
+            let _ = write_log(log_path, &log);
+        }
     }
     let (removed, kept) = prune_empty(container, &started_in);
     log.removed_dirs = removed;
@@ -823,10 +852,27 @@ pub fn revert(log_path: &Path) -> std::io::Result<RevertResult> {
     }
     let root = PathBuf::from(&log.container_root);
     let mut out = RevertResult::default();
-    for mv in log.completed.iter().rev() {
+    // A run that died after its last log write left moves that happened but are not in
+    // `completed`; those whose file sits at the new name and not the old one are undone too.
+    let mut done = log.completed.clone();
+    for mv in &log.moves {
+        if done.contains(mv) || log.failed.iter().any(|f| &f.mv == mv) {
+            continue;
+        }
+        if contained(&mv.from)
+            && contained(&mv.to)
+            && root.join(&mv.to).exists()
+            && !root.join(&mv.from).exists()
+        {
+            done.push(mv.clone());
+        }
+    }
+    for mv in done.iter().rev() {
         let src = root.join(&mv.to);
         let dst = root.join(&mv.from);
-        let problem = if !src.exists() {
+        let problem = if !contained(&mv.from) || !contained(&mv.to) {
+            Some("path leaves the folder".to_string())
+        } else if !src.exists() {
             Some("moved file is gone".to_string())
         } else if dst.exists() {
             Some("original name is taken".to_string())
@@ -1151,6 +1197,51 @@ mod tests {
         assert!(c.join("loose/inner/x.pkg").is_file());
         assert!(!c.join("PS4").exists());
         assert!(revert(&log_path).is_err(), "a run is undone once");
+    }
+
+    #[test]
+    fn moves_that_leave_the_folder_are_refused_both_ways() {
+        let l = lib("escape");
+        let c = l.0.join("fpkg");
+        put(&c, "x.pkg", 10);
+        let mv = |from: &str, to: &str| -> Move {
+            serde_json::from_value(serde_json::json!({ "from": from, "to": to })).unwrap()
+        };
+        let log = apply(
+            &c,
+            vec![mv("x.pkg", "../out.pkg"), mv("/etc/hosts", "y.pkg")],
+            &l.0.join("log.json"),
+        )
+        .unwrap();
+        assert_eq!(log.failed.len(), 2);
+        assert!(c.join("x.pkg").is_file() && !l.0.join("out.pkg").exists());
+        assert_eq!(content_suffix("UP1001-PPSA14251_00-../../x"), "");
+        assert_eq!(
+            content_suffix("UP1001-PPSA14251_00-DONPACK0001"),
+            "DONPACK0001"
+        );
+    }
+
+    #[test]
+    fn a_run_that_died_part_way_is_still_undone() {
+        let l = lib("crash");
+        let c = l.0.join("fpkg");
+        put(&c, "x.pkg", 10);
+        let t = [(
+            "x",
+            info("RDR2", "CUSA03041", "UP1004-CUSA03041_00-X", "base", "1.00"),
+        )];
+        let p = plan_with(&c, &table(&t));
+        let log_path = l.0.join("log.json");
+        let log = apply(&c, p.moves.clone(), &log_path).unwrap();
+        assert_eq!(log.completed.len(), 1);
+        // As if the engine died before the final write: the log knows only the plan.
+        let mut stale = log.clone();
+        stale.completed.clear();
+        write_log(&log_path, &stale).unwrap();
+        let undone = revert(&log_path).unwrap();
+        assert_eq!(undone.reverted.len(), 1);
+        assert!(c.join("x.pkg").is_file());
     }
 
     #[test]

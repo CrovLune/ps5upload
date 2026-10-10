@@ -225,6 +225,28 @@ pub fn iso_utc(secs: i64) -> String {
     )
 }
 
+/// Whether `s` is exactly a Game ID: four upper-case letters then five digits. Ids from
+/// packages and imported indexes become file names, so anything else is refused.
+pub fn is_game_id(s: &str) -> bool {
+    let b = s.as_bytes();
+    b.len() == 9
+        && b[..4].iter().all(u8::is_ascii_uppercase)
+        && b[4..].iter().all(u8::is_ascii_digit)
+}
+
+/// Whether `s` is a bare file name (one normal path component, no separators).
+pub fn is_bare_file_name(s: &str) -> bool {
+    !s.is_empty()
+        && !s.contains(['/', '\\', ':'])
+        && matches!(
+            std::path::Path::new(s)
+                .components()
+                .collect::<Vec<_>>()
+                .as_slice(),
+            [std::path::Component::Normal(_)]
+        )
+}
+
 /// The first `XXXX12345` Game ID in `s` (four letters, five digits, on word boundaries).
 pub fn game_id_in(s: &str) -> Option<String> {
     let b = s.as_bytes();
@@ -248,6 +270,28 @@ pub fn game_id_in(s: &str) -> Option<String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn game_ids_and_bare_names() {
+        assert!(is_game_id("CUSA07842"));
+        assert!(!is_game_id("cusa07842"));
+        assert!(!is_game_id("../../x"));
+        assert!(!is_game_id("CUSA0784"));
+        assert!(!is_game_id("CUSA078421"));
+        assert!(is_bare_file_name("CUSA07842.png"));
+        for bad in [
+            "",
+            "..",
+            ".",
+            "a/b",
+            "a\\b",
+            "/etc/passwd",
+            "C:x",
+            "../x.png",
+        ] {
+            assert!(!is_bare_file_name(bad), "{bad}");
+        }
+    }
 
     #[test]
     fn dates_print_as_utc_iso() {

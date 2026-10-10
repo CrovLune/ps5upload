@@ -309,8 +309,16 @@ pub async fn get_cover(Path(id): Path<String>) -> Response {
     let id = id.to_ascii_uppercase();
     let file = library()
         .and_then(|l| l.games.get(&id).and_then(|g| g.local_cover.clone()))
+        .filter(|name| crate::collection::is_bare_file_name(name))
         .and_then(|name| store::covers_dir().map(|d| d.join(name)));
-    match file.and_then(|f| std::fs::read(f).ok()) {
+    let bytes = match file {
+        Some(f) => tokio::task::spawn_blocking(move || std::fs::read(f).ok())
+            .await
+            .ok()
+            .flatten(),
+        None => None,
+    };
+    match bytes {
         Some(bytes) => Response::builder()
             .header(header::CONTENT_TYPE, "image/png")
             .header(header::CACHE_CONTROL, "max-age=300")
