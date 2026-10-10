@@ -40,7 +40,7 @@ language: "Język",
 upload: "Wyślij",
 // Upload Queue
 // Manage / File Browser
-refresh: "Odswież",
+refresh: "Odśwież",
 download: "Pobierz",
 copy: "Skopiuj",
 copied: "Skopiowano",
@@ -236,7 +236,7 @@ library_empty_title: "Pusto w przeskanowanych folderach",
 library_empty_message: "Prześlij folder gry lub obraz dysku, lub zarejestruj tytułu z instalatorem po stronie PS5 — pojawią się tutaj.",
 library_games: "Gry",
 library_fpkg_kstuff_tip: "Porada: dla szybszego montowania .ffpkg / .exfat (3-4× szybciej), sprobój drakmor/kstuff-lite zamiast kstuff. Zainstaluj z biblioteki payloadów.",
-payloads_refresh_error_banner: "Nie można odswieżyć z GitHub'a — pokazuje podręczny zapis. Ostatni tag na GitHub'ie może być nowsze niż to co pokazane tutaj.",
+payloads_refresh_error_banner: "Nie można odświeżyć z GitHub'a — pokazuje podręczny zapis. Ostatni tag na GitHub'ie może być nowsze niż to co pokazane tutaj.",
 library_fpkg_kstuff_tip_repo: "Zobacz na GitHub'ie",
 library_fpkg_kstuff_tip_dismiss: "Nie pokazuj ponownie",
 
