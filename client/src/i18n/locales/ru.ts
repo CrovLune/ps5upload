@@ -3473,6 +3473,7 @@ connections_failed: "Что-то пошло не так с вашими серв
 connections_retry: "Повторить",
 disk_usage_failed: "Не удалось прочитать эту папку",
 disk_usage_retry: "Повторить",
+disk_usage_more: "(ещё {count})",
 engine_job_cancel_failed: "Не удалось остановить: {msg}. Операция всё ещё выполняется; попробуйте снова.",
 first_run_note_downloading_v2: "загрузка {tag} ({size})…",
 "fpkg.showFolderFailed": "Не удалось открыть папку. Пакет находится в {path}.",

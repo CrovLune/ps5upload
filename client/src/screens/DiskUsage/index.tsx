@@ -320,6 +320,7 @@ function Treemap({
   totalBytes: number;
   onDrill: (name: string, isDir: boolean) => void;
 }) {
+  const tr = useTr();
   // Cap at top 30 to keep visual readable; aggregate the rest as
   // an "other" rectangle so the total still adds up.
   const TOP_N = 30;
@@ -331,7 +332,7 @@ function Treemap({
       ? [
           ...top,
           {
-            name: `(+${rest.length} more)`,
+            name: tr("disk_usage_more", { count: rest.length }, `(+${rest.length} more)`),
             size: 0,
             isDir: false,
             totalSize: restTotal,

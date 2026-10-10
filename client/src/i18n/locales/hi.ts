@@ -3539,6 +3539,7 @@ connections_failed: "आपके सर्वरों में कुछ ग�
 connections_retry: "फिर से कोशिश करें",
 disk_usage_failed: "यह फ़ोल्डर पढ़ा नहीं जा सका",
 disk_usage_retry: "फिर से कोशिश करें",
+disk_usage_more: "(+{count} और)",
 engine_job_cancel_failed: "इसे रोका नहीं जा सका: {msg}। यह अभी भी चल रहा है; फिर से कोशिश करें।",
 first_run_note_downloading_v2: "{tag} डाउनलोड हो रहा है ({size})…",
 "fpkg.showFolderFailed": "फ़ोल्डर खोला नहीं जा सका। पैकेज {path} में है।",

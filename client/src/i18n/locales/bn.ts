@@ -3523,6 +3523,7 @@ connections_failed: "আপনার সার্ভারে কিছু এ�
 connections_retry: "আবার চেষ্টা করুন",
 disk_usage_failed: "এই ফোল্ডারটি পড়া যায়নি",
 disk_usage_retry: "আবার চেষ্টা করুন",
+disk_usage_more: "(+আরও {count}টি)",
 engine_job_cancel_failed: "এটি থামানো যায়নি: {msg}। এটি এখনও চলছে; আবার চেষ্টা করুন।",
 first_run_note_downloading_v2: "{tag} ডাউনলোড হচ্ছে ({size})…",
 "fpkg.showFolderFailed": "ফোল্ডারটি খোলা যায়নি। প্যাকেজটি {path}-এ আছে।",

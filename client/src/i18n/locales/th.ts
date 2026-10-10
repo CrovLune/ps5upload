@@ -3532,6 +3532,7 @@ connections_failed: "เกิดปัญหากับเซิร์ฟเ�
 connections_retry: "ลองใหม่",
 disk_usage_failed: "อ่านโฟลเดอร์นี้ไม่ได้",
 disk_usage_retry: "ลองใหม่",
+disk_usage_more: "(+อีก {count} รายการ)",
 engine_job_cancel_failed: "หยุดไม่ได้: {msg} งานยังทำงานอยู่ โปรดลองอีกครั้ง",
 first_run_note_downloading_v2: "กำลังดาวน์โหลด {tag} ({size})…",
 "fpkg.showFolderFailed": "เปิดโฟลเดอร์ไม่ได้ แพ็กเกจอยู่ที่ {path}",
