@@ -35,6 +35,10 @@ faster and harder to break.
   (next to Capture, and from the "Screenshot saved" note) and from the Bug report: page through
   them with the arrow keys or the thumbnail strip, delete one or all, or show their folder.
 - **Missed reminders** show in Tasks with Run now.
+- **The Android app does everything that needs the internet, like the desktop app:** install or
+  download from a link, install a package straight from a saved server (SMB, FTP, SFTP), the
+  community cheat search, and the online title and cover lookup in the Collection. RAR stays
+  desktop-only.
 - `scripts/update-ps5-sdk.sh` (`make update-sdk`) moves the payload SDK to its latest release.
 
 ### Fixed
