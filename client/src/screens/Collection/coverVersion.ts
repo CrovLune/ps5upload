@@ -9,11 +9,15 @@ import type { CollectionLocation } from "../../api/collection";
  * cached and fetch them all again; versioning by the files the cover comes
  * from changes one game's URL only when that game changed.
  */
-export function coverVersion(
-  game: { local_cover?: string; locations?: Pick<CollectionLocation, "absolute_path" | "size_bytes" | "modified_at">[] },
-): string | undefined {
+export function coverVersion(game: {
+  local_cover?: string;
+  /** The saved cover's own size and time: a deep rescan can read a new cover out of
+   *  unchanged files. */
+  cover_stamp?: string;
+  locations?: Pick<CollectionLocation, "absolute_path" | "size_bytes" | "modified_at">[];
+}): string | undefined {
   if (!game.local_cover) return undefined;
-  const parts = [game.local_cover];
+  const parts = [game.local_cover, game.cover_stamp ?? ""];
   for (const l of [...(game.locations ?? [])].sort((a, b) => a.absolute_path.localeCompare(b.absolute_path))) {
     parts.push(`${l.absolute_path}\u0000${l.size_bytes}\u0000${l.modified_at ?? ""}`);
   }

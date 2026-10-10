@@ -411,6 +411,7 @@ export default function GameHubScreen() {
                   game_id: gv.view.title_id,
                   title: game.name,
                   local_cover: gv.view.cover.startsWith("/api/collection/") ? "cover" : undefined,
+                  cover_stamp: /[?&]v=([^&]+)/.exec(gv.view.cover)?.[1],
                   cover_url: gv.view.cover.startsWith("http") ? gv.view.cover : undefined,
                   locations: gv.view.copies,
                 }}

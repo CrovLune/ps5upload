@@ -5,23 +5,28 @@ import { getEngineUrl } from "../state/engine";
 import { invoke } from "../lib/invokeLogged";
 import { getCachedIcon, setCachedIcon } from "../lib/iconMemoryCache";
 
-const coverKey = (gameId: string) => `collection|${gameId}`;
+/** Keyed by the cover's version too: a cover read out again must not be answered with the
+ *  bytes this session held for the old one. */
+const coverKey = (gameId: string, version?: string) => `collection|${gameId}|${version ?? ""}`;
 
 /** A Collection cover this session already holds, as a `data:` URL. */
-export function cachedCollectionCover(gameId: string): string | undefined {
-  return getCachedIcon(coverKey(gameId));
+export function cachedCollectionCover(gameId: string, version?: string): string | undefined {
+  return getCachedIcon(coverKey(gameId, version));
 }
 
 /** A Collection cover over the IPC, as a `data:` URL, or null. The desktop window's own load
  *  of the cover URL is refused by the engine's cross-site guard (WebKit sends neither Origin
  *  nor Referer for it), so this is the fallback `useImageRetry` turns to. */
-export async function collectionCoverDataUrl(gameId: string): Promise<string | null> {
-  const hit = getCachedIcon(coverKey(gameId));
+export async function collectionCoverDataUrl(
+  gameId: string,
+  version?: string,
+): Promise<string | null> {
+  const hit = getCachedIcon(coverKey(gameId, version));
   if (hit) return hit;
   try {
     const url = await invoke<string>("collection_cover_data", { gameId });
     if (typeof url === "string" && url.startsWith("data:")) {
-      setCachedIcon(coverKey(gameId), url);
+      setCachedIcon(coverKey(gameId, version), url);
       return url;
     }
     return null;
@@ -74,6 +79,8 @@ export interface CollectionGame {
   first_added_at?: string;
   added_ts: number;
   local_cover?: string;
+  /** The saved cover file's size and modified time: changes when the cover is read out again. */
+  cover_stamp?: string;
   cover_url?: string;
   title_source?: string;
 }

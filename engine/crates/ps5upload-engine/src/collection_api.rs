@@ -420,6 +420,7 @@ pub async fn post_import(Json(req): Json<ImportReq>) -> Response {
             for g in lib.games.values_mut() {
                 let name = format!("{}.png", g.game_id);
                 if std::fs::copy(from.join(&name), to.join(&name)).is_ok() {
+                    g.cover_stamp = store::cover_stamp(&to.join(&name));
                     g.local_cover = Some(name);
                 }
             }

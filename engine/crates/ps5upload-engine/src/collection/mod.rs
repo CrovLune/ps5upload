@@ -139,6 +139,10 @@ pub struct Game {
     /// The cover file in the covers folder, when one was read out of the game.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub local_cover: Option<String>,
+    /// The saved cover file's size and modified time, so a cover read out again (a deep
+    /// rescan) gets a new URL and the UI does not keep showing the old one.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub cover_stamp: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub cover_url: Option<String>,
     /// How good the title's source is: 0 the Game ID, 1 a DLC's name, 2 the game's own.

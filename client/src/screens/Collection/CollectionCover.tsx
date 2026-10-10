@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 
 import {
   cachedCollectionCover,
@@ -18,10 +18,11 @@ export function CollectionCover({
   className = "",
 }: {
   game: Pick<CollectionGame, "game_id" | "title" | "local_cover" | "cover_url"> &
-    Partial<Pick<CollectionGame, "locations">>;
+    Partial<Pick<CollectionGame, "locations" | "cover_stamp">>;
   className?: string;
 }) {
-  const local = game.local_cover ? collection.coverUrl(game.game_id, coverVersion(game)) : null;
+  const version = coverVersion(game);
+  const local = game.local_cover ? collection.coverUrl(game.game_id, version) : null;
   const sources = [local, game.cover_url ?? null].filter((s): s is string => !!s);
   const [at, setAt] = useState(0);
   // A cover that failed once (asked for before the scan had saved it) is tried again when the
@@ -31,14 +32,13 @@ export function CollectionCover({
   const candidate = sources[at] ?? null;
   const onLocal = !!local && at === 0;
   const { src, onError, failed } = useImageRetry(candidate, {
-    cached: onLocal ? cachedCollectionCover(game.game_id) : undefined,
+    cached: onLocal ? cachedCollectionCover(game.game_id, version) : undefined,
     fallbackLoader: () =>
-      onLocal ? collectionCoverDataUrl(game.game_id) : Promise.resolve(null),
+      onLocal ? collectionCoverDataUrl(game.game_id, version) : Promise.resolve(null),
   });
-  const advance = useCallback(() => setAt((i) => i + 1), []);
   useEffect(() => {
-    if (failed) advance();
-  }, [failed, advance]);
+    if (failed) setAt((i) => i + 1);
+  }, [failed]);
   if (!src) {
     const initials = game.title
       .split(/\s+/)

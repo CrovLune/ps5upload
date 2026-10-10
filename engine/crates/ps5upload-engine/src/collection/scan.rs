@@ -425,6 +425,10 @@ pub fn scan(
         group::finish(g);
         if let Some(dir) = covers_dir {
             g.local_cover = cover_for(g, dir, deep);
+            g.cover_stamp = g
+                .local_cover
+                .as_ref()
+                .and_then(|n| super::store::cover_stamp(&dir.join(n)));
         }
     }
     lib.summary = group::summarize(&games);
@@ -593,6 +597,22 @@ mod tests {
             std::fs::read(covers.join("PPSA05555.png")).unwrap(),
             b"\x89PNG fake"
         );
+        // A deep rescan reads the cover out again: its stamp changes, so the UI's URL does.
+        let first = lib.games["PPSA05555"].cover_stamp.clone();
+        assert!(first.is_some());
+        std::fs::write(game.join("sce_sys/icon0.png"), b"\x89PNG a new cover").unwrap();
+        let deep = scan(
+            &[s(&root.join("lib"))],
+            Some(&lib),
+            true,
+            Some(&covers),
+            false,
+            &AtomicBool::new(false),
+            &Progress::default(),
+            None,
+        )
+        .unwrap();
+        assert_ne!(deep.games["PPSA05555"].cover_stamp, first);
         let _ = std::fs::remove_dir_all(&root);
     }
 

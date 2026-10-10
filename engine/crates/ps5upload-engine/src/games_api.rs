@@ -80,7 +80,11 @@ pub fn game_view(id: &str, game: Option<&Game>, snaps: &Snapshots) -> Option<Gam
     }
     let cover = game.and_then(|g| {
         if g.local_cover.is_some() {
-            Some(format!("/api/collection/games/{id}/cover"))
+            // The stamp rides along so a cover read out again gets a new URL.
+            Some(match &g.cover_stamp {
+                Some(v) => format!("/api/collection/games/{id}/cover?v={v}"),
+                None => format!("/api/collection/games/{id}/cover"),
+            })
         } else {
             g.cover_url.clone()
         }

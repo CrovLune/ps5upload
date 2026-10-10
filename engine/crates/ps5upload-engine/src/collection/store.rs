@@ -72,6 +72,17 @@ pub fn covers_dir() -> Option<PathBuf> {
     dir().map(|d| d.join("covers"))
 }
 
+/// `<size>-<modified ns>` of a saved cover, or None when it cannot be read.
+pub fn cover_stamp(path: &Path) -> Option<String> {
+    let m = std::fs::metadata(path).ok()?;
+    let ns = m
+        .modified()
+        .ok()
+        .and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok())
+        .map_or(0, |d| d.as_nanos());
+    Some(format!("{}-{ns}", m.len()))
+}
+
 fn write_atomic(path: &Path, bytes: &[u8]) -> Result<(), String> {
     if let Some(parent) = path.parent() {
         std::fs::create_dir_all(parent).map_err(|e| format!("{}: {e}", parent.display()))?;

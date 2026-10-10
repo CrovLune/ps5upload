@@ -22,6 +22,11 @@ describe("coverVersion", () => {
     expect(coverVersion(g)).not.toBe(coverVersion({ ...g, locations: [loc("/g/c.pkg")] }));
   });
 
+  it("changes when the cover itself was read out again from unchanged files", () => {
+    const g = { local_cover: "PPSA01341.png", cover_stamp: "100-1", locations: [loc("/g/a.pkg")] };
+    expect(coverVersion(g)).not.toBe(coverVersion({ ...g, cover_stamp: "120-2" }));
+  });
+
   it("has no version without a local cover", () => {
     expect(coverVersion({ locations: [loc("/g/a.pkg")] })).toBeUndefined();
   });
