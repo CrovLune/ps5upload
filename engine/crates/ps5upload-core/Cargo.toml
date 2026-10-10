@@ -38,6 +38,9 @@ zip = { version = "8", default-features = false, features = ["deflate"] }
 # overwhelming majority of real-world 7z game dumps; an archive using an
 # unsupported codec fails with a clear "re-pack with LZMA2" message.
 sevenz-rust2 = { version = "0.23", default-features = false }
+# Community cheat search/download over HTTPS (cheats.rs). rustls + ring, which
+# the engine already builds for Android, so this needs no C toolchain there.
+ureq = { version = "3", features = ["rustls"] }
 # Decode user-supplied avatar images (profile.rs). Pure-Rust decoders only
 # (png/jpeg/webp/bmp/gif) — no C deps, so the Android cross-compile stays
 # clean, same care as the zip/sevenz pins above. We hand-roll the bilinear
@@ -57,4 +60,3 @@ image = { version = "0.25", default-features = false, features = ["png", "jpeg",
 # distribution/licensing decision.
 [target.'cfg(not(target_os = "android"))'.dependencies]
 unrar = "0.5"
-ureq = { version = "3", features = ["rustls"] }

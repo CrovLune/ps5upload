@@ -10,7 +10,6 @@ use serde::{Deserialize, Serialize};
 
 use crate::mgmt::{self, m, Method};
 
-#[cfg(not(target_os = "android"))]
 use std::io::Read;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -194,8 +193,7 @@ pub fn cheats_engine_set(addr: &str, enabled: bool) -> Result<CheatsEngineSetRes
 // Fetches cheat files from well-known GitHub repositories and installs
 // them onto the PS5 filesystem under /data/cheats/<title_id>/.
 //
-// On non-Android targets the functions use `ureq` for HTTP. On Android
-// they return an error (the Android app does its own HTTP via OkHttp).
+// HTTP goes through `ureq` on every target, Android included.
 
 /// Description of a community GitHub cheat repository.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -341,7 +339,6 @@ pub fn cheat_repos() -> Vec<CheatRepo> {
 }
 
 /// Infer cheat format from the index file that contained the entry.
-#[cfg(not(target_os = "android"))]
 fn format_from_index(index_name: &str) -> &'static str {
     match index_name {
         "json.txt" => "json",
@@ -357,7 +354,6 @@ fn format_from_index(index_name: &str) -> &'static str {
 /// of `json`, `shn` or `mc4` and the file's extension agrees with it.
 /// Anything else — a nested path, an unknown directory, a README —
 /// returns `None`.
-#[cfg(any(not(target_os = "android"), test))]
 fn tree_entry_from_path(path: &str, prefix: &str) -> Option<(String, &'static str)> {
     let rest = path.strip_prefix(prefix)?;
     let (dir, filename) = rest.split_once('/')?;
@@ -380,7 +376,6 @@ fn tree_entry_from_path(path: &str, prefix: &str) -> Option<(String, &'static st
     Some((filename.to_string(), format))
 }
 
-#[cfg(not(target_os = "android"))]
 fn repo_fetch(url: &str) -> Result<Vec<u8>> {
     let config = ureq::Agent::config_builder()
         .timeout_global(Some(std::time::Duration::from_secs(20)))
@@ -393,7 +388,6 @@ fn repo_fetch(url: &str) -> Result<Vec<u8>> {
 }
 
 /// Parse one line of `filename=game_title` format.
-#[cfg(not(target_os = "android"))]
 fn parse_index_line(line: &str) -> Option<(String, String)> {
     let line = line.trim();
     if line.is_empty() || line.starts_with('#') {
@@ -414,24 +408,19 @@ fn parse_index_line(line: &str) -> Option<(String, String)> {
 /// refetched on every search.
 /// `(filename, format)` pairs for one repo, with the time they were
 /// fetched.
-#[cfg(not(target_os = "android"))]
 type TreeListing = (std::time::Instant, Vec<(String, String)>);
 
-#[cfg(not(target_os = "android"))]
 type TreeCache = std::sync::Mutex<std::collections::HashMap<String, TreeListing>>;
 
-#[cfg(not(target_os = "android"))]
 fn tree_cache() -> &'static TreeCache {
     static CACHE: std::sync::OnceLock<TreeCache> = std::sync::OnceLock::new();
     CACHE.get_or_init(|| std::sync::Mutex::new(std::collections::HashMap::new()))
 }
 
-#[cfg(not(target_os = "android"))]
 const TREE_CACHE_TTL: std::time::Duration = std::time::Duration::from_secs(3600);
 
 /// Enumerate a repo that ships no index files by reading its git tree.
 /// Returns `(filename, format)` pairs.
-#[cfg(not(target_os = "android"))]
 fn repo_tree_listing(repo: &CheatRepo) -> Result<Vec<(String, String)>> {
     if let Some((fetched, cached)) = tree_cache()
         .lock()
@@ -473,104 +462,77 @@ fn repo_tree_listing(repo: &CheatRepo) -> Result<Vec<(String, String)>> {
 /// `query` may match either the filename (e.g. a CUSA ID) or the game
 /// title. Matching is case-insensitive substring.
 pub fn cheats_repo_search(query: &str) -> Result<CheatRepoSearchResponse> {
-    // Android does its own HTTP via OkHttp, so none of the fetch path
-    // below is compiled there. Returning early keeps that a single
-    // statement instead of leaving a body whose locals are never
-    // mutated and whose helpers are dead -- which is what the Android
-    // build was warning about.
-    #[cfg(target_os = "android")]
-    {
-        let _ = query;
-        eprintln!("[cheats] repo fetch not available on android");
-        return Ok(CheatRepoSearchResponse {
-            entries: Vec::new(),
-            error: None,
-        });
-    }
+    let mut entries: Vec<CheatRepoEntry> = Vec::new();
+    // De-duplicate by filename across every repo. `Vec::dedup_by` only
+    // collapses *adjacent* duplicates, so it never caught the case it
+    // was written for: the same file listed by two different repos,
+    // whose entries are never adjacent because repos are walked in turn.
+    let mut seen: std::collections::HashSet<String> = std::collections::HashSet::new();
+    for repo in cheat_repos() {
+        let q = query.to_lowercase();
+        let repo_id = repo.id.clone();
+        let mut push = |filename: String, game_title: String, format: String| {
+            let matches = q.is_empty()
+                || filename.to_lowercase().contains(&q)
+                || game_title.to_lowercase().contains(&q);
+            if !matches || !seen.insert(filename.clone()) {
+                return;
+            }
+            let (title_id, game_version) = parse_cheat_filename(&filename);
+            entries.push(CheatRepoEntry {
+                filename,
+                game_title,
+                format,
+                repo_id: repo_id.clone(),
+                title_id,
+                game_version,
+            });
+        };
 
-    #[cfg(not(target_os = "android"))]
-    {
-        let mut entries: Vec<CheatRepoEntry> = Vec::new();
-        // De-duplicate by filename across every repo. `Vec::dedup_by` only
-        // collapses *adjacent* duplicates, so it never caught the case it
-        // was written for: the same file listed by two different repos,
-        // whose entries are never adjacent because repos are walked in turn.
-        let mut seen: std::collections::HashSet<String> = std::collections::HashSet::new();
-        for repo in cheat_repos() {
-            #[cfg(not(target_os = "android"))]
-            {
-                let q = query.to_lowercase();
-                let repo_id = repo.id.clone();
-                let mut push = |filename: String, game_title: String, format: String| {
-                    let matches = q.is_empty()
-                        || filename.to_lowercase().contains(&q)
-                        || game_title.to_lowercase().contains(&q);
-                    if !matches || !seen.insert(filename.clone()) {
-                        return;
+        if repo.index_files.is_empty() {
+            // No index published — enumerate through the git tree.
+            // Game titles are not available this way, so these
+            // entries match on filename (the title id) only.
+            match repo_tree_listing(&repo) {
+                Ok(listing) => {
+                    for (filename, format) in listing {
+                        push(filename, String::new(), format);
                     }
-                    let (title_id, game_version) = parse_cheat_filename(&filename);
-                    entries.push(CheatRepoEntry {
-                        filename,
-                        game_title,
-                        format,
-                        repo_id: repo_id.clone(),
-                        title_id,
-                        game_version,
-                    });
-                };
-
-                if repo.index_files.is_empty() {
-                    // No index published — enumerate through the git tree.
-                    // Game titles are not available this way, so these
-                    // entries match on filename (the title id) only.
-                    match repo_tree_listing(&repo) {
-                        Ok(listing) => {
-                            for (filename, format) in listing {
-                                push(filename, String::new(), format);
+                }
+                Err(e) => {
+                    eprintln!("[cheats] tree listing failed for {}: {}", repo.id, e);
+                }
+            }
+        } else {
+            for idx in &repo.index_files {
+                let url = format!("{}{}", repo.raw_base, idx);
+                match repo_fetch(&url) {
+                    Ok(bytes) => {
+                        let text = String::from_utf8_lossy(&bytes);
+                        for line in text.lines() {
+                            if let Some((filename, game_title)) = parse_index_line(line) {
+                                push(filename, game_title, format_from_index(idx).into());
                             }
-                        }
-                        Err(e) => {
-                            eprintln!("[cheats] tree listing failed for {}: {}", repo.id, e);
                         }
                     }
-                } else {
-                    for idx in &repo.index_files {
-                        let url = format!("{}{}", repo.raw_base, idx);
-                        match repo_fetch(&url) {
-                            Ok(bytes) => {
-                                let text = String::from_utf8_lossy(&bytes);
-                                for line in text.lines() {
-                                    if let Some((filename, game_title)) = parse_index_line(line) {
-                                        push(filename, game_title, format_from_index(idx).into());
-                                    }
-                                }
-                            }
-                            Err(e) => {
-                                eprintln!("[cheats] fetch failed for {}/{}: {}", repo.id, idx, e);
-                            }
-                        }
+                    Err(e) => {
+                        eprintln!("[cheats] fetch failed for {}/{}: {}", repo.id, idx, e);
                     }
                 }
             }
-            #[cfg(target_os = "android")]
-            {
-                let _ = &repo;
-                eprintln!("[cheats] repo fetch not available on android");
-            }
         }
-
-        Ok(CheatRepoSearchResponse {
-            entries,
-            error: None,
-        })
     }
+
+    Ok(CheatRepoSearchResponse {
+        entries,
+        error: None,
+    })
 }
 
 /// Determine the on-PS5 install path for a cheat file.
 /// The payload's cheat engine scans `/data/ps5upload/cheats/{json,shn,mc4}/`
 /// and matches files by filename prefix (title_id). So we install into
 /// the correct format subdirectory based on the cheat format.
-#[cfg(not(target_os = "android"))]
 fn cheat_install_path(filename: &str, format: &str) -> String {
     let safe = filename.replace("..", "");
     let subdir = match format {
@@ -595,101 +557,88 @@ pub fn cheats_repo_download(
 ) -> Result<CheatDownloadResponse> {
     let _ = title_id; // title_id is extracted from filename by the payload
 
-    #[cfg(not(target_os = "android"))]
-    {
-        let repo = cheat_repos()
-            .into_iter()
-            .find(|r| r.id == repo_id)
-            .ok_or_else(|| anyhow::anyhow!("unknown repo: {repo_id}"))?;
+    let repo = cheat_repos()
+        .into_iter()
+        .find(|r| r.id == repo_id)
+        .ok_or_else(|| anyhow::anyhow!("unknown repo: {repo_id}"))?;
 
-        // Try each format subdirectory until one succeeds.
-        let mut bytes = None;
-        // `content_base` is where the format directories actually live,
-        // which is not always the repo root (see the henmix entry).
-        let base = if repo.content_base.is_empty() {
-            repo.raw_base.clone()
-        } else {
-            repo.content_base.clone()
-        };
-        for subdir in &["json", "shn", "mc4", "misc"] {
-            let try_url = format!("{}{}/{}", base, subdir, filename);
-            match repo_fetch(&try_url) {
-                Ok(b) => {
-                    bytes = Some(b);
-                    break;
-                }
-                Err(_) => continue,
+    // Try each format subdirectory until one succeeds.
+    let mut bytes = None;
+    // `content_base` is where the format directories actually live,
+    // which is not always the repo root (see the henmix entry).
+    let base = if repo.content_base.is_empty() {
+        repo.raw_base.clone()
+    } else {
+        repo.content_base.clone()
+    };
+    for subdir in &["json", "shn", "mc4", "misc"] {
+        let try_url = format!("{}{}/{}", base, subdir, filename);
+        match repo_fetch(&try_url) {
+            Ok(b) => {
+                bytes = Some(b);
+                break;
             }
+            Err(_) => continue,
         }
-        let bytes = match bytes {
-            Some(b) => b,
-            None => {
-                return Ok(CheatDownloadResponse {
-                    ok: false,
-                    error: Some(format!(
-                        "file not found in any subdirectory of {}",
-                        repo.name
-                    )),
-                    ..Default::default()
-                });
-            }
-        };
-
-        // Determine format from filename extension.
-        let format = if filename.ends_with(".shn") {
-            "shn"
-        } else if filename.ends_with(".mc4") {
-            "mc4"
-        } else {
-            "json"
-        };
-
-        let path = cheat_install_path(filename, format);
-
-        // Ensure the target directory exists (idempotent).
-        let dir = match format {
-            "shn" => "/data/ps5upload/cheats/shn",
-            "mc4" => "/data/ps5upload/cheats/mc4",
-            _ => "/data/ps5upload/cheats/json",
-        };
-        if let Err(e) = crate::fs_ops::fs_mkdir(addr, dir) {
-            eprintln!("[cheats] mkdir {} failed (may already exist): {}", dir, e);
-        }
-
-        if bytes.len() > 256 * 1024 {
+    }
+    let bytes = match bytes {
+        Some(b) => b,
+        None => {
             return Ok(CheatDownloadResponse {
                 ok: false,
                 error: Some(format!(
-                    "file too large for fast write ({} bytes > 256 KiB); use the transfer pipeline",
-                    bytes.len()
+                    "file not found in any subdirectory of {}",
+                    repo.name
                 )),
                 ..Default::default()
             });
         }
+    };
 
-        match crate::diagnostics::fs_write_bytes(addr, &path, &bytes, false) {
-            Ok(r) => Ok(CheatDownloadResponse {
-                ok: true,
-                path: Some(path),
-                size: r.size.or(Some(bytes.len() as u64)),
-                ..Default::default()
-            }),
-            Err(e) => Ok(CheatDownloadResponse {
-                ok: false,
-                error: Some(e.to_string()),
-                ..Default::default()
-            }),
-        }
+    // Determine format from filename extension.
+    let format = if filename.ends_with(".shn") {
+        "shn"
+    } else if filename.ends_with(".mc4") {
+        "mc4"
+    } else {
+        "json"
+    };
+
+    let path = cheat_install_path(filename, format);
+
+    // Ensure the target directory exists (idempotent).
+    let dir = match format {
+        "shn" => "/data/ps5upload/cheats/shn",
+        "mc4" => "/data/ps5upload/cheats/mc4",
+        _ => "/data/ps5upload/cheats/json",
+    };
+    if let Err(e) = crate::fs_ops::fs_mkdir(addr, dir) {
+        eprintln!("[cheats] mkdir {} failed (may already exist): {}", dir, e);
     }
 
-    #[cfg(target_os = "android")]
-    {
-        let _ = (addr, filename, repo_id);
-        Ok(CheatDownloadResponse {
+    if bytes.len() > 256 * 1024 {
+        return Ok(CheatDownloadResponse {
             ok: false,
-            error: Some("repo download not available on android".into()),
+            error: Some(format!(
+                "file too large for fast write ({} bytes > 256 KiB); use the transfer pipeline",
+                bytes.len()
+            )),
             ..Default::default()
-        })
+        });
+    }
+
+    match crate::diagnostics::fs_write_bytes(addr, &path, &bytes, false) {
+        Ok(r) => Ok(CheatDownloadResponse {
+            ok: true,
+            path: Some(path),
+            size: r.size.or(Some(bytes.len() as u64)),
+            ..Default::default()
+        }),
+        Err(e) => Ok(CheatDownloadResponse {
+            ok: false,
+            error: Some(e.to_string()),
+            ..Default::default()
+        }),
     }
 }
 
