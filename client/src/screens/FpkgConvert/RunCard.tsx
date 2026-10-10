@@ -524,19 +524,19 @@ function Lz4Option({ lz4 }: { lz4: Lz4Choice }) {
   const refusal = lz4.readiness.refusal;
   return (
     <div className="space-y-1" data-testid="lz4-option">
-      <label className="flex items-start gap-2 text-xs">
+      <label className="flex cursor-pointer items-start gap-2.5 text-xs">
         <input
           type="checkbox"
           checked={lz4.on && !refusal}
           disabled={!!refusal}
           onChange={(e) => lz4.onToggle(e.target.checked)}
-          className="mt-0.5"
+          className="checkbox mt-px h-4 w-4 shrink-0"
         />
-        <span>
-          <span className="text-[var(--color-text)]">
+        <span className="min-w-0">
+          <span className="block font-medium text-[var(--color-text)]">
             {tr("fpkg.image.lz4", undefined, "AMPR LZ4 asset packs (smaller, for ShadowMount+)")}
-          </span>{" "}
-          <span className="text-[var(--color-muted)]">
+          </span>
+          <span className="mt-0.5 block leading-relaxed text-[var(--color-muted)]">
             {tr(
               "fpkg.image.lz4_body",
               undefined,
@@ -762,19 +762,19 @@ function ImageChoice({
           </button>
         ))}
       </div>
-      <label className="flex items-start gap-2 text-xs">
+      <label className="flex cursor-pointer items-start gap-2.5 text-xs">
         <input
           type="checkbox"
           checked={compress && !packing}
           disabled={packing}
           onChange={(e) => setCompress(e.target.checked)}
-          className="mt-0.5"
+          className="checkbox mt-px h-4 w-4 shrink-0"
         />
-        <span>
-          <span className="text-[var(--color-text)]">
+        <span className="min-w-0">
+          <span className="block font-medium text-[var(--color-text)]">
             {tr("fpkg.image.compress", undefined, "Compress it into a .ffpfsc")}
-          </span>{" "}
-          <span className="text-[var(--color-muted)]">
+          </span>
+          <span className="mt-0.5 block leading-relaxed text-[var(--color-muted)]">
             {tr(
               "fpkg.image.compress_body_v2",
               undefined,
