@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router";
 import {
   Check,
@@ -24,6 +24,7 @@ import { fsListDir } from "../api/ps5";
 import { useConnectionsStore } from "../state/connections";
 import { useLocalPickerStore } from "../state/localPicker";
 import { usePackageViewer } from "../state/packageViewer";
+import { activateFocusTrap } from "../lib/focusTrap";
 import { useTr } from "../state/lang";
 
 /**
@@ -94,6 +95,9 @@ function passes(name: string, filters?: { extensions: string[] }[]): boolean {
 export function PickerView(p: PickerViewProps) {
   const tr = useTr();
   const shown = p.entries.filter((e) => e.is_dir || passes(e.name, p.filters));
+  const panelRef = useRef<HTMLDivElement | null>(null);
+  // Keep Tab inside the picker while it is up.
+  useEffect(() => activateFocusTrap(() => panelRef.current), []);
   return (
     <div
       className="anim-scrim scrim fixed inset-0 z-50 flex items-end justify-center sm:items-center"
@@ -101,8 +105,11 @@ export function PickerView(p: PickerViewProps) {
       onClick={p.onCancel}
     >
       <div
+        ref={panelRef}
         role="dialog"
         aria-modal="true"
+        aria-label={p.title}
+        tabIndex={-1}
         className="anim-sheet glass-float elev-3 flex max-h-[88dvh] w-full max-w-lg flex-col rounded-t-[var(--radius-panel)] sm:max-h-[80dvh] sm:rounded-[var(--radius-panel)]"
         onClick={(e) => e.stopPropagation()}
       >

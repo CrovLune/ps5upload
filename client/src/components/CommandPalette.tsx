@@ -7,6 +7,7 @@ import { ArrowRight, Search } from "lucide-react";
 import { useThemeStore } from "../state/theme";
 import { selectConsoleByAddress } from "../state/roster";
 import { pushNotification } from "../state/notifications";
+import { activateFocusTrap } from "../lib/focusTrap";
 import { useTr } from "../state/lang";
 import { useBetaFeaturesStore } from "../state/betaFeatures";
 import { isTauriEnv } from "../lib/tauriEnv";
@@ -208,6 +209,7 @@ export function CommandPalette() {
   const [activeIdx, setActiveIdx] = useState(0);
   const inputRef = useRef<HTMLInputElement | null>(null);
   const activeRef = useRef<HTMLButtonElement | null>(null);
+  const panelRef = useRef<HTMLDivElement | null>(null);
 
   const close = () => {
     setOpen(false);
@@ -253,11 +255,27 @@ export function CommandPalette() {
     return () => window.removeEventListener(OPEN_COMMAND_PALETTE_EVENT, onOpen);
   }, []);
 
+  // While open: focus the search field, keep Tab inside the panel, and on
+  // close hand focus back to whatever had it (the palette used to drop it on
+  // <body>, so a keyboard user restarted from the top of the page).
   useEffect(() => {
-    if (open) {
-      const id = window.setTimeout(() => inputRef.current?.focus(), 0);
-      return () => window.clearTimeout(id);
-    }
+    if (!open) return;
+    const active = document.activeElement;
+    const previous = active instanceof HTMLElement ? active : null;
+    const id = window.setTimeout(() => inputRef.current?.focus(), 0);
+    const releaseTrap = activateFocusTrap(() => panelRef.current);
+    return () => {
+      window.clearTimeout(id);
+      releaseTrap();
+      // Deferred so the panel has unmounted. Skipped when a command already
+      // moved focus somewhere deliberate, or when the opener is gone (a
+      // command that navigated away).
+      window.setTimeout(() => {
+        const now = document.activeElement;
+        if (now && now !== document.body) return;
+        if (previous?.isConnected) previous.focus({ preventScroll: true });
+      }, 0);
+    };
   }, [open]);
 
   // Keep the arrow-key-selected command visible: without this, holding ↓ moves
@@ -331,7 +349,18 @@ export function CommandPalette() {
         if (e.target === e.currentTarget) close();
       }}
     >
-      <div className="anim-pop glass-float elev-3 w-[560px] max-w-[90vw] overflow-hidden rounded-[var(--radius-panel)]">
+      <div
+        ref={panelRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label={tr("cmdpalette_title", "Command palette")}
+        tabIndex={-1}
+        // On the panel, not the input: Escape and the arrow keys have to work
+        // wherever focus is inside the palette (a clicked row, the panel
+        // itself), not only while the caret is in the search field.
+        onKeyDown={handleKey}
+        className="anim-pop glass-float elev-3 w-[560px] max-w-[90vw] overflow-hidden rounded-[var(--radius-panel)] outline-none"
+      >
         <div className="field-shell flex items-center gap-3 border-b border-[var(--color-border)] px-5 py-3.5">
           <Search size={17} className="text-[var(--color-muted)]" />
           <input
@@ -339,7 +368,6 @@ export function CommandPalette() {
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            onKeyDown={handleKey}
             placeholder={tr(
               "cmdpalette_search_placeholder",
               "Type a command or search…",
@@ -373,6 +401,9 @@ export function CommandPalette() {
                       key={c.id}
                       ref={isActive ? activeRef : undefined}
                       type="button"
+                      // The list is driven with the arrow keys from the search
+                      // field; as Tab stops the rows were 40-odd extra presses.
+                      tabIndex={-1}
                       onMouseEnter={() => setActiveIdx(flatIdx)}
                       onClick={() => void c.run()}
                       className={`flex w-full items-center gap-2 rounded-full px-4 py-2 text-left text-sm ${
