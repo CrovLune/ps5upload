@@ -1879,6 +1879,7 @@ function TransferStatus({ onRetry }: { onRetry: () => void }) {
   const host = useConnectionStore((s) => s.host);
   const phase = useTransferStore((s) => phaseForHost(s, host));
   const reattach = useTransferStore((s) => s.reattach);
+  const retryFailed = useTransferStore((s) => s.retry);
   // Read settings directly — threading through Step2Options just to get
   // here would add props for something that's a rendering decision.
   const showFiles = useUploadSettingsStore((s) => s.showTransferFiles);
@@ -2244,7 +2245,15 @@ function TransferStatus({ onRetry }: { onRetry: () => void }) {
         detail={humanizeUploadError(phase.error)}
         onDismiss={clearPhase}
         action={
-          <Button variant="secondary" size="sm" onClick={onRetry}>
+          <Button
+            variant="secondary"
+            size="sm"
+            // The upload that failed, not whatever the form holds now (it may
+            // have moved on to another source or console since).
+            onClick={() => {
+              if (!retryFailed(host)) onRetry();
+            }}
+          >
             {tr("upload_failed_retry", "Retry")}
           </Button>
         }

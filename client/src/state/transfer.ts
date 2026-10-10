@@ -144,9 +144,17 @@ export type TransferPhase =
        *  the user can still register manually from the Library. */
       registerWarning?: string;
     }
-  | { kind: "failed"; error: string; /** The engine job that failed (when one was started). */ jobId?: string };
+  | {
+      kind: "failed";
+      error: string;
+      /** The engine job that failed (when one was started). */
+      jobId?: string;
+      /** What this upload was started with, so Retry sends the same upload
+       *  again rather than whatever the form holds now. */
+      retryArgs?: StartArgs;
+    };
 
-interface StartArgs {
+export interface StartArgs {
   sourceKind: SourceKind;
   srcPath: string;
   dest: string;
@@ -190,6 +198,9 @@ interface TransferState {
    *  same with multiple consoles. */
   phasesByHost: Record<string, TransferPhase>;
   start: (args: StartArgs) => Promise<void>;
+  /** Start that console's failed upload again with the arguments it was
+   *  started with. False when there is none to retry. */
+  retry: (host: string) => boolean;
   /** Reset one console's one-shot phase to idle (pass its host), or — with no
    *  argument — every console's (the Activity tab's global Stop, which has no
    *  per-entry host today). Stops WATCHING only; the engine job keeps running.
@@ -266,18 +277,19 @@ export const useTransferStore = create<TransferState>((set) => {
   return {
     phasesByHost: {},
 
-    async start({
-      sourceKind,
-      srcPath,
-      dest,
-      addr,
-      strategy = "overwrite",
-      reconcileMode = "fast",
-      excludes = [],
-      mountAfterUpload = false,
-      mountReadOnly = true,
-      registerAfterUpload = false,
-    }) {
+    async start(startArgs) {
+      const {
+        sourceKind,
+        srcPath,
+        dest,
+        addr,
+        strategy = "overwrite",
+        reconcileMode = "fast",
+        excludes = [],
+        mountAfterUpload = false,
+        mountReadOnly = true,
+        registerAfterUpload = false,
+      } = startArgs;
       // Per-console key: everything below (gen, poll timer, phase write) is
       // scoped to this host so a concurrent one-shot on another console runs
       // fully in parallel.
@@ -430,7 +442,7 @@ export const useTransferStore = create<TransferState>((set) => {
         if (!isLive()) return;
         const msg = e instanceof Error ? e.message : String(e);
         log.error("upload", `start failed for "${uploadName}": ${msg}`);
-        setPhase(key, { kind: "failed", error: msg });
+        setPhase(key, { kind: "failed", error: msg, retryArgs: startArgs });
         return;
       }
       // A Cancel that lands while the start request is still in flight has no
@@ -531,7 +543,7 @@ export const useTransferStore = create<TransferState>((set) => {
           // safe (the tx id resumes what reached the console).
           if (/job not found/i.test(msg)) {
             log.error("upload", `transfer job ${jobId} for "${uploadName}" is gone: ${msg}`);
-            setPhase(key, { kind: "failed", error: msg, jobId });
+            setPhase(key, { kind: "failed", error: msg, jobId, retryArgs: startArgs });
             return;
           }
           const cur = useTransferStore.getState().phasesByHost[key];
@@ -675,6 +687,7 @@ export const useTransferStore = create<TransferState>((set) => {
                   error: `upload completed, but mount failed: ${
                     e instanceof Error ? e.message : String(e)
                   }`,
+                  retryArgs: startArgs,
                 });
                 return;
               }
@@ -808,6 +821,7 @@ export const useTransferStore = create<TransferState>((set) => {
             kind: "failed",
             error: snap.error ?? "upload failed",
             jobId,
+            retryArgs: startArgs,
           });
         } else {
           const now = Date.now();
@@ -878,6 +892,13 @@ export const useTransferStore = create<TransferState>((set) => {
         void poll();
       });
       pollTimers.set(key, setTimeout(poll, POLL_INITIAL_DELAY_MS));
+    },
+
+    retry(host) {
+      const cur = useTransferStore.getState().phasesByHost[hostFromAddr(host)];
+      if (cur?.kind !== "failed" || !cur.retryArgs) return false;
+      void useTransferStore.getState().start(cur.retryArgs);
+      return true;
     },
 
     reattach(host) {

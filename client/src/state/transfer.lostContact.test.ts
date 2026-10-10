@@ -117,3 +117,31 @@ describe("one-shot upload — status polls that fail", () => {
     expect(phase()).toMatchObject({ kind: "failed", jobId: "job-1" });
   });
 });
+
+describe("one-shot upload — Retry", () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+    useTransferStore.setState({ phasesByHost: {} });
+    status.mockReset();
+    startFile.mockClear();
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("starts the upload that failed again, with its own arguments", async () => {
+    status.mockResolvedValue({ status: "failed", error: "disk full" } as never);
+    await startUpload();
+    expect(phase()).toMatchObject({ kind: "failed", error: "disk full" });
+    status.mockResolvedValue({ status: "running", bytes_sent: 1, total_bytes: 10 } as never);
+    expect(useTransferStore.getState().retry(ADDR)).toBe(true);
+    await vi.advanceTimersByTimeAsync(250);
+    expect(startFile).toHaveBeenCalledTimes(2);
+    expect(startFile.mock.calls[1].slice(0, 3)).toEqual(["/src/game.pkg", "/data/game.pkg", ADDR]);
+    useTransferStore.getState().reset(ADDR);
+  });
+
+  it("has nothing to retry when no upload failed", () => {
+    expect(useTransferStore.getState().retry(ADDR)).toBe(false);
+  });
+});
