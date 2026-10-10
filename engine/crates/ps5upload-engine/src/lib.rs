@@ -51,7 +51,6 @@ mod icon_cache;
 mod image_build;
 mod inspect;
 mod install;
-#[cfg(not(target_os = "android"))]
 mod link;
 mod local_fs;
 mod log_dedup;
@@ -62,7 +61,6 @@ mod pkg_install;
 mod pkg_sidecar;
 mod remote;
 mod remote_download;
-#[cfg(not(target_os = "android"))]
 mod remote_pkg;
 mod state_io;
 mod telemetry;
@@ -1900,8 +1898,7 @@ struct TransferRarReq {
     password: Option<String>,
 }
 
-/// `/api/link/probe` request (R4, #368). Desktop-only, same gate as the handler.
-#[cfg(not(target_os = "android"))]
+/// `/api/link/probe` request (R4, #368).
 #[derive(Deserialize)]
 struct LinkProbeReq {
     url: String,
@@ -1910,7 +1907,6 @@ struct LinkProbeReq {
 }
 
 /// `/api/link/download` request: download a link's file to a console folder.
-#[cfg(not(target_os = "android"))]
 #[derive(Deserialize)]
 struct LinkDownloadReq {
     addr: Option<String>,
@@ -5292,19 +5288,16 @@ async fn ps5_readiness(
         .into_response()
 }
 
-#[cfg(not(target_os = "android"))]
 /// Consecutive console stalls (36 s each) a link download rides out with nothing made
 /// durable in between: twelve minutes of a host delivering nothing.
 const LINK_STALL_TRIES: u32 = 20;
 
-#[cfg(not(target_os = "android"))]
 #[derive(Debug, PartialEq, Eq)]
 enum LinkStall {
     Retry,
     Done,
 }
 
-#[cfg(not(target_os = "android"))]
 /// What a link download does with one attempt's result: a console stall is retried while
 /// the host still makes progress (or has not yet used up its tries); anything else, a
 /// cancel included, is the job's result.
@@ -8003,10 +7996,9 @@ fn archive_package_entries(
     }
 }
 
-/// POST /api/link/probe — desktop only. What a link actually serves: a package, some other
+/// POST /api/link/probe — what a link actually serves: a package, some other
 /// real file, or something that is not a download (R4, #368). Decided from the response, not
 /// the URL's spelling.
-#[cfg(not(target_os = "android"))]
 async fn link_probe_handler(Json(req): Json<LinkProbeReq>) -> impl IntoResponse {
     let url = req.url.trim().to_string();
     if !valid_link_url(&url) {
@@ -8028,16 +8020,6 @@ async fn link_probe_handler(Json(req): Json<LinkProbeReq>) -> impl IntoResponse 
     }
 }
 
-#[cfg(target_os = "android")]
-async fn link_probe_handler() -> impl IntoResponse {
-    json_err(
-        StatusCode::NOT_IMPLEMENTED,
-        "link downloads are not available in the Android build",
-    )
-    .into_response()
-}
-
-#[cfg(not(target_os = "android"))]
 fn valid_link_url(url: &str) -> bool {
     url.len() <= 4093
         && !url.bytes().any(|b| b < 0x20 || b == 0x7f)
@@ -8048,11 +8030,10 @@ fn valid_link_url(url: &str) -> bool {
         })
 }
 
-/// POST /api/link/download — desktop only. Download-only (R4, #368): the engine's ranged
+/// POST /api/link/download — download-only (R4, #368): the engine's ranged
 /// fetcher is the AVA1 source, so the link streams to a console folder with nothing staged on
 /// this computer. The link is probed AGAIN here and refused unless it is a real file
 /// download; the client's earlier probe is a convenience, never the authority.
-#[cfg(not(target_os = "android"))]
 async fn link_download_handler(
     State(state): State<AppState>,
     Json(req): Json<LinkDownloadReq>,
@@ -8282,15 +8263,6 @@ async fn link_download_handler(
         }),
     )
         .into_response()
-}
-
-#[cfg(target_os = "android")]
-async fn link_download_handler() -> impl IntoResponse {
-    json_err(
-        StatusCode::NOT_IMPLEMENTED,
-        "link downloads are not available in the Android build",
-    )
-    .into_response()
 }
 
 /// POST /api/transfer/file-list

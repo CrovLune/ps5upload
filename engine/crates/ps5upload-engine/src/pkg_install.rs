@@ -40,18 +40,11 @@ use uuid::Uuid;
 /// A package being proxied from an HTTP(S) origin for an install-from-a-link
 /// session (see `remote_pkg`).
 ///
-/// Installing from a link needs an HTTP client, which the Android build
-/// deliberately does not carry so its cross-compile stays pure Rust. There the
-/// type is uninhabited: `Option<Arc<RemotePkg>>` can only ever be `None`, so
-/// the remote paths are statically unreachable rather than conditionally
-/// compiled out of every call site.
 #[derive(Debug)]
 pub enum RemotePkg {
     /// An HTTP(S) link, fetched over many connections.
-    #[cfg(not(target_os = "android"))]
     Http(Arc<crate::remote_pkg::RemoteSource>),
     /// A file on a saved server (SMB, FTP, FTPS or SFTP), read in positioned pieces.
-    #[cfg(not(target_os = "android"))]
     Remote(crate::remote::range::RemoteRangeSource),
     /// A package already on the console, read back through the helper and
     /// served to the console from this engine: the second try when the
@@ -64,9 +57,7 @@ pub enum RemotePkg {
 impl RemotePkg {
     pub fn read_range(&self, start: u64, end: u64) -> std::io::Result<Vec<u8>> {
         match self {
-            #[cfg(not(target_os = "android"))]
             RemotePkg::Http(r) => r.read_range(start, end),
-            #[cfg(not(target_os = "android"))]
             RemotePkg::Remote(r) => r.read_range(start, end),
             RemotePkg::Console(c) => c.read_range(start, end),
         }
@@ -76,12 +67,9 @@ impl RemotePkg {
     /// cache is what lets the origin run ahead of the console. An SMB read on
     /// a LAN share answers well inside the console's own pacing.
     pub fn prefetch_after(this: &Arc<Self>, offset: u64) {
-        #[cfg(not(target_os = "android"))]
         if let RemotePkg::Http(r) = &**this {
             crate::remote_pkg::RemoteSource::prefetch_after(r, offset);
         }
-        #[cfg(target_os = "android")]
-        let _ = (this, offset);
     }
 }
 
@@ -1539,7 +1527,6 @@ async fn parse_split_handler(Json(req): Json<ParseRequest>) -> Response<Body> {
 }
 
 /// A package on a saved server, described the way a local one is (a single part).
-#[cfg(not(target_os = "android"))]
 async fn parse_remote_handler(remote_path: &str) -> Response<Body> {
     match open_remote_package(remote_path).await {
         Ok((_remote, total_size, head, fingerprint, name)) => {
@@ -1553,14 +1540,6 @@ async fn parse_remote_handler(remote_path: &str) -> Response<Body> {
         }
         Err(e) => json_err(StatusCode::BAD_REQUEST, &e),
     }
-}
-
-#[cfg(target_os = "android")]
-async fn parse_remote_handler(_remote_path: &str) -> Response<Body> {
-    json_err(
-        StatusCode::BAD_REQUEST,
-        "reading packages on a server is not available in the Android build",
-    )
 }
 
 // ─── /api/pkg/install/start ──────────────────────────────────────────
@@ -1583,10 +1562,6 @@ pub struct InstallStartRequest {
     /// handshake and we have no say in what it accepts — the client disables
     /// the option in that mode rather than letting it silently do nothing.
     #[serde(default)]
-    // Read only on platforms that can install from a link; the Android build
-    // compiles the remote path out entirely but must still accept the field
-    // so one client speaks to every engine.
-    #[cfg_attr(target_os = "android", allow(dead_code))]
     pub insecure_tls: bool,
     /// Either `path` (single .pkg) or `split_root` (lead `.pkg` of a
     /// split set) must be set. `split_root` triggers split-pkg
@@ -2900,7 +2875,6 @@ fn range_body(session: InstallSession, source: ServeSource, start: u64, end: u64
 /// only a few ranged reads (envelope, entry table, PARAM.SFO/param.json), all
 /// of which the proxy satisfies from its first window. So a 100 GB link is
 /// identified in about as long as one HTTP round trip.
-#[cfg(not(target_os = "android"))]
 async fn resolve_remote_source(
     url: &str,
     req: &InstallStartRequest,
@@ -2978,9 +2952,6 @@ fn streamed_metadata(
 }
 
 /// Metadata for a package read through ranges rather than from a local file.
-// Both callers are desktop-only, so on Android this was dead code (and a
-// warning in every `make android-deploy`).
-// Also used by the console (ps5://) source, which serves on Android too.
 fn stream_metadata(
     head: ps5upload_pkg::ReaderMetadata,
     fingerprint: String,
@@ -3049,16 +3020,7 @@ mod remote_type_tests {
     }
 }
 
-#[cfg(target_os = "android")]
-async fn resolve_remote_source(
-    _url: &str,
-    _req: &InstallStartRequest,
-) -> Result<ResolvedSource, String> {
-    Err("installing from a link is not available in the Android build".into())
-}
-
 /// Open a package on a saved server and read its header through ranges.
-#[cfg(not(target_os = "android"))]
 async fn open_remote_package(
     remote_path: &str,
 ) -> Result<
@@ -3114,7 +3076,6 @@ async fn open_remote_package(
 }
 
 /// Resolve an install that streams from a package on a saved server.
-#[cfg(not(target_os = "android"))]
 async fn resolve_remote_fs_source(
     remote_path: &str,
     req: &InstallStartRequest,
@@ -3128,14 +3089,6 @@ async fn resolve_remote_fs_source(
     let (remote, total_size, head, fingerprint, name) = open_remote_package(remote_path).await?;
     let metadata = streamed_metadata(req, head, fingerprint, total_size, &name);
     Ok((vec![], vec![], total_size, metadata, Some(remote)))
-}
-
-#[cfg(target_os = "android")]
-async fn resolve_remote_fs_source(
-    _remote_path: &str,
-    _req: &InstallStartRequest,
-) -> Result<ResolvedSource, String> {
-    Err("installing from a server is not available in the Android build".into())
 }
 
 /// A package already on the console, to be served back to it from here.

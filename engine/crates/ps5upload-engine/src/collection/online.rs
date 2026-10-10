@@ -2,19 +2,9 @@
 //! archive's Game ID): PROSPEROPatches for PS5, ORBISPatches for PS4, as PS Game Library does.
 //! Best effort; a network failure is never taken to mean "no such game".
 
-#[cfg(not(target_os = "android"))]
 use std::time::Duration;
 
-/// The Android engine is built without an HTTP client (pure Rust, like ps5upload-core's
-/// lookups there): the lookup is unavailable, which the caller treats as a failed fetch, never
-/// as "no such game".
-#[cfg(target_os = "android")]
-pub fn fetch(_game_id: &str) -> Result<(Option<String>, Option<String>), String> {
-    Err("online lookups are not available on this device".into())
-}
-
 /// `(title, cover_url)` from a title page, or `Err` when the page could not be fetched.
-#[cfg(not(target_os = "android"))]
 pub fn fetch(game_id: &str) -> Result<(Option<String>, Option<String>), String> {
     let (host, cdn) = if game_id.starts_with("CU") {
         ("orbispatches.com", "orbispatches")
@@ -48,7 +38,6 @@ pub fn fetch(game_id: &str) -> Result<(Option<String>, Option<String>), String> 
 
 /// The page title, without the Game ID prefix and the site suffix. The site's own generic
 /// title (what an unknown ID gets) is not a game's name.
-#[cfg_attr(target_os = "android", allow(dead_code))]
 pub fn title_from(html: &str, game_id: &str) -> Option<String> {
     let lower = html.to_ascii_lowercase();
     let start = lower.find("<title>")? + "<title>".len();
@@ -87,7 +76,6 @@ pub fn title_from(html: &str, game_id: &str) -> Option<String> {
     Some(t)
 }
 
-#[cfg_attr(target_os = "android", allow(dead_code))]
 pub fn cover_from(html: &str, game_id: &str, cdn: &str) -> Option<String> {
     let needle = format!("https://cdn.{cdn}.com/titles/{game_id}_");
     let at = html.find(&needle)?;

@@ -21,17 +21,7 @@
 //! The download reuses [`crate::remote_pkg::RemoteSource`], so it gets the
 //! same parallel ranged fetch, adaptive connection count and stall handling
 //! as streaming — the difference is only where the bytes land.
-//!
-//! Android compiles `remote_pkg` out entirely, so the copy loop goes with it
-//! and the handler answers "not available in the Android build". The request
-//! and response types, the path helpers and the registry still compile there
-//! — one client speaks to every engine, so the route must keep its shape and
-//! answer properly rather than 404. Hence the dead-code allowance below,
-//! matching how `InstallStartRequest::insecure_tls` is handled.
-#![cfg_attr(target_os = "android", allow(dead_code))]
 
-// Only the copy loop uses these, and that is compiled out on Android.
-#[cfg(not(target_os = "android"))]
 use std::io::{Seek, SeekFrom, Write};
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
@@ -46,11 +36,6 @@ use serde::{Deserialize, Serialize};
 
 /// Bytes pulled from the origin per write. Matches the fetcher's window so a
 /// download is one window fetch followed by one sequential write.
-///
-/// Android compiles the whole remote-fetch path out (see `mod remote_pkg` in
-/// lib.rs), so everything that touches it is gated the same way — the handler
-/// there answers "not available in the Android build" instead.
-#[cfg(not(target_os = "android"))]
 const COPY_WINDOW: u64 = 32 * 1024 * 1024;
 
 /// Where a link-download goes when the caller does not say. Downloads is
@@ -251,7 +236,6 @@ pub struct DownloadCancelRequest {
 /// The local file name for a download. A link that serves a package need not say so in its
 /// URL (a share link, a redirect, an extensionless path), and the file the install reads back
 /// must look like one, so `.pkg` is added unless the caller asked to keep the name.
-#[cfg(not(target_os = "android"))]
 fn local_name_for(probed: &str, keep_name: bool) -> String {
     let fallback = if keep_name { "download" } else { "package.pkg" };
     let mut name = safe_file_name(if probed.is_empty() { fallback } else { probed });
@@ -323,7 +307,6 @@ fn live_download_for(registry: &DownloadRegistry, path: &std::path::Path) -> Opt
         .map(|(id, _)| id.clone())
 }
 
-#[cfg(not(target_os = "android"))]
 fn already_downloading(path: &std::path::Path, busy: String) -> Response {
     (
         StatusCode::CONFLICT,
@@ -347,7 +330,6 @@ pub fn router(state: DownloadStateHandle) -> Router {
         .with_state(state)
 }
 
-#[cfg(not(target_os = "android"))]
 async fn start_handler(
     State(state): State<DownloadStateHandle>,
     Json(req): Json<DownloadStartRequest>,
@@ -493,22 +475,10 @@ async fn start_handler(
         .into_response()
 }
 
-#[cfg(target_os = "android")]
-async fn start_handler(
-    State(_state): State<DownloadStateHandle>,
-    Json(_req): Json<DownloadStartRequest>,
-) -> Response {
-    json_err(
-        StatusCode::BAD_REQUEST,
-        "downloading a package from a link is not available in the Android build",
-    )
-}
-
 /// The file work before a download starts, off the async workers: makes the folder, settles
 /// a file already under the final name, and decides whether the partial may be resumed (its
 /// sidecar says it is this link's, or the user chose to resume a file they had). Writes this
 /// link's sidecar. `(complete, may_resume)`.
-#[cfg(not(target_os = "android"))]
 fn prepare_files(
     dir: &std::path::Path,
     path: &std::path::Path,
@@ -566,7 +536,6 @@ fn prepare_files(
     Ok((false, may_resume))
 }
 
-#[cfg(not(target_os = "android"))]
 #[derive(Debug)]
 enum TakeOver {
     /// No choice was given: the caller is asked first.
@@ -577,7 +546,6 @@ enum TakeOver {
 /// Clear the final name for this download, as the user chose. `resume` moves the file to
 /// `.partial` (the resume check then keeps only bytes that match the link); `replace`
 /// removes it and any partial.
-#[cfg(not(target_os = "android"))]
 fn take_over_existing(
     path: &std::path::Path,
     partial: &std::path::Path,
@@ -600,7 +568,6 @@ fn take_over_existing(
 /// Bytes re-fetched before a resume point and compared with the partial file's tail: a
 /// `.partial` of the same name from a different link (or a different build of the package)
 /// must not be spliced onto this one.
-#[cfg(not(target_os = "android"))]
 const RESUME_CHECK: u64 = 64 * 1024;
 
 /// Pull the package window by window into `dl.partial`, then rename it to `dl.path`.
@@ -615,7 +582,6 @@ const RESUME_CHECK: u64 = 64 * 1024;
 /// Sequential writes on purpose: the fetcher is already parallel *inside* a
 /// window, so this needs no concurrency of its own, and one append-only
 /// stream is what a spinning disk and a network share both handle best.
-#[cfg(not(target_os = "android"))]
 fn copy_to_file(
     src: &crate::remote_pkg::RemoteSource,
     dl: &Arc<Download>,
@@ -760,7 +726,6 @@ async fn cancel_handler(
 
 #[cfg(test)]
 mod tests {
-    #[cfg(not(target_os = "android"))]
     #[test]
     fn a_package_gets_its_extension_and_an_archive_part_keeps_its_name() {
         assert_eq!(super::local_name_for("game", false), "game.pkg");
@@ -776,7 +741,6 @@ mod tests {
 
     use super::*;
 
-    #[cfg(not(target_os = "android"))]
     #[test]
     fn an_existing_file_is_refused_unless_the_user_chose_resume_or_replace() {
         let dir = std::env::temp_dir().join(format!("ps5u-dl-takeover-{}", std::process::id()));
@@ -829,14 +793,12 @@ mod tests {
         );
     }
 
-    #[cfg(not(target_os = "android"))]
     fn scratch(tag: &str) -> PathBuf {
         let d = std::env::temp_dir().join(format!("ps5u-dl-{tag}-{}", uuid::Uuid::new_v4()));
         std::fs::create_dir_all(&d).unwrap();
         d
     }
 
-    #[cfg(not(target_os = "android"))]
     fn download_for(dir: &std::path::Path, total: u64) -> Arc<Download> {
         let path = dir.join("game.pkg");
         Arc::new(Download {
@@ -848,7 +810,6 @@ mod tests {
     }
 
     /// The bytes land in `<name>.partial` and only a complete file gets the real name.
-    #[cfg(not(target_os = "android"))]
     #[test]
     fn a_download_writes_a_partial_and_renames_it_when_complete() {
         use crate::remote_pkg::origin_tests::{body, spawn_origin};
@@ -868,7 +829,6 @@ mod tests {
     }
 
     /// A killed download resumes from its partial file instead of being refused.
-    #[cfg(not(target_os = "android"))]
     #[test]
     fn a_download_resumes_from_its_partial_file() {
         use crate::remote_pkg::origin_tests::{body, spawn_origin};
@@ -887,7 +847,6 @@ mod tests {
     }
 
     /// A partial of the same name from another file is not spliced on: it starts over.
-    #[cfg(not(target_os = "android"))]
     #[test]
     fn a_partial_from_another_file_starts_over() {
         use crate::remote_pkg::origin_tests::{body, spawn_origin};
@@ -907,7 +866,6 @@ mod tests {
 
     /// The start route: an already complete file is done at once, and a second live
     /// download of the same file is refused with the first one's id.
-    #[cfg(not(target_os = "android"))]
     #[tokio::test(flavor = "multi_thread")]
     async fn a_complete_file_is_done_and_a_second_live_download_is_refused() {
         use crate::remote_pkg::origin_tests::{body, spawn_origin};
@@ -952,7 +910,6 @@ mod tests {
 
     /// A different file under the name is refused with its size (so the UI can offer Resume
     /// or Replace), and never taken over while a live download owns the name.
-    #[cfg(not(target_os = "android"))]
     #[tokio::test(flavor = "multi_thread")]
     async fn an_existing_file_is_described_and_a_live_download_is_never_taken_over() {
         use crate::remote_pkg::origin_tests::{body, spawn_origin};
@@ -995,7 +952,6 @@ mod tests {
 
     /// Cancel while the worker runs: the partial is the worker's to remove, and the entry
     /// stays live (blocking a second download of the file) until the worker exits.
-    #[cfg(not(target_os = "android"))]
     #[tokio::test(flavor = "multi_thread")]
     async fn a_cancelled_download_stays_live_until_its_worker_exits() {
         let dir = scratch("cancel");
@@ -1022,7 +978,6 @@ mod tests {
     }
 
     /// Cancelling a failed download never deletes the partial a live retry is writing.
-    #[cfg(not(target_os = "android"))]
     #[tokio::test(flavor = "multi_thread")]
     async fn cancelling_a_failed_download_spares_the_retrys_partial() {
         let dir = scratch("retry");
@@ -1046,7 +1001,6 @@ mod tests {
     }
 
     /// A partial is resumed only when its sidecar names the same link and size.
-    #[cfg(not(target_os = "android"))]
     #[test]
     fn a_partial_resumes_only_when_its_sidecar_matches() {
         let dir = scratch("sidecar");
@@ -1085,7 +1039,6 @@ mod tests {
     }
 
     /// A partial whose tail matches but whose head does not is another file: start over.
-    #[cfg(not(target_os = "android"))]
     #[test]
     fn a_partial_with_a_different_head_starts_over() {
         use crate::remote_pkg::origin_tests::{body, spawn_origin};

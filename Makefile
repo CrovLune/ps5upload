@@ -811,8 +811,8 @@ test-engine: setup-engine
 	@# The C interop tests share one C server and must run serially (as in CI).
 	@cd $(ENGINE_DIR) && $(CARGO) test -p ava1-ctest -- --test-threads=1
 	@echo "✓ Engine tests passed"
-	@# Android cross-compile check. The engine cfg's some modules out on
-	@# Android (remote_pkg, which needs an HTTP client), so a call site added
+	@# Android cross-compile check. The engine cfg's some code out on
+	@# Android (RAR, which needs the UnRAR C++ dep), so a call site added
 	@# without the matching cfg builds fine on every desktop target and fails
 	@# ONLY here. That is exactly how v5.31.0 shipped with no APK: every local
 	@# gate was green on macOS while the Android build was broken, and it was

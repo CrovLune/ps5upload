@@ -10,8 +10,6 @@
 //!   fetcher (`RemoteSource`) is the AVA1 source, so nothing is staged on this computer.
 //!   It is allowed only for a real file download; an HTML page, an error status, a login page
 //!   or an empty body is refused with a message that says which.
-//!
-//! Android compiles `remote_pkg` out, so this module goes with it (lib.rs answers 501 there).
 
 use std::io::{self, Read};
 use std::sync::Arc;
