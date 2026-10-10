@@ -424,15 +424,17 @@ pub(crate) fn build(
     let want_empty: Vec<String> = source.empty_dirs().to_vec();
     let data: u64 = want_sizes.values().sum();
 
+    // The caller has claimed this name (`fpkg_api::Writing`), clearing any leftover; a file
+    // here now is another build's, and `create_new` refuses it rather than wreck it.
     let partial = PathBuf::from(format!("{}.partial", output.display()));
-    let _ = std::fs::remove_file(&partial);
+    // Opened before the cleanup below applies: a file that is not ours is never removed.
+    let mut file = std::fs::OpenOptions::new()
+        .read(true)
+        .write(true)
+        .create_new(true)
+        .open(&partial)
+        .map_err(|e| format!("{}: {e}", partial.display()))?;
     let result = (|| -> Result<ImageBuilt, String> {
-        let mut file = std::fs::OpenOptions::new()
-            .read(true)
-            .write(true)
-            .create_new(true)
-            .open(&partial)
-            .map_err(|e| format!("{}: {e}", partial.display()))?;
         let mut hashing = HashingTree::new(source);
         let write_stage = if inner_name.is_some() {
             "compress"
@@ -497,10 +499,16 @@ pub(crate) fn build(
     if result.is_err() {
         let _ = std::fs::remove_file(&partial);
     }
-    if cancel.load(Ordering::Relaxed) {
-        return Err("cancelled".into());
+    settle(result, cancel.load(Ordering::Relaxed))
+}
+
+/// A failed build that was cancelled says so; a cancel that came after the image was
+/// finished and renamed changes nothing.
+fn settle(result: Result<ImageBuilt, String>, cancelled: bool) -> Result<ImageBuilt, String> {
+    match result {
+        Err(_) if cancelled => Err("cancelled".into()),
+        r => r,
     }
-    result
 }
 
 /// AMPR LZ4 asset packs for an image (see `ps5upload_fpkg::ampr_pack`): the game's files
@@ -543,8 +551,8 @@ pub(crate) fn build_packed(
         .profile
         .clone()
         .unwrap_or_else(|| ampr_pack::default_profile(packs.level, packs.block_shift));
+    // Claimed by the caller like the image's `.partial`, so nothing else writes here.
     let spool = lz4_spool(output);
-    let _ = std::fs::remove_dir_all(&spool);
     let mtime = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
         .map_or(0, |d| d.as_secs() as i64);
@@ -691,6 +699,47 @@ mod tests {
                 let _ = std::fs::remove_file(&out);
             }
         }
+        let _ = std::fs::remove_dir_all(&root);
+    }
+
+    /// Another build's `.partial` under the same name is neither written into nor removed;
+    /// and a cancel that lands after the image was finished does not turn it into a failure.
+    #[test]
+    fn another_builds_partial_is_left_alone_and_a_late_cancel_changes_nothing() {
+        let root = std::env::temp_dir().join(format!("ps5upload-imgp-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&root);
+        let src = game(&root);
+        let out = root.join("x.exfat");
+        let partial = root.join("x.exfat.partial");
+        std::fs::write(&partial, b"theirs").unwrap();
+        let mut tree = FolderSource::open(&src).unwrap();
+        let cancel = AtomicBool::new(false);
+        assert!(build(
+            ImageFormat::Exfat,
+            None,
+            &mut tree,
+            &out,
+            &cancel,
+            &mut |_, _, _| {}
+        )
+        .is_err());
+        assert_eq!(std::fs::read(&partial).unwrap(), b"theirs");
+        std::fs::remove_file(&partial).unwrap();
+
+        let done = || ImageBuilt {
+            image_bytes: 1,
+            files: 1,
+            detail: String::new(),
+        };
+        assert!(settle(Ok(done()), true).is_ok());
+        assert_eq!(
+            settle(Err("disk full".into()), true).err().unwrap(),
+            "cancelled"
+        );
+        assert_eq!(
+            settle(Err("disk full".into()), false).err().unwrap(),
+            "disk full"
+        );
         let _ = std::fs::remove_dir_all(&root);
     }
 

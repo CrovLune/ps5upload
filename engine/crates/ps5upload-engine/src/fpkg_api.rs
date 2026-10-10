@@ -269,6 +269,23 @@ pub(crate) async fn fpkg_build_handler(
         }
     };
 
+    // The file this build writes: a leftover of an interrupted one goes, and this one is
+    // marked as being written until the build ends. Claimed before the job exists, so a
+    // second build of the same package is refused rather than started.
+    let stem = req
+        .name
+        .clone()
+        .filter(|n| !n.trim().is_empty())
+        .or_else(|| req.content_id.clone().filter(|c| !c.trim().is_empty()))
+        .or_else(|| inspection.content_id.clone());
+    let partial = match stem.map(|stem| out.join(format!("{stem}.pkg.partial"))) {
+        Some(path) => match Writing::claim_off_thread(path.clone()).await {
+            Some(w) => Some(w),
+            None => return already_building(&path),
+        },
+        None => None,
+    };
+
     let job_id = Uuid::new_v4();
     let cancel = register_transfer_cancel(job_id);
     let bytes = Arc::new(AtomicU64::new(0));
@@ -337,16 +354,6 @@ pub(crate) async fn fpkg_build_handler(
             }
         }
     });
-
-    // The file this build writes: a leftover of an interrupted one goes, and this one is
-    // marked as being written until the build ends.
-    let stem = req
-        .name
-        .clone()
-        .filter(|n| !n.trim().is_empty())
-        .or_else(|| req.content_id.clone().filter(|c| !c.trim().is_empty()))
-        .or_else(|| inspection.content_id.clone());
-    let partial = stem.map(|stem| Writing::new(clear_stale_partial(&out, &stem)));
 
     let state_for_job = state.clone();
     let request_source = source_path.clone();
@@ -546,7 +553,7 @@ pub(crate) async fn ffpfsc_compress_handler(
 ) -> impl IntoResponse {
     use ps5upload_fpkg::ffpfsc;
     let source = resolve_engine_path(&req.source);
-    let size = match std::fs::metadata(&source) {
+    let size = match tokio::fs::metadata(&source).await {
         Ok(m) if m.is_file() && m.len() > 0 => m.len(),
         Ok(_) => {
             return json_err(
@@ -575,20 +582,25 @@ pub(crate) async fn ffpfsc_compress_handler(
         .map(|s| s.to_string_lossy().into_owned())
         .unwrap_or_else(|| "image".to_string());
     let output = out_dir.join(format!("{stem}.ffpfsc"));
-    if output.exists() {
+    if tokio::fs::try_exists(&output).await.unwrap_or(false) {
         return json_err(
             StatusCode::CONFLICT,
             format!("{} already exists", output.display()),
         )
         .into_response();
     }
-    if let Err(e) = std::fs::create_dir_all(&out_dir) {
+    if let Err(e) = tokio::fs::create_dir_all(&out_dir).await {
         return json_err(
             StatusCode::BAD_REQUEST,
             format!("{}: {e}", out_dir.display()),
         )
         .into_response();
     }
+
+    let partial_out = PathBuf::from(format!("{}.partial", output.display()));
+    let Some(writing) = Writing::claim_off_thread(partial_out.clone()).await else {
+        return already_building(&partial_out);
+    };
 
     let job_id = Uuid::new_v4();
     let cancel = register_transfer_cancel(job_id);
@@ -638,7 +650,6 @@ pub(crate) async fn ffpfsc_compress_handler(
     });
 
     let state_for_job = state.clone();
-    let partial_out = PathBuf::from(format!("{}.partial", output.display()));
     let ticker = JobTicker(ticker.abort_handle());
     tokio::task::spawn_blocking(move || {
         // A panic in the work below must not leave the job "running" forever with its
@@ -649,7 +660,6 @@ pub(crate) async fn ffpfsc_compress_handler(
             job_id,
             started_at_ms,
         );
-        let writing = Writing::new(partial_out);
         sweep_output_leftovers(&out_dir);
         let mut options = ffpfsc::WrapOptions::default();
         if let Some(level) = req.level {
@@ -797,7 +807,7 @@ pub(crate) async fn exfat_build_handler(
 ) -> impl IntoResponse {
     use ps5upload_fpkg::source::{FolderSource, SourceTree};
     let source = resolve_engine_path(&req.source);
-    if !source.is_dir() {
+    if !tokio::fs::metadata(&source).await.is_ok_and(|m| m.is_dir()) {
         return json_err(
             StatusCode::BAD_REQUEST,
             format!("{} is not a folder", source.display()),
@@ -826,14 +836,14 @@ pub(crate) async fn exfat_build_handler(
     let out_dir = output_dir(req.output_dir.as_deref());
     let (out_name, inner_name) = crate::image_build::output_names(&source, format, req.compress);
     let output = out_dir.join(out_name);
-    if output.exists() {
+    if tokio::fs::try_exists(&output).await.unwrap_or(false) {
         return json_err(
             StatusCode::CONFLICT,
             format!("{} already exists", output.display()),
         )
         .into_response();
     }
-    if let Err(e) = std::fs::create_dir_all(&out_dir) {
+    if let Err(e) = tokio::fs::create_dir_all(&out_dir).await {
         return json_err(
             StatusCode::BAD_REQUEST,
             format!("{}: {e}", out_dir.display()),
@@ -868,6 +878,15 @@ pub(crate) async fn exfat_build_handler(
         )
         .into_response();
     }
+
+    let partial_out = PathBuf::from(format!("{}.partial", output.display()));
+    let Some(writing) = Writing::claim_off_thread(partial_out.clone()).await else {
+        return already_building(&partial_out);
+    };
+    let spool = crate::image_build::lz4_spool(&output);
+    let Some(spooling) = Writing::claim_off_thread(spool.clone()).await else {
+        return already_building(&spool);
+    };
 
     let job_id = Uuid::new_v4();
     let cancel = register_transfer_cancel(job_id);
@@ -923,7 +942,6 @@ pub(crate) async fn exfat_build_handler(
     });
 
     let state_for_job = state.clone();
-    let partial_out = PathBuf::from(format!("{}.partial", output.display()));
     let ticker = JobTicker(ticker.abort_handle());
     tokio::task::spawn_blocking(move || {
         // A panic in the work below must not leave the job "running" forever with its
@@ -934,8 +952,6 @@ pub(crate) async fn exfat_build_handler(
             job_id,
             started_at_ms,
         );
-        let writing = Writing::new(partial_out);
-        let spooling = Writing::new(crate::image_build::lz4_spool(&output));
         sweep_output_leftovers(&out_dir);
         let mut tree = tree;
         // With LZ4 packs the build packs first; the stage list says so.
@@ -1082,33 +1098,46 @@ fn active_partials() -> &'static std::sync::Mutex<std::collections::HashSet<Path
     SET.get_or_init(Default::default)
 }
 
-/// A `.pkg.partial` left by a build that is not running any more (the app closed, the engine
-/// died) is removed, so the rebuild the queue starts is not refused as "output already exists".
-/// One this engine is writing is never touched. Returns the partial's path.
-fn clear_stale_partial(out: &Path, stem: &str) -> PathBuf {
-    let partial = out.join(format!("{stem}.pkg.partial"));
-    let writing = active_partials()
-        .lock()
-        .unwrap_or_else(|e| e.into_inner())
-        .contains(&partial);
-    if !writing && partial.is_file() {
-        let _ = std::fs::remove_file(&partial);
-    }
-    partial
-}
-
 /// Marks a file as being written by a running build, for as long as it lives: the sweep below
-/// leaves it alone.
+/// leaves it alone, and a second build of the same output is refused.
 pub(crate) struct Writing(PathBuf);
 
 impl Writing {
-    pub(crate) fn new(path: PathBuf) -> Writing {
-        active_partials()
-            .lock()
-            .unwrap_or_else(|e| e.into_inner())
-            .insert(path.clone());
-        Writing(path)
+    /// Claims `path` for one build. `None` when another running build already writes it: two
+    /// builds of one output would wreck each other's file. A leftover at `path` from a build
+    /// that is not running any more (the app closed, the engine died) is removed, so the
+    /// rebuild the queue starts is not refused as "output already exists".
+    pub(crate) fn claim(path: PathBuf) -> Option<Writing> {
+        let mut active = active_partials().lock().unwrap_or_else(|e| e.into_inner());
+        if active.contains(&path) {
+            return None;
+        }
+        if path.is_dir() {
+            let _ = std::fs::remove_dir_all(&path);
+        } else if path.is_file() {
+            let _ = std::fs::remove_file(&path);
+        }
+        active.insert(path.clone());
+        Some(Writing(path))
     }
+
+    /// [`Writing::claim`] on a blocking thread: clearing a leftover can mean removing a
+    /// whole pack spool.
+    pub(crate) async fn claim_off_thread(path: PathBuf) -> Option<Writing> {
+        tokio::task::spawn_blocking(move || Writing::claim(path))
+            .await
+            .ok()
+            .flatten()
+    }
+}
+
+/// The 409 for a build whose output another running build is writing.
+fn already_building(path: &Path) -> axum::response::Response {
+    json_err(
+        StatusCode::CONFLICT,
+        format!("{} is already being built", path.display()),
+    )
+    .into_response()
 }
 
 impl Drop for Writing {
@@ -1471,24 +1500,26 @@ mod extract_tests {
     use super::*;
 
     #[test]
-    fn a_leftover_partial_goes_but_one_being_written_stays() {
+    fn a_leftover_partial_goes_but_a_second_build_of_the_same_output_is_refused() {
         let out = std::env::temp_dir().join(format!("ps5upload-partial-{}", std::process::id()));
         let _ = std::fs::remove_dir_all(&out);
         std::fs::create_dir_all(&out).unwrap();
         std::fs::write(out.join("A.pkg.partial"), b"x").unwrap();
-        std::fs::write(out.join("B.pkg.partial"), b"x").unwrap();
-        active_partials()
-            .lock()
-            .unwrap()
-            .insert(out.join("B.pkg.partial"));
-        clear_stale_partial(&out, "A");
-        clear_stale_partial(&out, "B");
-        assert!(!out.join("A.pkg.partial").exists());
-        assert!(out.join("B.pkg.partial").exists());
-        active_partials()
-            .lock()
-            .unwrap()
-            .remove(&out.join("B.pkg.partial"));
+        let first = Writing::claim(out.join("A.pkg.partial")).unwrap();
+        assert!(!out.join("A.pkg.partial").exists(), "the leftover goes");
+        std::fs::write(out.join("A.pkg.partial"), b"being written").unwrap();
+        assert!(Writing::claim(out.join("A.pkg.partial")).is_none());
+        assert_eq!(
+            std::fs::read(out.join("A.pkg.partial")).unwrap(),
+            b"being written"
+        );
+        assert_eq!(
+            already_building(&out.join("A.pkg.partial")).status(),
+            StatusCode::CONFLICT
+        );
+        drop(first);
+        assert!(Writing::claim(out.join("A.pkg.partial")).is_some());
+        let _ = std::fs::remove_dir_all(&out);
     }
 
     #[test]
@@ -1530,7 +1561,9 @@ mod extract_tests {
         std::fs::write(out.join("movie.mkv.partial"), b"x").unwrap();
         std::fs::write(out.join("Game.ffpfsc"), b"x").unwrap();
         // One a running build is writing stays too.
-        let writing = Writing::new(out.join("D.ffpkg.partial"));
+        std::fs::remove_file(out.join("D.ffpkg.partial")).unwrap();
+        let writing = Writing::claim(out.join("D.ffpkg.partial")).unwrap();
+        std::fs::write(out.join("D.ffpkg.partial"), b"x").unwrap();
         sweep_output_leftovers(&out);
         let left: std::collections::BTreeSet<String> = std::fs::read_dir(&out)
             .unwrap()
@@ -1550,8 +1583,8 @@ mod extract_tests {
         // An LZ4 build's pack spool goes too, unless its build is running.
         std::fs::create_dir_all(out.join("E.exfat.lz4spool")).unwrap();
         std::fs::write(out.join("E.exfat.lz4spool/ampr_assets-000.pak"), b"x").unwrap();
+        let spooling = Writing::claim(out.join("F.exfat.lz4spool")).unwrap();
         std::fs::create_dir_all(out.join("F.exfat.lz4spool")).unwrap();
-        let spooling = Writing::new(out.join("F.exfat.lz4spool"));
         sweep_output_leftovers(&out);
         assert!(!out.join("E.exfat.lz4spool").exists());
         assert!(out.join("F.exfat.lz4spool").exists());
