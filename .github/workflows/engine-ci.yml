@@ -891,12 +891,6 @@ jobs:
         working-directory: client
         run: npx tauri android init
 
-      # `android init` seeds placeholder launcher icons; re-apply ours so
-      # the Android app icon matches the desktop app icon.
-      - name: Apply app icon
-        working-directory: client
-        run: npx tauri icon src-tauri/icons/sources/macos_squircle_1024.png
-
       # Keep the manifest patch in the build-verification path too, so a
       # regression in android-postinit-patch.sh is caught by CI (release
       # parity; the loopback + backup config is harmless for debug).

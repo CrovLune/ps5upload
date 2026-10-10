@@ -24,6 +24,8 @@
 #    that releases share a stable signing key), but allowBackup + explicit
 #    include rules let Android restore them on a fresh reinstall too.
 #
+# 3) The PS5Upload launcher icons, copied from client/src-tauri/icons/android.
+#
 # Plus <uses-permission> injection: all-files storage access for the
 # in-app picker, and Wi-Fi multicast/state permissions so mDNS console
 # discovery can receive 224.0.0.251:5353 (see the perms list below).
@@ -54,6 +56,16 @@ xmldir="$gen/res/xml"
 if [ ! -f "$manifest" ]; then
   echo "::error::AndroidManifest.xml not found at $manifest — run 'tauri android init' first" >&2
   exit 1
+fi
+
+# Launcher icons: the committed PS5Upload set (scripts/release/android-icons.py) over
+# whatever `tauri android init` seeded. On every build, not only at init, so an
+# existing gen/ never keeps the placeholder icon.
+icons="$root/client/src-tauri/icons/android"
+if [ -d "$icons" ]; then
+  rm -f "$gen/res/drawable/ic_launcher_background.xml" "$gen/res/drawable-v24/ic_launcher_foreground.xml"
+  cp -R "$icons/." "$gen/res/"
+  echo "applied the PS5Upload launcher icons"
 fi
 
 mkdir -p "$xmldir"

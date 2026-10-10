@@ -75,10 +75,6 @@ ANDROID_APK        := $(ANDROID_GEN_DIR)/app/build/outputs/apk/universal/debug/a
 # Package id (matches tauri.conf.json `identifier`). Used to recover from a
 # signature-mismatched prior install during the convenience deploy step.
 ANDROID_APP_ID     := com.phantomptr.ps5upload
-# App-icon source (relative to CLIENT_DIR). `tauri android init` seeds
-# placeholder launcher icons; we re-apply ours so the Android icon matches
-# the desktop app icon. gen/ is gitignored, so this runs at init time.
-ANDROID_ICON_SRC   := src-tauri/icons/sources/macos_squircle_1024.png
 # rustup's *real* toolchain bin (not the ~/.cargo/bin shim). The Android std
 # lives only here; Homebrew `rust` ships only the host std. We pin PATH to this
 # dir for the android recipes so cross-compilation works even when Homebrew's
@@ -688,8 +684,6 @@ emu-test: android-build
 android-init: android-deps setup-client
 	@echo "Scaffolding Android project (tauri android init)..."
 	@cd $(CLIENT_DIR) && $(ANDROID_ENV) npx tauri android init
-	@echo "Applying app icon from $(ANDROID_ICON_SRC) (matches the desktop icon)..."
-	@cd $(CLIENT_DIR) && $(ANDROID_ENV) npx tauri icon $(ANDROID_ICON_SRC) >/dev/null
 	@echo "Allowing loopback cleartext so the in-process engine is reachable..."
 	@bash scripts/release/android-postinit-patch.sh
 
