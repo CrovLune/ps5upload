@@ -126,6 +126,7 @@ import {
   otherActiveDownloadHost,
   fsDownloadOpHandle,
 } from "../../state/fsBulkOp";
+import { pollFsDownload } from "../../state/fsDownloadPoll";
 import { useElapsed } from "../../lib/useElapsed";
 import {
   cancelFsUpload,
@@ -2086,59 +2087,34 @@ export default function FileSystemScreen() {
     // cancels the engine job and flips runId; this loop exits at its
     // next check.
     const isLive = () => fsDownload.runId === myRunId;
-    while (true) {
-      if (!isLive()) return;
-      try {
-        const snap = await jobStatus(jobId);
-        if (!isLive()) return;
-        if (snap.status === "done") {
-          fsDownload.end(null);
-          return;
-        }
-        if (snap.status === "failed") {
-          const friendly = tr(
-            "fs_download_failed",
-            { error: snap.error ?? "download failed" },
-            "Download failed: {error}",
-          );
-          setError(friendly);
-          pushNotification(
-            "error",
-            withConsolePrefix(
-              host,
-              tr("notif_fs_download_failed", undefined, "Download failed"),
-            ),
-            { body: friendly },
-          );
-          fsDownload.end(friendly);
-          return;
-        }
-        fsDownload.setProgress({
-          bytesReceived: snap.bytes_sent ?? 0,
-          totalBytes: snap.total_bytes ?? 0,
-        });
-      } catch (e) {
-        if (!isLive()) return;
-        const msg = e instanceof Error ? e.message : String(e);
-        const friendly = tr(
-          "fs_download_poll_failed",
-          { error: msg },
-          "Lost contact with the engine while downloading: {error}",
-        );
-        setError(friendly);
-        pushNotification(
-          "error",
-          withConsolePrefix(
-            host,
-            tr("notif_fs_download_failed", undefined, "Download failed"),
+    const fail = (friendly: string) => {
+      setError(friendly);
+      pushNotification(
+        "error",
+        withConsolePrefix(
+          host,
+          tr("notif_fs_download_failed", undefined, "Download failed"),
+        ),
+        { body: friendly },
+      );
+      fsDownload.end(friendly);
+    };
+    // A failed status read keeps polling (the engine is still downloading);
+    // the banner says contact is lost and its Cancel still stops the job.
+    await pollFsDownload(
+      jobId,
+      {
+        isLive,
+        onProgress: (p) => fsDownload.setProgress(p),
+        onLostContact: (e) => fsDownload.setLostContact(e),
+        onDone: () => fsDownload.end(null),
+        onFailed: (error) =>
+          fail(
+            tr("fs_download_failed", { error }, "Download failed: {error}"),
           ),
-          { body: friendly },
-        );
-        fsDownload.end(friendly);
-        return;
-      }
-      await new Promise((resolve) => setTimeout(resolve, 500));
-    }
+      },
+      { jobStatus: (id) => jobStatus(id) },
+    );
   };
 
   const selectionActive = selected.size > 0;
@@ -3763,6 +3739,9 @@ function DownloadOpBanner({
   const totalBytes = useFsDownloadOpStore(
     (s) => downloadForHost(s, host).totalBytes,
   );
+  const lostContact = useFsDownloadOpStore(
+    (s) => downloadForHost(s, host).lostContact,
+  );
   const [now, setNow] = useState<number>(() => Date.now());
   useEffect(() => {
     setNow(Date.now());
@@ -3819,6 +3798,16 @@ function DownloadOpBanner({
           </span>
         )}
       </div>
+
+      {lostContact && (
+        <div role="status" className="mb-2 text-[var(--color-warn)]">
+          {tr(
+            "fs_download_poll_failed",
+            { error: lostContact },
+            "Lost contact with the engine while downloading: {error}",
+          )}
+        </div>
+      )}
 
       <div className="mb-2 grid grid-cols-[auto_1fr] gap-x-3 gap-y-0.5 text-xs text-[var(--color-muted)]">
         <span>{tr("fs_bulk_from", undefined, "From")}</span>

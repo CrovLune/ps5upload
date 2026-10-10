@@ -295,6 +295,9 @@ export interface DownloadOpState {
   totalBytes: number;
   startedAtMs: number;
   errorBanner: string | null;
+  /** Set while the engine's job status can't be read (the download may
+   *  still be running): the error of the last failed read. */
+  lostContact: string | null;
   /** Bumped by begin() and requestStop(). Runner closures should
    *  capture the value at begin time and bail when this host's runId
    *  no longer matches. */
@@ -317,6 +320,7 @@ interface DownloadOpStore {
     params: { bytesReceived: number; totalBytes: number },
   ) => void;
   end: (host: string, errorBanner?: string | null) => void;
+  setLostContact: (host: string, error: string | null) => void;
   clearError: (host: string) => void;
   /** Stop button: cancels the engine job, bumps this host's runId so
    *  its active runner (if any) stops polling at the next await, and
@@ -335,6 +339,7 @@ export const IDLE_DOWNLOAD: DownloadOpState = {
   totalBytes: 0,
   startedAtMs: 0,
   errorBanner: null,
+  lostContact: null,
   runId: 0,
 };
 
@@ -380,6 +385,10 @@ export const useFsDownloadOpStore = create<DownloadOpStore>((set, get) => {
     setProgress(host, { bytesReceived, totalBytes }) {
       put(host, { ...slot(host), bytesReceived, totalBytes });
     },
+    setLostContact(host, error) {
+      if (slot(host).lostContact === error) return;
+      put(host, { ...slot(host), lostContact: error });
+    },
     end(host, errorBanner = null) {
       put(host, { ...IDLE_DOWNLOAD, runId: slot(host).runId, errorBanner });
     },
@@ -411,6 +420,8 @@ export function fsDownloadOpHandle(host: string) {
     setProgress: (p: { bytesReceived: number; totalBytes: number }) =>
       useFsDownloadOpStore.getState().setProgress(host, p),
     end: (e?: string | null) => useFsDownloadOpStore.getState().end(host, e),
+    setLostContact: (e: string | null) =>
+      useFsDownloadOpStore.getState().setLostContact(host, e),
     clearError: () => useFsDownloadOpStore.getState().clearError(host),
     requestStop: () => useFsDownloadOpStore.getState().requestStop(host),
     get active() {
