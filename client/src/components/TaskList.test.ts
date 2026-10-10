@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import { sortActiveTasks, sortFinishedTasks } from "./TaskList";
+import {
+  formatTaskAmount,
+  sortActiveTasks,
+  sortFinishedTasks,
+  statusRailClass,
+} from "./TaskList";
 import type { Task } from "../state/tasks";
 
 /**
@@ -80,5 +85,48 @@ describe("sortFinishedTasks", () => {
     const a = task({ id: "a", status: "done", endedAtMs: 100 });
     const b = task({ id: "b", status: "done", endedAtMs: null });
     expect(sortFinishedTasks([b, a]).map((t) => t.id)).toEqual(["a", "b"]);
+  });
+});
+
+/**
+ * Progress is not always bytes: a batch install counts packages
+ * (`unit: "items"`), and the row used to print "31 B / 100 B" for it.
+ */
+describe("formatTaskAmount", () => {
+  it("formats byte progress as a size", () => {
+    expect(formatTaskAmount(1536, "bytes")).toBe("1.50 KiB");
+  });
+
+  it("prints item and file counts as plain numbers, never as bytes", () => {
+    expect(formatTaskAmount(31, "items")).toBe("31");
+    expect(formatTaskAmount(100, "items")).toBe("100");
+    expect(formatTaskAmount(7, "files")).toBe("7");
+    expect(formatTaskAmount(31, "items")).not.toMatch(/B$/);
+  });
+
+  it("does not show a fraction of an item", () => {
+    expect(formatTaskAmount(2.6, "items")).toBe("2");
+  });
+});
+
+/**
+ * The status rail is the row's leading edge. With a physical `border-l` it
+ * stayed on the left in Arabic and Persian, where the row starts on the right.
+ */
+describe("statusRailClass", () => {
+  it("colours the inline-start edge, so it mirrors in RTL", () => {
+    for (const s of ["running", "done", "failed", "queued"] as const) {
+      const cls = statusRailClass(s);
+      expect(cls).toMatch(/^border-s-\[var\(--color-/);
+      expect(cls).not.toContain("border-l-");
+    }
+  });
+
+  it("gives each outcome its own colour", () => {
+    expect(statusRailClass("running")).toContain("--color-accent");
+    expect(statusRailClass("done")).toContain("--color-good");
+    expect(statusRailClass("failed")).toContain("--color-bad");
+    expect(statusRailClass("interrupted")).toContain("--color-bad");
+    expect(statusRailClass("queued")).toContain("--color-border-strong");
   });
 });
