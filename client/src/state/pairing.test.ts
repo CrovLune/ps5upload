@@ -127,7 +127,7 @@ describe("pairing store", () => {
     expect(api.pairingStatus).toHaveBeenCalledTimes(1);
   });
 
-  it("stays quiet for a while after the user dismisses it", async () => {
+  it("stays quiet after the user dismisses it, but Pair… still opens it", async () => {
     api.pairingStatus.mockResolvedValue(CODE);
     await usePairingStore.getState().openFor("10.0.0.2");
     usePairingStore.getState().dismiss();
@@ -137,6 +137,24 @@ describe("pairing store", () => {
     // The explicit Pair… button is never muted.
     await usePairingStore.getState().openFor("10.0.0.2");
     expect(usePairingStore.getState().open).toBe(true);
+  });
+
+  it("once dismissed, never opens by itself again for that console, however long after", async () => {
+    api.pairingStatus.mockResolvedValue(CODE);
+    await usePairingStore.getState().openFor("10.0.0.2");
+    usePairingStore.getState().dismiss();
+    const later = Date.now() + 24 * 60 * 60 * 1000;
+    const spy = vi.spyOn(Date, "now").mockReturnValue(later);
+    try {
+      reportIfNotPaired("not_paired", "10.0.0.2");
+      await Promise.resolve();
+      expect(usePairingStore.getState().open).toBe(false);
+      // Another console still opens on its own.
+      reportIfNotPaired("not_paired", "10.0.0.3");
+      await vi.waitFor(() => expect(usePairingStore.getState().open).toBe(true));
+    } finally {
+      spy.mockRestore();
+    }
   });
 
   it("never opens for a failure that names no console, and opens the named one, not the active one", async () => {

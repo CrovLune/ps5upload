@@ -19,8 +19,10 @@ import { hostOf } from "../lib/addr";
 import { onNotPaired } from "../lib/consoleSession";
 import { useConnectionStore } from "./connection";
 
-/** After the user dismisses the dialog for a console, an automatic open for it waits this long. */
-const QUIET_MS = 60_000;
+/** After the user dismisses the dialog for a console, it never opens by itself for that console
+ *  again in this session: the "Pair…" banner stays up, and that button always opens it. It used
+ *  to come back every minute, which on a phone meant closing it over and over. */
+const QUIET_MS = Number.POSITIVE_INFINITY;
 
 const UNKNOWN_STATE = "unexpected reply from the engine";
 
@@ -33,7 +35,7 @@ interface PairingState {
   error: string | null;
   /** The console that was just paired (the status poll flips its pill on its next tick). */
   paired: string | null;
-  /** Per console: no automatic open before this wall-clock ms. */
+  /** Per console: no automatic open before this wall-clock ms (Infinity once dismissed). */
   quietUntil: Record<string, number>;
   /** Opens for `host` (default: the active console) and starts/re-reads the handshake. */
   openFor: (host?: string) => Promise<void>;

@@ -10,6 +10,7 @@ import "./state/theme";
 import "./state/uiScale";
 import "./state/accessibility";
 import "./lib/androidInsets";
+import "./lib/platformMark";
 import "./state/lang";
 import "./index.css";
 import {
