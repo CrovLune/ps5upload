@@ -196,7 +196,7 @@ export function BackportPackCard({
 
       <div className="flex gap-2">
         <input
-          className="flex-1 rounded border border-[var(--color-border)] bg-transparent px-2 py-1 text-xs"
+          className="input flex-1 text-xs!"
           placeholder={tr("pack_path_placeholder", undefined, "Folder holding the pack")}
           value={path}
           onChange={(e) => setPath(e.target.value)}

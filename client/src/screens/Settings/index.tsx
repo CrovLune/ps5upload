@@ -106,7 +106,7 @@ function Section({
   return (
     <section
       className={
-        "flex h-full flex-col rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-2)] p-4 " +
+        "surface-panel !rounded-[var(--radius-card)] flex h-full flex-col p-5 " +
         (full ? "md:col-span-2" : "")
       }
     >
@@ -334,7 +334,7 @@ function FakelibCorpusSection() {
       </p>
 
       {corpus.sets.length > 0 ? (
-        <ul className="max-h-56 divide-y divide-[var(--color-border)] overflow-auto rounded border border-[var(--color-border)]">
+        <ul className="max-h-56 divide-y divide-[var(--color-border)] overflow-auto rounded-[var(--radius-field)] border border-[var(--color-border)]">
           {corpus.sets.map((set) => (
             <li key={set.id} className="flex items-center gap-3 p-2 text-xs">
               <span className="flex-1 truncate">{set.label}</span>
@@ -1069,14 +1069,14 @@ function SchedulesPanel() {
           block={false}
           className="text-xs"
         />
-        <button
-          type="button"
+        <Button
+          variant="primary"
+          size="sm"
           onClick={add}
           disabled={!labelDraft.trim() || !/^\d\d:\d\d$/.test(hhmmDraft)}
-          className="rounded-md bg-[var(--color-accent)] px-2 py-1 text-xs text-[var(--color-accent-contrast)] transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)] disabled:opacity-50 max-md:min-h-11 max-md:px-4"
         >
           {tr("schedules_add", undefined, "Add daily")}
-        </button>
+        </Button>
       </div>
     </div>
   );
@@ -1306,27 +1306,18 @@ function BackupRestorePanel() {
         )}
       </p>
       <div className="flex flex-wrap items-center gap-2">
-        <button
-          type="button"
+        <Button
+          variant="primary"
+          size="sm"
           onClick={exportBundle}
-          disabled={busy}
-          className="inline-flex items-center gap-1 rounded-md bg-[var(--color-accent)] px-3 py-1.5 text-xs text-[var(--color-accent-contrast)] transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)] disabled:opacity-50 max-md:min-h-11 max-md:px-4"
+          loading={busy}
+          leftIcon={<Download size={12} />}
         >
-          {busy ? (
-            <Spinner size={12} tone="inherit" />
-          ) : (
-            <Download size={11} />
-          )}
           {tr("settings_backup_export", undefined, "Export bundle")}
-        </button>
-        <button
-          type="button"
-          onClick={importBundle}
-          disabled={busy}
-          className="inline-flex items-center gap-1 rounded-[var(--radius-card)] border border-[var(--color-border)] px-3 py-1.5 text-xs hover:bg-[var(--color-surface)] disabled:opacity-50 max-md:min-h-11 max-md:px-4"
-        >
+        </Button>
+        <Button variant="secondary" size="sm" onClick={importBundle} disabled={busy}>
           {tr("settings_backup_import", undefined, "Import bundle…")}
-        </button>
+        </Button>
         {/* Hidden — the browser's own file picker, triggered programmatically
             by importBundle() when !isTauriEnv(). Desktop uses the native
             dialog instead (see importBundle). */}

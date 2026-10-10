@@ -385,7 +385,7 @@ function EngineBar({
         <button
           type="button"
           onClick={onOpenRunning}
-          className="flex min-w-0 items-center gap-2 rounded-md px-2 py-1 text-left hover:bg-[var(--color-surface-3)]"
+          className="flex min-w-0 items-center gap-2 rounded-[var(--radius-field)] px-2 py-1 text-start hover:bg-[var(--color-surface-3)]"
         >
           <GameIcon host={hostOf(host)} titleId={status.game_title_id} size={32} />
           <span className="min-w-0">

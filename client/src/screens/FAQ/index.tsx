@@ -376,7 +376,7 @@ export default function FAQScreen() {
                     type="button"
                     aria-current={t.id === topic.id ? "page" : undefined}
                     onClick={() => showTopic(t.id)}
-                    className={`shrink-0 rounded-md px-3 py-2 text-left text-sm md:shrink ${
+                    className={`shrink-0 rounded-full px-3.5 py-2 text-start text-sm md:shrink md:rounded-[var(--radius-field)] ${
                       t.id === topic.id
                         ? "bg-[var(--color-accent-soft)] font-medium text-[var(--color-text)]"
                         : "text-[var(--color-muted)] hover:bg-[var(--color-surface-3)] hover:text-[var(--color-text)]"

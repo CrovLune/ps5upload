@@ -516,7 +516,7 @@ export default function SearchScreen() {
                         undefined,
                         "Open in File System",
                       )}
-                      className="flex items-center gap-3 rounded-md border border-[var(--color-border)] bg-[var(--color-surface-2)] p-2 text-sm hover:border-[color-mix(in_srgb,var(--color-accent)_40%,transparent)] hover:bg-[var(--color-surface-3)]"
+                      className="flex items-center gap-3 rounded-[var(--radius-field)] border border-[var(--glass-edge)] bg-[var(--color-surface-raised)] px-3 py-2 text-sm hover:border-[color-mix(in_srgb,var(--color-accent)_40%,transparent)] hover:bg-[var(--color-surface-3)]"
                     >
                       <Icon
                         size={14}

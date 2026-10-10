@@ -70,7 +70,7 @@ export function PairingPanel({
           <label className="flex flex-col items-center gap-1">
             <span className="text-xs text-[var(--color-muted)]">{label}</span>
             <input
-              className="w-48 rounded-md border border-[var(--color-border)] bg-transparent px-3 py-2 text-center font-mono text-2xl font-semibold tracking-[0.3em] tabular-nums"
+              className="input w-48! rounded-[var(--radius-field)]! px-3! py-2! text-center font-mono text-2xl! font-semibold tracking-[0.3em] tabular-nums"
               data-testid="pairing-code-input"
               type="text"
               inputMode="numeric"

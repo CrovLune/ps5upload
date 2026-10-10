@@ -3428,7 +3428,6 @@ function DestinationCard({
       <div className="mb-3 flex items-center gap-2 text-sm">
         <Select
           block={false}
-          className="rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-1.5 text-sm"
           value={volume ?? ""}
           onChange={(e) => onChange(e.target.value || null)}
           options={[]}
@@ -3448,7 +3447,7 @@ function DestinationCard({
         <span className="text-[var(--color-muted)]">/</span>
         <Input
           block={false}
-          className="flex-1 rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-1.5 text-sm"
+          className="flex-1"
           value={subpath}
           onChange={(e) => onChange(volume, e.target.value)}
         />
@@ -3606,7 +3605,7 @@ function ModeRadio({
   return (
     <label
       className={clsx(
-        "cursor-pointer rounded-md border px-3 py-2 text-sm transition-colors",
+        "cursor-pointer rounded-[var(--radius-field)] border px-3.5 py-2.5 text-sm transition-colors",
         checked
           ? "border-[color-mix(in_srgb,var(--color-accent)_40%,transparent)] bg-[var(--color-surface-3)]"
           : "border-[var(--color-border)] bg-[var(--color-surface)] hover:border-[var(--color-muted)]",

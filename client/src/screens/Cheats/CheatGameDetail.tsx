@@ -192,8 +192,11 @@ export function CheatGameDetail({
       </button>
 
       {/* Who the game is. */}
-      <div className="flex flex-col gap-4 rounded-[var(--radius-card)] border border-[var(--color-border)] bg-[var(--color-surface-2)] p-4 sm:flex-row">
-        <GameIcon host={hostOf(host)} titleId={game.titleId} size={112} rounded="rounded-lg" />
+      {/* Side by side only from `xl`: this is the right-hand column of a
+          two-pane screen, and at 1024 the icon left the text so little room
+          that the title stacked a word a line and the game ID broke in two. */}
+      <div className="surface-panel !rounded-[var(--radius-card)] flex flex-col gap-4 p-5 xl:flex-row">
+        <GameIcon host={hostOf(host)} titleId={game.titleId} size={112} rounded="rounded-2xl" />
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
             <h2 className="text-lg font-semibold [overflow-wrap:anywhere]">{game.name}</h2>
@@ -292,7 +295,7 @@ export function CheatGameDetail({
               {mods.map((m) => (
                 <li
                   key={m.index}
-                  className={`flex items-center gap-2 rounded-md px-2 py-2 ${
+                  className={`flex items-center gap-2 rounded-[var(--radius-field)] px-3 py-2 ${
                     m.on ? "bg-[var(--color-accent-soft)]" : "hover:bg-[var(--color-surface-2)]"
                   }`}
                 >

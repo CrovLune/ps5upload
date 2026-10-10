@@ -220,7 +220,7 @@ export const QueuePanel = memo(function QueuePanel({ host }: { host?: string } =
       {!isLeader && (
         <div
           role="status"
-          className="mb-4 rounded border border-[var(--color-border)] bg-[var(--color-surface-3)] px-3 py-2 text-xs text-[var(--color-muted)]"
+          className="mb-4 rounded-[var(--radius-field)] border border-[var(--color-border)] bg-[var(--color-surface-3)] px-3.5 py-2 text-xs text-[var(--color-muted)]"
         >
           {tr(
             "queue_other_tab_notice",
@@ -549,7 +549,7 @@ function ConsoleGroup({
 
   return (
     <div
-      className={`rounded-md border ${
+      className={`overflow-hidden rounded-[var(--radius-field)] border ${
         hostRunning
           ? "border-[color-mix(in_srgb,var(--color-accent)_40%,transparent)]"
           : "border-[var(--color-border)]"

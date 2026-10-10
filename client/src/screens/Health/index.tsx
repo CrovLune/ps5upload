@@ -313,7 +313,7 @@ export default function HealthScreen() {
               "Things ps5upload made and no longer needs: unfinished files from interrupted transfers, package copies left in its temp folder for over an hour, and old speed-test files. Only ps5upload's own folders are looked at; your games, packages and saves are never touched.",
             )}
           </p>
-          <div className="mt-3 max-h-64 overflow-auto rounded border border-[var(--color-border)]">
+          <div className="mt-3 max-h-64 overflow-auto rounded-[var(--radius-field)] border border-[var(--color-border)]">
             {junk && junk.length > 0 ? (
               junk.map((f) => (
                 <div

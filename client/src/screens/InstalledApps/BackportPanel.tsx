@@ -572,7 +572,7 @@ export function BackportPanel({
             and no set chosen. Offered whatever the corpus holds — a pack is
             often the only thing that fixes a title the corpus cannot. */}
         {!record ? (
-          <details className="rounded border border-[var(--color-border)] p-2">
+          <details className="rounded-[var(--radius-field)] border border-[var(--color-border)] px-3 py-2">
             <summary className="cursor-pointer text-xs">
               {tr("pack_disclosure", undefined, "Have a downloaded backport pack? Install it instead…")}
             </summary>
