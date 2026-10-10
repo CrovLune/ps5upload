@@ -122,14 +122,14 @@ pub async fn screenshot_save(
 }
 
 /// Recent screenshots (newest-first), with inline thumbnails, capped at
-/// `limit` (default 24) so a gallery render is bounded.
+/// `limit` (default: every kept capture, at most `MAX_SHOTS`).
 #[tauri::command]
 pub async fn screenshot_list(
     app: AppHandle,
     limit: Option<usize>,
 ) -> Result<Vec<SavedShot>, String> {
     let dir = shots_dir(&app)?;
-    let cap = limit.unwrap_or(24);
+    let cap = limit.unwrap_or(MAX_SHOTS);
     let mut out = Vec::new();
     for p in list_png_files(&dir).into_iter().take(cap) {
         if let Ok(data) = std::fs::read(&p) {
@@ -137,6 +137,41 @@ pub async fn screenshot_list(
         }
     }
     Ok(out)
+}
+
+/// Remove the named captures from `dir`. Each name must be a plain `*.png`
+/// leaf (a path or traversal is skipped, never deleted). Returns the names
+/// that are gone afterwards, including any already missing, so the gallery
+/// can drop exactly those.
+fn delete_shots(dir: &Path, names: &[String]) -> Vec<String> {
+    let mut gone = Vec::new();
+    for name in names {
+        let Ok(leaf) = safe_png_name(name) else {
+            continue;
+        };
+        let path = dir.join(&leaf);
+        match std::fs::remove_file(&path) {
+            Ok(()) => gone.push(leaf),
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => gone.push(leaf),
+            Err(_) => {}
+        }
+    }
+    gone
+}
+
+/// Delete captures by name. Returns the names that no longer exist.
+#[tauri::command]
+pub async fn screenshot_delete(app: AppHandle, names: Vec<String>) -> Result<Vec<String>, String> {
+    let dir = shots_dir(&app)?;
+    Ok(delete_shots(&dir, &names))
+}
+
+/// Show the captures folder in the system file manager (desktop only; there
+/// is no browsable file manager for app-private storage on mobile).
+#[tauri::command]
+pub async fn screenshot_open_dir(app: AppHandle) -> Result<(), String> {
+    let dir = shots_dir(&app)?;
+    super::reveal::reveal(&dir)
 }
 
 #[cfg(test)]
@@ -170,5 +205,29 @@ mod tests {
         assert!(files[0].to_string_lossy().contains("120000"));
         assert!(files[1].to_string_lossy().contains("100000"));
         let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn delete_removes_named_pngs_and_never_leaves_the_folder() {
+        let root = std::env::temp_dir().join(format!("ps5up-shots-del-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&root);
+        let dir = root.join("bug-screenshots");
+        std::fs::create_dir_all(&dir).unwrap();
+        std::fs::write(dir.join("a.png"), b"x").unwrap();
+        std::fs::write(dir.join("b.png"), b"x").unwrap();
+        std::fs::write(root.join("outside.png"), b"x").unwrap();
+        let gone = delete_shots(
+            &dir,
+            &[
+                "a.png".into(),
+                "../outside.png".into(),
+                "missing.png".into(),
+            ],
+        );
+        assert_eq!(gone, vec!["a.png".to_string(), "missing.png".to_string()]);
+        assert!(!dir.join("a.png").exists());
+        assert!(dir.join("b.png").exists());
+        assert!(root.join("outside.png").exists());
+        let _ = std::fs::remove_dir_all(&root);
     }
 }

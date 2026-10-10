@@ -67,6 +67,7 @@ import {
 } from "../lib/autoRedeploy";
 import { CommandPalette, openCommandPalette } from "../components/CommandPalette";
 import { AppLogo } from "../components/AppLogo";
+import { CaptureViewer } from "../components/CaptureViewer";
 import NotificationInbox from "./NotificationInbox";
 import { useThemeStore } from "../state/theme";
 import { ShortcutsOverlay } from "../components/ShortcutsOverlay";
@@ -1393,6 +1394,9 @@ export default function AppShell() {
           Mounted once; screens drive it via pickLocalPath(). */}
       <LocalPathPicker />
       <GlobalPackageViewer />
+      {/* The app's own captures, large (desktop app only; opened from the status bar
+          and the Bug report). */}
+      {isTauriEnv() && <CaptureViewer />}
       {/* v5 mobile top bar — kept slim; primary nav is the bottom
           tab bar. Only renders below md. */}
       <div className="h-top-bar flex items-center gap-2.5 px-4 pb-2 pt-[calc(env(safe-area-inset-top)_+_0.5rem)] md:hidden">

@@ -31,6 +31,9 @@ faster and harder to break.
   smaller. The game's `ampr_emu.index` is now always rebuilt from the files actually packaged.
 - **Install updates and DLC from the game page**, right where they are listed.
 - **Delete screenshots and clips** from Captures.
+- **See the app's own captures.** The Capture button's screenshots open large from the status bar
+  (next to Capture, and from the "Screenshot saved" note) and from the Bug report: page through
+  them with the arrow keys or the thumbnail strip, delete one or all, or show their folder.
 - **Missed reminders** show in Tasks with Run now.
 - `scripts/update-ps5-sdk.sh` (`make update-sdk`) moves the payload SDK to its latest release.
 

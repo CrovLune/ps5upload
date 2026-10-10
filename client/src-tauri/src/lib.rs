@@ -462,6 +462,8 @@ pub fn run() {
             // ── In-app screenshot capture (bug-report gallery) ──────
             commands::bug_screenshots::screenshot_save,
             commands::bug_screenshots::screenshot_list,
+            commands::bug_screenshots::screenshot_delete,
+            commands::bug_screenshots::screenshot_open_dir,
             // ── App lifecycle (suspend/resume/kill/list) + toast ────
             commands::app_suspend,
             commands::app_resume,

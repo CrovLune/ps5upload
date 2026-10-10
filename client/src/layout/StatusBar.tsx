@@ -1,10 +1,12 @@
 import { useState } from "react";
-import { Camera, Check, AlertTriangle, Zap } from "lucide-react";
+import { Camera, Check, AlertTriangle, Images, Zap } from "lucide-react";
 
 import { useConnectionStore, EMPTY_HOST_RUNTIME } from "../state/connection";
 import { parsePS5Firmware } from "../lib/ps5Firmware";
 import { useTr } from "../state/lang";
 import { captureAppScreenshot } from "../lib/captureScreenshot";
+import { useCaptureViewer } from "../lib/appCaptures";
+import { useToastStore } from "../state/toasts";
 import { isTauriEnv } from "../lib/tauriEnv";
 import {
   useRosterStore,
@@ -175,6 +177,7 @@ export default function StatusBar() {
         <KeepAwakeIndicator />
         {/* Saving a capture is native; the web build's Bug Report attaches files instead. */}
         {isTauriEnv() && <CaptureButton />}
+        {isTauriEnv() && <ViewCapturesButton />}
       </div>
     </div>
   );
@@ -214,6 +217,24 @@ function KeepAwakeIndicator() {
   );
 }
 
+/** Opens the viewer on the app's captures: look at, page through and delete them. */
+function ViewCapturesButton() {
+  const tr = useTr();
+  const show = useCaptureViewer((s) => s.show);
+  const label = tr("cap_view_all", undefined, "View captures");
+  return (
+    <button
+      type="button"
+      onClick={() => show()}
+      title={label}
+      aria-label={label}
+      className="flex items-center rounded-full px-1.5 py-0.5 hover:bg-[var(--color-surface)]"
+    >
+      <Images size={13} />
+    </button>
+  );
+}
+
 /**
  * Global screenshot capture. Lives in the always-visible footer so a user can
  * grab WHATEVER screen shows the problem (not just the Bug Report form), with
@@ -230,8 +251,16 @@ function CaptureButton() {
       // Let the button's own spinner paint before the (synchronous-ish)
       // DOM serialization briefly blocks the main thread.
       await new Promise((r) => setTimeout(r, 16));
-      await captureAppScreenshot();
+      const shot = await captureAppScreenshot();
       setState("done");
+      useToastStore.getState().push({
+        message: tr("cap_saved_toast", undefined, "Screenshot saved"),
+        tone: "success",
+        action: {
+          label: tr("cap_view", undefined, "View"),
+          onClick: () => useCaptureViewer.getState().show(shot.name),
+        },
+      });
     } catch {
       setState("fail");
     }

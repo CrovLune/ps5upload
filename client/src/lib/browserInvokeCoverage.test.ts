@@ -57,6 +57,8 @@ const NATIVE_ONLY: Record<string, string> = {
   save_archive_restore_prepare: "native: host temp-dir staging",
   screenshot_save: "native: writes to the app's screenshot dir",
   screenshot_list: "native: reads the app's screenshot dir",
+  screenshot_delete: "native: deletes from the app's screenshot dir",
+  screenshot_open_dir: "native: opens the screenshot dir in the file manager",
   screenshot_convert: "native: host image transcode into a temp dir",
   usb_list_removable: "native: enumerates host block devices",
   usb_autoloader_install: "native: writes to a host USB volume",
