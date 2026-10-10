@@ -2,6 +2,7 @@ import { useEffect, useId, useRef, useState } from "react";
 import { AlertTriangle } from "lucide-react";
 
 import { Button } from ".";
+import { activateFocusTrap } from "../lib/focusTrap";
 import { useTr } from "../state/lang";
 
 /**
@@ -60,6 +61,9 @@ export function useConfirm(): {
   // close so keyboard users return to the trigger button instead of
   // dropping back to <body>. Captured imperatively in confirm().
   const previousFocusRef = useRef<HTMLElement | null>(null);
+  // The panel, for the focus trap: Tab must stay on the dialog's own buttons
+  // rather than walk on to whatever sits behind the scrim.
+  const panelRef = useRef<HTMLDivElement | null>(null);
 
   const confirm = (opts: ConfirmOptions) =>
     new Promise<boolean>((resolve) => {
@@ -103,12 +107,25 @@ export function useConfirm(): {
         e.preventDefault();
         settle(false);
       } else if (e.key === "Enter") {
+        // Enter on a focused button is that button's own press. Without this
+        // check, Tab to "Cancel" then Enter confirmed the action instead.
+        const active = document.activeElement;
+        if (
+          active instanceof HTMLButtonElement &&
+          panelRef.current?.contains(active)
+        ) {
+          return;
+        }
         e.preventDefault();
         settle(true);
       }
     };
     window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
+    const releaseTrap = activateFocusTrap(() => panelRef.current);
+    return () => {
+      window.removeEventListener("keydown", handler);
+      releaseTrap();
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pending]);
 
@@ -123,6 +140,7 @@ export function useConfirm(): {
         // immediate attention. aria-modal + aria-labelledby +
         // aria-describedby give screen readers the title and body
         // copy as soon as the modal opens.
+        ref={panelRef}
         role="alertdialog"
         aria-modal="true"
         aria-labelledby={titleId}
@@ -199,6 +217,7 @@ export function useAlert(): {
   const titleId = useId();
   const bodyId = useId();
   const previousFocusRef = useRef<HTMLElement | null>(null);
+  const panelRef = useRef<HTMLDivElement | null>(null);
 
   const alert = (opts: AlertOptions) =>
     new Promise<void>((resolve) => {
@@ -231,7 +250,11 @@ export function useAlert(): {
       }
     };
     window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
+    const releaseTrap = activateFocusTrap(() => panelRef.current);
+    return () => {
+      window.removeEventListener("keydown", handler);
+      releaseTrap();
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pending]);
 
@@ -241,6 +264,7 @@ export function useAlert(): {
       onClick={settle}
     >
       <div
+        ref={panelRef}
         role="alertdialog"
         aria-modal="true"
         aria-labelledby={titleId}
@@ -302,6 +326,7 @@ export function usePrompt(): {
   const bodyId = useId();
   const inputRef = useRef<HTMLInputElement | null>(null);
   const previousFocusRef = useRef<HTMLElement | null>(null);
+  const panelRef = useRef<HTMLDivElement | null>(null);
 
   const prompt = (opts: PromptOptions) =>
     new Promise<string | null>((resolve) => {
@@ -338,7 +363,11 @@ export function usePrompt(): {
       }
     };
     window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
+    const releaseTrap = activateFocusTrap(() => panelRef.current);
+    return () => {
+      window.removeEventListener("keydown", handler);
+      releaseTrap();
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pending]);
 
@@ -348,6 +377,7 @@ export function usePrompt(): {
       onClick={() => settle(null)}
     >
       <div
+        ref={panelRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}

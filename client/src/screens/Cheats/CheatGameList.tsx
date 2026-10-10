@@ -82,9 +82,11 @@ export function CheatGameList({
         />
       </label>
 
-      <div className="grid grid-cols-3 gap-1.5" role="group" aria-label={tr("cheats_filters", undefined, "Filters")}>
+      {/* Wrapping, not three fixed columns: a third of this 340px list column
+          cut every choice short ("All gam", "Any stc", "Any for"). */}
+      <div className="flex flex-wrap gap-1.5" role="group" aria-label={tr("cheats_filters", undefined, "Filters")}>
         <select
-          className="input"
+          className="select min-w-[8.5rem] flex-1"
           value={filters.scope}
           onChange={(e) => onFilters({ ...filters, scope: e.target.value as CheatScopeFilter })}
           aria-label={tr("cheats_filter_scope", undefined, "Games")}
@@ -96,7 +98,7 @@ export function CheatGameList({
           ))}
         </select>
         <select
-          className="input"
+          className="select min-w-[8.5rem] flex-1"
           value={filters.state}
           onChange={(e) => onFilters({ ...filters, state: e.target.value as CheatStateFilter })}
           aria-label={tr("cheats_filter_state", undefined, "State")}
@@ -108,7 +110,7 @@ export function CheatGameList({
           ))}
         </select>
         <select
-          className="input"
+          className="select min-w-[8.5rem] flex-1"
           value={filters.format}
           onChange={(e) => onFilters({ ...filters, format: e.target.value })}
           aria-label={tr("cheats_filter_format", undefined, "Format")}

@@ -2,6 +2,7 @@ import { useEffect, useId, useRef } from "react";
 import { X } from "lucide-react";
 
 import { useTr } from "../state/lang";
+import { activateFocusTrap } from "../lib/focusTrap";
 import { useScrollLock } from "../lib/useScrollLock";
 import { useAccessibilityStore } from "../state/accessibility";
 import { useResponsiveTier } from "../lib/platform";
@@ -65,8 +66,10 @@ export function Drawer({
       }
     };
     window.addEventListener("keydown", handler);
+    const releaseTrap = activateFocusTrap(() => panelRef.current);
     return () => {
       window.removeEventListener("keydown", handler);
+      releaseTrap();
       const prev = prevFocus.current;
       prevFocus.current = null;
       if (prev) queueMicrotask(() => prev.focus({ preventScroll: true }));

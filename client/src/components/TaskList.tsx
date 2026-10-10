@@ -51,6 +51,7 @@ import {
   isActivatable,
   type Task,
   type TaskKind,
+  type TaskProgressUnit,
   type TaskStatus,
 } from "../state/tasks";
 import { formatBytes, formatDuration } from "../lib/format";
@@ -173,6 +174,25 @@ function statusLabel(
   }
 }
 
+/** One side of a "current / total" progress readout. Only byte progress is a
+ *  size; a batch install counts packages and a library scan counts titles, and
+ *  those read as plain numbers ("31 / 100", not "31 B / 100 B"). */
+export function formatTaskAmount(n: number, unit: TaskProgressUnit): string {
+  return unit === "bytes" ? formatBytes(n) : String(Math.floor(n));
+}
+
+/** A quiet status rail preserves scanability without turning every task into a
+ *  full-color alert card. It is the row's inline-start edge (`border-s`), so it
+ *  sits on the right in right-to-left languages, where the row begins. */
+export function statusRailClass(status: TaskStatus): string {
+  if (status === "running") return "border-s-[var(--color-accent)]";
+  if (status === "done") return "border-s-[var(--color-good)]";
+  if (status === "failed" || status === "interrupted") {
+    return "border-s-[var(--color-bad)]";
+  }
+  return "border-s-[var(--color-border-strong)]";
+}
+
 /** One task row. */
 function TaskRow({ task }: { task: Task }) {
   const tr = useTr();
@@ -190,8 +210,6 @@ function TaskRow({ task }: { task: Task }) {
 
   const pct = progressFraction(task);
   const isActive = isActivatable(task.status);
-  const isDone = task.status === "done";
-  const isFailed = task.status === "failed" || task.status === "interrupted";
   const capabilities = taskCapabilities(task);
 
   // Elapsed time
@@ -200,17 +218,6 @@ function TaskRow({ task }: { task: Task }) {
 
   // Rate display
   const rate = task.rate?.bytesPerSec ?? 0;
-
-  // A quiet status rail preserves scanability without turning every task
-  // into a full-color alert card.
-  const statusRailClass =
-    task.status === "running"
-      ? "border-l-[var(--color-accent)]"
-      : isDone
-        ? "border-l-[var(--color-good)]"
-        : isFailed
-          ? "border-l-[var(--color-bad)]"
-          : "border-l-[var(--color-border-strong)]";
 
   // Overflow menu items
   const menuItems: OverflowMenuItem[] = [];
@@ -253,8 +260,8 @@ function TaskRow({ task }: { task: Task }) {
   return (
     <li
       className={clsx(
-        "elev-1 rounded-[var(--radius-panel)] border border-l-[3px] border-[var(--color-border)] bg-[var(--color-surface-raised)] p-3.5 text-xs",
-        statusRailClass,
+        "elev-1 rounded-[var(--radius-panel)] border border-s-[3px] border-[var(--color-border)] bg-[var(--color-surface-raised)] p-3.5 text-xs",
+        statusRailClass(task.status),
       )}
     >
       {/* Row 1: icon + label + console + time + menu */}
@@ -304,7 +311,8 @@ function TaskRow({ task }: { task: Task }) {
       <div className="flex flex-wrap items-baseline gap-x-3 gap-y-0.5 text-[var(--color-muted)]">
         {task.progress && task.progress.total > 0 && (
           <span>
-            {formatBytes(task.progress.current)} / {formatBytes(task.progress.total)}
+            {formatTaskAmount(task.progress.current, task.progress.unit)} /{" "}
+            {formatTaskAmount(task.progress.total, task.progress.unit)}
             {pct !== null && ` (${(pct * 100).toFixed(0)}%)`}
           </span>
         )}

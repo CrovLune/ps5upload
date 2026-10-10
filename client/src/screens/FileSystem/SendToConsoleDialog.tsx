@@ -253,7 +253,7 @@ export function SendToConsoleDialog({
         )}
 
         <div
-          className={`grid gap-1 rounded-md border p-2 text-sm ${
+          className={`grid gap-1 rounded-[var(--radius-field)] border px-3 py-2 text-sm ${
             plan.fits === "no"
               ? "border-[color-mix(in_srgb,var(--color-bad)_40%,transparent)] bg-[var(--color-bad-soft)]"
               : plan.fits === "tight" || plan.replacing.length > 0

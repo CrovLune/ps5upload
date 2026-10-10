@@ -370,17 +370,21 @@ function Treemap({
             className="flex flex-wrap gap-1.5"
             style={{
               /* Row height = its share of the total bytes, mapped onto
-               * a 320 px treemap canvas. minHeight 40 px ensures both
-               * the name (11 px) and size (10 px) lines fit even when
-               * a row carries a tiny fraction of the total.
+               * a 320 px treemap canvas. At least 40 px, so both the
+               * name and the size line fit even when a row carries a
+               * tiny fraction of the total.
                *
                * flex-wrap lets cells flow to a new line if their
-               * combined minWidth (64 px each) exceeds the container —
+               * combined minWidth (96 px each) exceeds the container —
                * matters most on narrow windows or rows with many tiny
                * folders. Without wrap, cells would clip past the right
-               * edge once min-widths summed past 100 %. */
-              minHeight: "40px",
-              height: `${Math.max(40, rowFraction * 320)}px`,
+               * edge once min-widths summed past 100 %.
+               *
+               * This is a MINIMUM height, never a fixed one: with a fixed
+               * height a row that wrapped kept the height of one line, and
+               * its second line of cells was drawn below the panel's
+               * bottom border. */
+              minHeight: `${Math.max(40, rowFraction * 320)}px`,
             }}
           >
             {row.map((n, i) => {
@@ -397,7 +401,7 @@ function Treemap({
                   onClick={() => onDrill(n.name, n.isDir)}
                   disabled={!n.isDir}
                   title={`${n.name} — ${formatBytes(n.totalSize)}`}
-                  className={`flex min-w-0 flex-col justify-center overflow-hidden rounded-[var(--radius-field)] border border-[var(--glass-edge)] px-2.5 py-1 text-left text-xs text-[var(--color-text)] transition ${
+                  className={`flex min-h-10 min-w-0 flex-col justify-center overflow-hidden rounded-[var(--radius-field)] border border-[var(--glass-edge)] px-2.5 py-1 text-start text-xs text-[var(--color-text)] transition ${
                     n.isDir
                       ? "cursor-pointer hover:opacity-80"
                       : "cursor-default"
@@ -409,19 +413,20 @@ function Treemap({
                    * (n-1)*gap → last cell pushed past the right edge"
                    * bug that made the treemap clip on wide rows.
                    *
-                   * minWidth (64 px) trades a small amount of strict
+                   * minWidth (96 px) trades a small amount of strict
                    * proportionality for text readability: without it,
                    * many tiny folders in one row each got a ~6 px slice
                    * and both name + size were truncated to a single
                    * character — visually a colored bar with no label.
-                   * 64 px fits short names + a size like "12 KB". Cells
+                   * 96 px fits a size like "57.3 GiB" whole (at 64 px it
+                   * read "57.…") and the start of a name. Cells
                    * larger than minWidth still distribute the extra
                    * space proportionally via flex-grow, so the rough
                    * "bigger folder = bigger area" still holds. */
                   style={{
                     flexGrow: n.totalSize,
                     flexBasis: 0,
-                    minWidth: "64px",
+                    minWidth: "96px",
                     backgroundColor: `color-mix(in srgb, var(${hue}) ${n.isDir ? strength : Math.round(strength * 0.6)}%, var(--color-surface-raised))`,
                   }}
                 >

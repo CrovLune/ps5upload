@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useStore } from "zustand";
 import { Plus, X, Check } from "lucide-react";
 
@@ -7,6 +7,7 @@ import { useHostRuntime } from "../state/connection";
 import { useUploadQueueStore } from "../state/uploadQueue";
 import { pkgLibraryStore } from "../state/pkgLibrary";
 import { hostOf } from "../lib/addr";
+import { useEdgeFade } from "../lib/edgeFade";
 import { useTr } from "../state/lang";
 
 /**
@@ -127,6 +128,18 @@ export default function ConsoleTabs() {
   const [ip, setIp] = useState("");
   const [name, setName] = useState("");
 
+  // The strip scrolls sideways when the tabs don't fit beside the top-bar
+  // buttons. Fade the clipped edge so a half-cut pill reads as "more this
+  // way", and keep the console on show in view (it could be scrolled out of
+  // sight after a switch from the sidebar picker or the command palette).
+  const stripRef = useRef<HTMLDivElement | null>(null);
+  useEdgeFade(stripRef, `${profiles.length}:${adding}`);
+  useEffect(() => {
+    stripRef.current
+      ?.querySelector<HTMLElement>('[aria-current="page"]')
+      ?.scrollIntoView({ block: "nearest", inline: "nearest" });
+  }, [activeId, profiles.length]);
+
   // Below ~2 consoles the strip adds clutter without value — only show it once
   // the user actually manages multiple PS5s (single-console users keep the
   // clean layout). The sidebar roster picker remains for full management.
@@ -146,7 +159,10 @@ export default function ConsoleTabs() {
   };
 
   return (
-    <div className="flex min-w-0 items-center gap-2 overflow-x-auto px-1 py-1.5">
+    <div
+      ref={stripRef}
+      className="fade-x flex min-w-0 items-center gap-2 overflow-x-auto px-1 py-1.5"
+    >
       {profiles.map((p) => (
         <ConsoleTab
           key={p.id}

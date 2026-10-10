@@ -3760,7 +3760,7 @@ function MountModal({
                 setVolume("/mnt/ps5upload");
                 setSubpath("");
               }}
-              className="mt-1.5 rounded border border-[var(--color-warn)] bg-[var(--color-surface)] px-2 py-0.5 text-xs hover:bg-[var(--color-surface-3)]"
+              className="mt-1.5 rounded-full border border-[var(--color-warn)] bg-[var(--color-surface)] px-2.5 py-0.5 text-xs hover:bg-[var(--color-surface-3)]"
             >
               {tr(
                 "library_mount_modal_usb_warn_switch",

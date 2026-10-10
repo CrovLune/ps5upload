@@ -311,6 +311,43 @@ body {
   mask-image: radial-gradient(closest-side, #000 30%, transparent 100%);
 }
 
+/* A sideways-scrolling strip that fades out at an edge with more content past
+ * it, instead of cutting a pill in half. The two widths come from
+ * lib/edgeFade.ts (0 when nothing is hidden on that side) and follow the
+ * reading direction, hence the mirrored gradient for right-to-left. */
+.fade-x {
+  -webkit-mask-image: linear-gradient(
+    to right,
+    transparent,
+    #000 var(--fade-start, 0px),
+    #000 calc(100% - var(--fade-end, 0px)),
+    transparent
+  );
+  mask-image: linear-gradient(
+    to right,
+    transparent,
+    #000 var(--fade-start, 0px),
+    #000 calc(100% - var(--fade-end, 0px)),
+    transparent
+  );
+}
+[dir="rtl"] .fade-x {
+  -webkit-mask-image: linear-gradient(
+    to left,
+    transparent,
+    #000 var(--fade-start, 0px),
+    #000 calc(100% - var(--fade-end, 0px)),
+    transparent
+  );
+  mask-image: linear-gradient(
+    to left,
+    transparent,
+    #000 var(--fade-start, 0px),
+    #000 calc(100% - var(--fade-end, 0px)),
+    transparent
+  );
+}
+
 /* White circular icon button (the bell / avatar of the reference). */
 .icon-orb-button {
   display: inline-grid;
@@ -762,6 +799,32 @@ body {
 :root[data-contrast="high"] :where(a, button, [role="button"], [role="menuitem"], [role="tab"], [tabindex]):focus-visible {
   outline-width: 3px;
   outline-offset: 4px;
+}
+
+/* Arabic and Persian. Poppins has no Arabic glyphs, so these come from the
+ * fallbacks: name the platforms' Arabic UI faces rather than leave it to
+ * whatever the browser's last resort is. No font is downloaded or bundled.
+ * `system-ui` gives SF Arabic in the macOS/iOS webview and Segoe UI on
+ * Windows; Chromium on macOS cannot reach SF Arabic and lands on Geeza Pro,
+ * the other macOS UI face. Poppins stays first for the Latin runs (console
+ * names, IDs, numbers).
+ *
+ * The script is joined and has no capitals, so the small-caps-style eyebrow
+ * labels lose both of their tricks: letter-spacing pulls the joins apart, and
+ * what is left of an 11px `uppercase` label is just very small text. Spacing
+ * goes back to normal everywhere but monospace runs and form fields (IDs, the
+ * pairing code), and those labels get a readable size. */
+:root:is(:lang(ar), :lang(fa)) {
+  --font-sans:
+    "Poppins", "SF Arabic", "Noto Sans Arabic", system-ui, "Geeza Pro",
+    "Segoe UI", Tahoma, sans-serif;
+}
+:root:is(:lang(ar), :lang(fa)) :not(.font-mono, code, kbd, pre, input, textarea) {
+  letter-spacing: normal;
+}
+:root:is(:lang(ar), :lang(fa)) .uppercase {
+  text-transform: none;
+  font-size: 0.8125rem;
 }
 
 /* Dyslexia-friendly font: swap to Atkinson Hyperlegible / OpenDyslexic

@@ -388,7 +388,7 @@ export default function SendPanel() {
           instead. `min(100%,24rem)` keeps a lone column from overflowing a
           narrow viewport. */}
       <div className="grid gap-6 grid-cols-[repeat(auto-fit,minmax(min(100%,24rem),1fr))]">
-        <section className="rounded-[var(--radius-card)] border border-[var(--color-border)] bg-[var(--color-surface-2)] p-5">
+        <section className="surface-panel !rounded-[var(--radius-card)] p-5">
           {/* IP + port. Stacks vertically by default and only goes
               side-by-side at sm+, with a FLOORED IP column (minmax 10rem) and
               an elastic port column. The old fixed `1fr_7rem` collapsed the IP

@@ -73,7 +73,7 @@ export default function SmpPanel({ mgmtAddr }: { mgmtAddr: string | null }) {
   if (!mgmtAddr || (status === null && !error)) return null;
 
   return (
-    <section className="mb-4 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-2)]">
+    <section className="surface-panel !rounded-[var(--radius-card)] mb-4 overflow-hidden">
       {/* Header row: a clickable toggle (left, fills available space)
        * sits next to a sibling Refresh button. Earlier this was a single
        * <button> wrapping the Refresh <Button>, which produced a React
@@ -84,7 +84,7 @@ export default function SmpPanel({ mgmtAddr }: { mgmtAddr: string | null }) {
       <div className="flex w-full items-center gap-3 px-4 py-2.5">
         <button
           type="button"
-          className="flex min-w-0 flex-1 items-center gap-3 rounded-sm px-1 py-0.5 text-left transition-colors hover:bg-[var(--color-surface-3)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]"
+          className="flex min-w-0 flex-1 items-center gap-3 rounded-[var(--radius-field)] px-2 py-1 text-start transition-colors hover:bg-[var(--color-surface-3)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]"
           onClick={() => setExpanded((v) => !v)}
           aria-expanded={expanded}
         >
@@ -146,7 +146,7 @@ export default function SmpPanel({ mgmtAddr }: { mgmtAddr: string | null }) {
                 {status.mounted_images.map((m) => (
                   <li
                     key={m.mount_point}
-                    className="flex items-center justify-between gap-3 rounded-md bg-[var(--color-surface)] px-2 py-1"
+                    className="flex items-center justify-between gap-3 rounded-[var(--radius-field)] bg-[var(--color-surface)] px-3 py-1.5"
                   >
                     <span className="font-medium">
                       {m.derived_name || m.mount_point}
@@ -457,12 +457,7 @@ function SmpAutotuneTable({
           </button>
           {Object.keys(edits).length > 0 && mgmtAddr && (
             <>
-              <button
-                type="button"
-                onClick={save}
-                disabled={saving}
-                className="rounded-md bg-[var(--color-accent)] px-2 py-0.5 text-xs text-[var(--color-accent-contrast)] transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)] disabled:opacity-50"
-              >
+              <Button variant="primary" size="sm" onClick={save} disabled={saving}>
                 {saving
                   ? tr("smp_autotune_saving", undefined, "Saving…")
                   : tr(
@@ -470,7 +465,7 @@ function SmpAutotuneTable({
                       { count: Object.keys(edits).length },
                       `Save ${Object.keys(edits).length} edit${Object.keys(edits).length === 1 ? "" : "s"}`,
                     )}
-              </button>
+              </Button>
               <button
                 type="button"
                 onClick={() => setEdits({})}
@@ -545,7 +540,7 @@ function AutotuneSubsection({
                       type="text"
                       value={editedValue}
                       onChange={(e) => onEdit(editKey, e.target.value)}
-                      className={`w-20 rounded border bg-[var(--color-surface)] px-1 ${
+                      className={`input w-24! px-2! py-0.5! text-xs! ${
                         editKey in edits
                           ? "border-[var(--color-accent)]"
                           : "border-[var(--color-border)]"

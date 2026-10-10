@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router";
 
 import { useActivityPanel } from "../state/activityPanel";
@@ -6,7 +6,7 @@ import { summarize, type ActivitySummary } from "../state/activitySummary";
 import { profileNameForTask, useRosterStore } from "../state/roster";
 import { commandTask, taskCapabilities } from "../state/taskControls";
 import { interruptedAtLoad, isTerminal, useTaskStore, type Task } from "../state/tasks";
-import { ActivityPanelView, ActivitySummaryLine } from "./ActivitySummary";
+import { ACTIVITY_PANEL_ID, ActivityPanelView, ActivitySummaryLine } from "./ActivitySummary";
 
 /**
  * One place for everything that takes time: uploads, installs, conversions, backups, saves,
@@ -42,8 +42,32 @@ function OpenPanel() {
     if (failedIds) markSeen(failedIds.split(","));
   }, [failedIds, markSeen]);
 
+  // The panel sits above the status strip, so in tab order it comes BEFORE the
+  // button that opened it: with focus left on that button, Tab moved on and
+  // away from what had just appeared. Opening moves focus to the panel;
+  // Escape closes it and returns focus to the button.
+  const wrapRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    wrapRef.current
+      ?.querySelector<HTMLElement>(`#${ACTIVITY_PANEL_ID}`)
+      ?.focus({ preventScroll: true });
+  }, []);
+  const closeToToggle = () => {
+    close();
+    document.querySelector<HTMLElement>("[data-activity-toggle]")?.focus();
+  };
+
   return (
-    <div className="hidden md:block">
+    <div
+      ref={wrapRef}
+      className="hidden md:block"
+      onKeyDown={(e) => {
+        if (e.key === "Escape") {
+          e.stopPropagation();
+          closeToToggle();
+        }
+      }}
+    >
       <ActivityPanelView
         summary={summary}
         now={now}

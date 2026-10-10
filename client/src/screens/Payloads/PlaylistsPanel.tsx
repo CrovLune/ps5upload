@@ -890,7 +890,7 @@ function PlaylistCard({
       )}
 
       {playlist.steps.length === 0 ? (
-        <div className="rounded border border-dashed border-[var(--color-border)] p-3 text-center text-xs text-[var(--color-muted)]">
+        <div className="rounded-[var(--radius-field)] border border-dashed border-[var(--color-border)] p-3 text-center text-xs text-[var(--color-muted)]">
           {tr(
             "playlist_no_steps",
             undefined,
@@ -1002,7 +1002,7 @@ function PlaylistCard({
                       });
                     }}
                     disabled={anyRunning}
-                    className="w-16 rounded border border-[var(--color-border)] bg-[var(--color-surface)] px-1 py-0.5 text-right text-xs tabular-nums"
+                    className="input w-16! px-2! py-0.5! text-end text-xs! tabular-nums"
                   />
                 </label>
                 <label className="flex shrink-0 items-center gap-1 text-xs text-[var(--color-muted)]">

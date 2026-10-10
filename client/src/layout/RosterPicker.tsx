@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import {
   Cable,
   ChevronDown,
@@ -22,6 +22,7 @@ import { useTr } from "../state/lang";
 import { useConfirm } from "../components/ConfirmDialog";
 import { Modal } from "../components/Modal";
 import { parsePS5Firmware } from "../lib/ps5Firmware";
+import { menuKeyTarget } from "../lib/menuKeys";
 import { formatDate } from "../lib/formatDate";
 
 /**
@@ -51,6 +52,48 @@ export default function RosterPicker() {
   const [open, setOpen] = useState(false);
   const [manageOpen, setManageOpen] = useState(false);
   const wrapperRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const menuId = useId();
+
+  const menuItems = () =>
+    Array.from(
+      menuRef.current?.querySelectorAll<HTMLElement>('[role^="menuitem"]') ?? [],
+    );
+
+  // Opening moves focus into the list (the console on show, else the first
+  // row), so the arrow keys work straight away. It used to stay on the
+  // trigger, with nothing announcing that a menu had opened.
+  useEffect(() => {
+    if (!open) return;
+    const items = menuItems();
+    (items.find((el) => el.getAttribute("aria-checked") === "true") ?? items[0])?.focus();
+  }, [open]);
+
+  /** Close and hand focus back to the trigger (Escape, Tab, picking a row). */
+  const closeMenu = () => {
+    setOpen(false);
+    triggerRef.current?.focus();
+  };
+
+  const onMenuKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Escape" || e.key === "Tab") {
+      // Tab closes rather than walking out of an open menu into the page.
+      e.preventDefault();
+      e.stopPropagation();
+      closeMenu();
+      return;
+    }
+    const items = menuItems();
+    const next = menuKeyTarget(
+      e.key,
+      items.indexOf(document.activeElement as HTMLElement),
+      items.length,
+    );
+    if (next === null) return;
+    e.preventDefault();
+    items[next]?.focus();
+  };
 
   useEffect(() => {
     if (!open) return;
@@ -73,13 +116,25 @@ export default function RosterPicker() {
   return (
     <div className="relative mx-4 mb-1" ref={wrapperRef}>
       <button
+        ref={triggerRef}
+        id={`${menuId}-trigger`}
         type="button"
         onClick={() => setOpen((v) => !v)}
+        onKeyDown={(e) => {
+          // Down opens it, as on a native menu button.
+          if (e.key === "ArrowDown" && !open) {
+            e.preventDefault();
+            setOpen(true);
+          }
+        }}
+        aria-haspopup="menu"
+        aria-expanded={open}
+        aria-controls={open ? menuId : undefined}
         // min-h-11 (44px) meets the touch-target floor (mobile-design
         // §4.1). It's only +3px over the natural height, so desktop is
         // visually unchanged — no need to make it conditional.
         // A glass pill, like the reference's search field.
-        className="flex min-h-12 w-full items-center gap-2.5 rounded-full border border-[var(--glass-edge)] bg-[var(--color-surface-raised)] py-1.5 ps-1.5 pe-4 text-left text-xs shadow-[var(--edge-highlight),var(--shadow-1)] transition-colors hover:bg-[var(--color-float)]"
+        className="flex min-h-12 w-full items-center gap-2.5 rounded-full border border-[var(--glass-edge)] bg-[var(--color-surface-raised)] py-1.5 ps-1.5 pe-4 text-start text-xs shadow-[var(--edge-highlight),var(--shadow-1)] transition-colors hover:bg-[var(--color-float)]"
       >
         <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-[var(--color-accent-soft)] text-[var(--color-accent-bright)]">
           <Cable size={15} />
@@ -110,18 +165,27 @@ export default function RosterPicker() {
       </button>
 
       {open && (
-        <div className="glass-float elev-2 absolute left-0 right-0 top-[calc(100%+0.35rem)] z-40 overflow-hidden rounded-[var(--radius-card)] py-1.5">
+        <div
+          ref={menuRef}
+          id={menuId}
+          role="menu"
+          aria-labelledby={`${menuId}-trigger`}
+          onKeyDown={onMenuKeyDown}
+          className="glass-float elev-2 absolute left-0 right-0 top-[calc(100%+0.35rem)] z-40 overflow-hidden rounded-[var(--radius-card)] py-1.5"
+        >
           {profiles.length > 1 && (
-            <ul className="max-h-40 overflow-y-auto">
+            <ul className="max-h-40 overflow-y-auto" role="none">
               {profiles.map((p) => (
-                <li key={p.id}>
+                <li key={p.id} role="none">
                   <button
                     type="button"
+                    role="menuitemradio"
+                    aria-checked={p.id === active?.id}
                     onClick={() => {
                       setActive(p.id);
-                      setOpen(false);
+                      closeMenu();
                     }}
-                    className={`flex w-full items-center gap-2 px-4 py-2 text-left text-xs hover:bg-[var(--color-surface-3)] ${
+                    className={`flex w-full items-center gap-2 px-4 py-2 text-start text-xs hover:bg-[var(--color-surface-3)] ${
                       p.id === active?.id ? "bg-[var(--color-surface-3)]" : ""
                     }`}
                   >
@@ -146,11 +210,14 @@ export default function RosterPicker() {
           )}
           <button
             type="button"
+            role="menuitem"
             onClick={() => {
-              setOpen(false);
+              // Focus goes back to the trigger first, so the dialog has
+              // somewhere to return it to when it closes (this row is gone).
+              closeMenu();
               setManageOpen(true);
             }}
-            className="flex w-full items-center gap-2 border-t border-[var(--color-border)] px-4 py-2 text-left text-xs hover:bg-[var(--color-surface-3)]"
+            className="flex w-full items-center gap-2 border-t border-[var(--color-border)] px-4 py-2 text-start text-xs hover:bg-[var(--color-surface-3)]"
           >
             <Pencil size={11} />
             {tr("roster_manage", undefined, "Manage PS5s")}

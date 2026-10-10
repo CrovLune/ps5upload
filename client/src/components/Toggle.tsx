@@ -80,7 +80,11 @@ export function Toggle({
             aria-hidden="true"
             className={[
               "inline-block h-5 w-5 transform rounded-full bg-white shadow-[0_2px_6px_rgb(60_30_40/0.3)] transition-transform duration-150",
-              checked ? "translate-x-6" : "translate-x-1",
+              // Transforms are physical, so each offset carries its mirror for
+              // right-to-left, where the track starts on the right.
+              checked
+                ? "translate-x-6 rtl:-translate-x-6"
+                : "translate-x-1 rtl:-translate-x-1",
             ].join(" ")}
           />
         </span>

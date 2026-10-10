@@ -224,7 +224,7 @@ export function MoveToDialog({
         </div>
 
         <p
-          className={`rounded-md border p-2 text-sm ${
+          className={`rounded-[var(--radius-field)] border px-3 py-2 text-sm ${
             blocked
               ? "border-[color-mix(in_srgb,var(--color-bad)_40%,transparent)] bg-[var(--color-bad-soft)]"
               : plan.fits === "tight"

@@ -74,6 +74,19 @@ describe("Sidebar", () => {
     expect(html).not.toContain('aria-label="Hide Home from the sidebar"');
   });
 
+  // A Tab stop after every link doubled the walk through the sidebar: 40 presses
+  // never left it. The buttons are still there for the pointer, are reached
+  // from a focused link with the arrow key toward them, and every screen has the
+  // same switch on More.
+  it("keeps the hide buttons out of the Tab order", () => {
+    const html = render();
+    const buttons = html.match(/<button[^>]*aria-label="Hide [^"]* from the sidebar"[^>]*>/g) ?? [];
+    expect(buttons.length).toBeGreaterThan(5);
+    for (const b of buttons) expect(b).toContain('tabindex="-1"');
+    // The links themselves stay Tab stops.
+    expect(html).not.toMatch(/<a[^>]*tabindex="-1"/);
+  });
+
   it("leaves hidden screens out and says how many, with the way back", async () => {
     const Hidden = await withLists(["/cheats", "/shell"], []);
     const html = render(<Hidden />);

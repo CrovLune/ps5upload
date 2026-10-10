@@ -72,6 +72,29 @@ export default function Sidebar() {
     });
   };
 
+  /** The arrow key that points from a row's link to its hide button, which sits at the
+   *  inline end of the row. */
+  const endKey = () => (document.documentElement.dir === "rtl" ? "ArrowLeft" : "ArrowRight");
+  const startKey = () => (document.documentElement.dir === "rtl" ? "ArrowRight" : "ArrowLeft");
+  const towardHideButton = (e: React.KeyboardEvent<HTMLAnchorElement>) => {
+    if (e.key !== endKey()) return;
+    const button = e.currentTarget.parentElement?.querySelector<HTMLElement>("button");
+    if (!button) return;
+    e.preventDefault();
+    button.focus();
+  };
+  const backToLink = (e: React.KeyboardEvent<HTMLButtonElement>) => {
+    if (e.key !== startKey() && e.key !== "Escape") return;
+    e.preventDefault();
+    e.currentTarget.parentElement?.querySelector<HTMLElement>("a")?.focus();
+  };
+  /** Focus the link of the row after `el`'s (else the one before). */
+  const focusNeighbour = (el: HTMLElement) => {
+    const row = el.closest("li");
+    const next = row?.nextElementSibling ?? row?.previousElementSibling;
+    next?.querySelector<HTMLElement>("a")?.focus();
+  };
+
   const renderItem = (item: NavItem, hideable: boolean) => {
     const Icon = item.icon;
     const label = tr(item.key, undefined, item.fallback);
@@ -83,6 +106,7 @@ export default function Sidebar() {
           to={item.to}
           title={collapsed ? label : undefined}
           aria-label={collapsed ? label : undefined}
+          onKeyDown={hideable && !collapsed ? towardHideButton : undefined}
           // Pills: the active one is the white pill with a coral icon
           // (`.nav-pill` in index.css keys off aria-current).
           className={[
@@ -113,14 +137,23 @@ export default function Sidebar() {
           )}
         </NavLink>
         {/* A sibling of the link (a button inside <a> is invalid and would navigate), shown on
-            hover or keyboard focus so the list stays quiet. */}
+            hover or keyboard focus so the list stays quiet.
+            Not a Tab stop: one after every link made the sidebar twice as long to tab
+            through. From a focused link the arrow key toward the button reaches it (and the
+            other arrow goes back); More has the same switch for every screen. */}
         {hideable && !collapsed && (
           <button
             type="button"
-            onClick={() => toggleHidden(item.to)}
+            tabIndex={-1}
+            onKeyDown={backToLink}
+            onClick={(e) => {
+              // This row is about to go: keep keyboard focus in the list.
+              if (e.currentTarget === document.activeElement) focusNeighbour(e.currentTarget);
+              toggleHidden(item.to);
+            }}
             aria-label={tr("nav_hide_item", { name: label }, "Hide {name} from the sidebar")}
             title={tr("nav_hide", undefined, "Hide from the sidebar")}
-            className="absolute right-2 top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full bg-[var(--color-float)] text-[var(--color-muted)] opacity-0 hover:text-[var(--color-text)] focus-visible:opacity-100 group-hover:opacity-100"
+            className="absolute end-2 top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full bg-[var(--color-float)] text-[var(--color-muted)] opacity-0 hover:text-[var(--color-text)] focus-visible:opacity-100 group-hover:opacity-100"
           >
             <EyeOff size={14} aria-hidden />
           </button>

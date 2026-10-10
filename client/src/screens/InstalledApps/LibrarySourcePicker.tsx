@@ -296,7 +296,7 @@ function SourceCard({
   icon: React.ReactNode; title: string; body: string; action: React.ReactNode;
 }) {
   return (
-    <div className="flex flex-col gap-2 rounded border border-[var(--color-border)] p-3">
+    <div className="flex flex-col gap-2 rounded-[var(--radius-field)] border border-[var(--color-border)] p-3.5">
       <div className="flex items-center gap-2 font-medium">{icon}{title}</div>
       <p className="flex-1 text-xs text-[var(--color-muted)]">{body}</p>
       <div>{action}</div>

@@ -2,11 +2,12 @@ import { useEffect, useId, useRef, type ReactNode } from "react";
 import { X } from "lucide-react";
 
 import { useTr } from "../state/lang";
+import { activateFocusTrap } from "../lib/focusTrap";
 import { useScrollLock } from "../lib/useScrollLock";
 
 /**
  * Shared modal chrome — scrim + centered panel, Escape-to-close,
- * click-scrim-to-close, focus restore, and aria wiring.
+ * click-scrim-to-close, focus trap + restore, and aria wiring.
  *
  * Before this, every screen rolled its own `fixed inset-0 … bg-black/NN`
  * overlay; most handled none of Escape / focus management / aria, and the
@@ -107,8 +108,12 @@ export function Modal({
       }
     };
     window.addEventListener("keydown", handler);
+    // Tab stays inside the panel: without this it walked on into the controls
+    // under the scrim (the status bar, the page's own buttons).
+    const releaseTrap = activateFocusTrap(() => panelRef.current);
     return () => {
       window.removeEventListener("keydown", handler);
+      releaseTrap();
       const prev = previousFocusRef.current;
       previousFocusRef.current = null;
       if (prev && typeof document !== "undefined") {

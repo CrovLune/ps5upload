@@ -240,7 +240,11 @@ export default function RunningAppsPanel({ mgmtAddr }: { mgmtAddr: string }) {
             >
               <div className="min-w-0 flex-1">
                 <div className="font-medium">
-                  {a.name ?? a.title_id ?? `app ${a.app_id}`}
+                  {/* No name and no title id: say so, rather than print the
+                      decimal app_id here and again on the line below. */}
+                  {a.name ??
+                    a.title_id ??
+                    tr("running_apps_unknown", undefined, "Unknown app")}
                 </div>
                 <div className="text-xs text-[var(--color-muted)]">
                   app_id {a.app_id}
