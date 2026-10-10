@@ -11,14 +11,28 @@ vi.mock("../../state/lang", () => ({
 }));
 
 import type { Pipeline } from "../../state/fpkgConversion";
-import { RunCard, deleteLabel, lz4Active, type Lz4Choice } from "./RunCard";
+import { RunCard, deleteLabel, lz4Active, type Lz4Choice, type OutputChoiceProps } from "./RunCard";
 
 // No DOM here (vitest in node, no testing-library): render to markup and check what a user
 // would see and could press.
 const noop = () => {};
+/** ③'s one set of choices: a package, kept. */
+const choice = (over: Partial<OutputChoiceProps> = {}): OutputChoiceProps => ({
+  make: "pkg",
+  onMake: noop,
+  imageFormat: "ffpkg",
+  imageCompress: false,
+  onImageChoice: noop,
+  then: "keep",
+  onThen: noop,
+  deleteAfter: false,
+  onDeleteAfter: noop,
+  canInstall: true,
+  ...over,
+});
 const actions = {
-  onConvert: noop,
-  onConvertInstall: noop,
+  choice: choice(),
+  onRun: noop,
   onCompress: noop,
   onCancel: noop,
   onInstall: noop,
@@ -128,14 +142,73 @@ describe("RunCard", () => {
   it("offers only Convert when no console is connected", () => {
     const out = html({ phase: "idle" }, { canInstall: false });
     expect(button(out, "Convert only")?.disabled).toBe(false);
-    expect(button(out, "Convert & install")?.disabled).toBe(true);
+    expect(button(out, "Convert & install")).toBeNull();
     expect(out).toContain("Connect to a PS5 to install");
   });
 
-  it("offers Convert & install with a console, and .ffpfsc only for an image", () => {
-    expect(button(html({ phase: "idle" }), "Convert & install")?.disabled).toBe(false);
+  it("offers .ffpfsc compression only for an image source", () => {
     expect(button(html({ phase: "idle" }), "Compress to .ffpfsc")).toBeNull();
     expect(button(html({ phase: "idle" }, { isImage: true }), "Compress to .ffpfsc")).not.toBeNull();
+  });
+
+  describe("one set of choices for Convert and the queue", () => {
+    const idle = (over: Partial<OutputChoiceProps>, more: Record<string, unknown> = {}) =>
+      renderToStaticMarkup(
+        <RunCard
+          pipeline={{ phase: "idle" }}
+          installTask={null}
+          host="10.0.0.2"
+          canInstall
+          isImage={false}
+          deleteArmed={false}
+          {...actions}
+          choice={choice(over)}
+          onQueue={noop}
+          canQueue
+          {...more}
+        />,
+      );
+    /** The option labels of the select labelled `label`. */
+    const options = (out: string, label: string) => {
+      const at = out.indexOf(label);
+      const sel = /<select[\s\S]*?<\/select>/.exec(out.slice(at))?.[0] ?? "";
+      return [...sel.matchAll(/<option[^>]*>([^<]*)<\/option>/g)].map((m) => m[1].replace(/&amp;/g, "&"));
+    };
+
+    it("asks what to make and what to do after, once", () => {
+      const out = idle({});
+      expect(out.match(/>Make</g)).toHaveLength(1);
+      expect(out).toContain("A package (.pkg)");
+      expect(out).toContain("A game image (.ffpkg)");
+      expect(options(out, "After converting")).toEqual(["Keep the package", "Stream & install", "Upload & install"]);
+      expect(button(out, "Add this game to the queue")?.disabled).toBe(false);
+    });
+
+    it("names the action after the choice", () => {
+      expect(button(idle({}), "Convert only")).not.toBeNull();
+      expect(button(idle({ then: "stream" }), "Convert & install")).not.toBeNull();
+      expect(button(idle({ then: "upload" }, { replaces: true }), "Convert & replace")).not.toBeNull();
+      expect(button(idle({ make: "image" }, { canImage: true }), "Make game image")?.disabled).toBe(false);
+      expect(button(idle({ make: "image", imageCompress: true }, { canImage: true }), "Make compressed image")).not.toBeNull();
+    });
+
+    it("offers deleting after only when the result is sent somewhere", () => {
+      expect(idle({})).not.toContain("Delete the package once installed");
+      expect(idle({ then: "stream" })).toContain("Delete the package once installed");
+      expect(idle({ make: "image", then: "upload" }, { canImage: true })).toContain(
+        "Delete the image once it is on the PS5",
+      );
+    });
+
+    it("an image is kept or uploaded, never installed, and only a folder here becomes one", () => {
+      const out = idle({ make: "image" }, { canImage: false });
+      expect(options(out, "After converting")).toEqual(["Keep the image", "Upload it to the PS5"]);
+      expect(out).toContain(".ffpkg (UFS2), recommended");
+      expect(button(out, "Make game image")?.disabled).toBe(true);
+      expect(out).toContain("Only a game folder on this computer can become a game image.");
+      // Queueing still works: a folder of games can be queued as images.
+      expect(button(out, "Add this game to the queue")?.disabled).toBe(false);
+    });
   });
 
   it("lists the stages while running, with Cancel during the build", () => {
@@ -272,7 +345,8 @@ describe("RunCard", () => {
       onProfile: noop,
       ...over,
     });
-    const idle = (format: "exfat" | "ffpkg", choice: Lz4Choice | undefined, compress = false) =>
+    const choiceOf = choice;
+    const idle = (format: "exfat" | "ffpkg", lz4Choice: Lz4Choice | undefined, compress = false) =>
       renderToStaticMarkup(
         <RunCard
           pipeline={{ phase: "idle" }}
@@ -282,10 +356,8 @@ describe("RunCard", () => {
           isImage={false}
           deleteArmed={false}
           {...actions}
-          onMakeImage={noop}
-          imageFormat={format}
-          imageCompress={compress}
-          lz4={choice}
+          canImage
+          choice={choiceOf({ make: "image", imageFormat: format, imageCompress: compress, lz4: lz4Choice })}
         />,
       );
     /** The checkbox in the label whose text contains `text`. */

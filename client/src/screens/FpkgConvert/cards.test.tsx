@@ -187,26 +187,14 @@ describe("unfinished swaps", () => {
 
 describe("QueueCard adding", () => {
   const noop = () => {};
-  const card = (
-    onPickSeveral?: () => void,
-    build: ConvertBuild = { kind: "pkg" },
-    items: ConvertItem[] = [],
-  ) =>
+  const card = (items: ConvertItem[] = []) =>
     renderToStaticMarkup(
       <QueueCard
         items={items}
-        build={build}
-        onBuild={noop}
         running={false}
-        then="keep"
-        onThen={noop}
-        deleteAfter={false}
-        onDeleteAfter={noop}
-        canInstall={false}
-        canAddCurrent={false}
-        onAddCurrent={noop}
         onScanFolder={noop}
-        onPickSeveral={onPickSeveral}
+        onPickFolders={noop}
+        onPickFiles={noop}
         onStart={noop}
         onStop={noop}
         onRemove={noop}
@@ -215,10 +203,19 @@ describe("QueueCard adding", () => {
       />,
     );
 
-  it("offers picking several images or archives at once", () => {
-    expect(card(noop)).toContain("Pick several…");
-    expect(card()).not.toContain("Pick several…");
+  it("adds a folder of games, several game folders, or several images and archives", () => {
+    const html = card();
+    expect(html).toContain("Add games from a folder…");
+    expect(html).toContain("Pick game folders…");
+    expect(html).toContain("Pick images or archives…");
   });
+
+  it("takes what to make and what to do after from ③, with no second set of choices", () => {
+    const html = card();
+    expect(html).not.toContain("<select");
+    expect(html).toContain("as chosen under ③");
+  });
+
   it("says which file each queued game becomes", () => {
     const item = (id: string, build?: ConvertBuild): ConvertItem => ({
       id,
@@ -229,7 +226,7 @@ describe("QueueCard adding", () => {
       status: "pending",
       build,
     });
-    const html = card(undefined, { kind: "pkg" }, [
+    const html = card([
       item("old"),
       item("small", { kind: "image", format: "ffpfs", compress: true }),
       item("plain", { kind: "image", format: "exfat", compress: false }),
@@ -237,12 +234,5 @@ describe("QueueCard adding", () => {
     expect(html).toContain(".pkg");
     expect(html).toContain(".ffpfsc");
     expect(html).toContain(".exfat");
-  });
-
-  it("making images offers keeping or uploading the image, not installing a package", () => {
-    const html = card(undefined, { kind: "image", format: "ffpfs", compress: true });
-    expect(html).toContain("A game image (.ffpfsc)");
-    expect(html).toContain("Keep the image");
-    expect(html).not.toContain("Stream &amp; install");
   });
 });

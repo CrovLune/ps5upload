@@ -1,30 +1,22 @@
 // Card ④ Queue: several games converted one after another on this computer; each finished
-// package is handed to the console queue when it should install.
+// package is handed to the console queue when it should install. What each game becomes, and
+// what happens after, is the one choice made under ③.
 
-import { ArrowDown, ArrowUp, ListPlus, X } from "lucide-react";
+import { ArrowDown, ArrowUp, FolderPlus, ListPlus, X } from "lucide-react";
 
-import { Button, Card, Toggle } from "../../components";
-import { buildExtension, type ConvertBuild, type ConvertItem, type ConvertThen } from "../../state/convertQueue";
+import { Button, Card } from "../../components";
+import { buildExtension, type ConvertItem } from "../../state/convertQueue";
 import { useTr } from "../../state/lang";
 
 export interface QueueCardProps {
   items: ConvertItem[];
   running: boolean;
-  /** What the next games added become: a package, or the image picked under ③. */
-  build: ConvertBuild;
-  onBuild: (kind: "pkg" | "image") => void;
-  then: ConvertThen;
-  onThen: (t: ConvertThen) => void;
-  deleteAfter: boolean;
-  onDeleteAfter: (on: boolean) => void;
-  /** A console answers (installing is possible). */
-  canInstall: boolean;
-  /** The current source can be queued. */
-  canAddCurrent: boolean;
-  onAddCurrent: () => void;
+  /** Add the games in one folder (or the folder, when it is a game). */
   onScanFolder: () => void;
+  /** Tick several game folders in one picker. */
+  onPickFolders: () => void;
   /** Tick several images or archives in one picker. */
-  onPickSeveral?: () => void;
+  onPickFiles: () => void;
   onStart: () => void;
   onStop: () => void;
   onRemove: (id: string) => void;
@@ -47,8 +39,6 @@ export function QueueCard(p: QueueCardProps) {
     failed: tr("cq_failed", undefined, "Failed"),
   };
   const pending = p.items.filter((i) => i.status === "pending").length;
-  const isImage = p.build.kind === "image";
-  const image = isImage ? p.build : null;
   const finished = p.items.some((i) => i.status === "done" || i.status === "failed" || i.status === "handed");
   return (
     <Card>
@@ -73,90 +63,24 @@ export function QueueCard(p: QueueCardProps) {
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-3 text-sm">
-          <label className="flex items-center gap-2">
-            {tr("cq_build", undefined, "Make")}
-            <select
-              value={p.build.kind}
-              onChange={(e) => {
-                const kind = e.target.value as "pkg" | "image";
-                p.onBuild(kind);
-                if (kind === "image" && p.then === "stream") p.onThen("upload");
-              }}
-              className="select w-auto!"
-              data-testid="cq-build"
-            >
-              <option value="pkg">{tr("cq_build_pkg", undefined, "A package (.pkg)")}</option>
-              <option value="image">
-                {tr(
-                  "cq_build_image",
-                  { ext: buildExtension(image ?? { kind: "image", format: "ffpkg", compress: false }) },
-                  "A game image ({ext})",
-                )}
-              </option>
-            </select>
-          </label>
-          <label className="flex items-center gap-2">
-            {tr("cq_after", undefined, "After converting")}
-            <select
-              value={p.then}
-              onChange={(e) => p.onThen(e.target.value as ConvertThen)}
-              className="select w-auto!"
-            >
-              {isImage ? (
-                <>
-                  <option value="keep">{tr("cq_then_keep_image", undefined, "Keep the image")}</option>
-                  <option value="upload" disabled={!p.canInstall}>
-                    {tr("cq_then_upload_image", undefined, "Upload it to the PS5")}
-                  </option>
-                </>
-              ) : (
-                <>
-                  <option value="keep">{tr("cq_then_keep", undefined, "Keep the package")}</option>
-                  <option value="stream" disabled={!p.canInstall}>
-                    {tr("cq_then_stream", undefined, "Stream & install")}
-                  </option>
-                  <option value="upload" disabled={!p.canInstall}>
-                    {tr("cq_then_upload", undefined, "Upload & install")}
-                  </option>
-                </>
-              )}
-            </select>
-          </label>
-          {p.then !== "keep" && (
-            <Toggle
-              checked={p.deleteAfter}
-              onChange={p.onDeleteAfter}
-              label={
-                isImage
-                  ? tr("cq_delete_after_image", undefined, "Delete the image once it is on the PS5")
-                  : tr("cq_delete_after", undefined, "Delete the package once installed")
-              }
-            />
+        <div className="-mt-1 text-xs text-[var(--color-muted)]">
+          {tr(
+            "cq_uses_choices",
+            undefined,
+            "Each game is made, and then kept, installed or uploaded, as chosen under ③.",
           )}
         </div>
-        {isImage && (
-          <div className="-mt-1 text-xs text-[var(--color-muted)]">
-            {tr(
-              "cq_image_hint",
-              undefined,
-              "The image is the one picked under ③. Only game folders on this computer can become images.",
-            )}
-          </div>
-        )}
 
         <div className="flex flex-wrap gap-2">
-          <Button size="sm" disabled={!p.canAddCurrent} onClick={p.onAddCurrent}>
-            {tr("cq_add_current", undefined, "Add this game to the queue")}
-          </Button>
           <Button size="sm" variant="ghost" leftIcon={<ListPlus size={14} />} onClick={p.onScanFolder}>
             {tr("batch_scan", undefined, "Add games from a folder…")}
           </Button>
-          {p.onPickSeveral && (
-            <Button size="sm" variant="ghost" leftIcon={<ListPlus size={14} />} onClick={p.onPickSeveral}>
-              {tr("cq_pick_several", undefined, "Pick several…")}
-            </Button>
-          )}
+          <Button size="sm" variant="ghost" leftIcon={<FolderPlus size={14} />} onClick={p.onPickFolders}>
+            {tr("cq_pick_folders", undefined, "Pick game folders…")}
+          </Button>
+          <Button size="sm" variant="ghost" leftIcon={<ListPlus size={14} />} onClick={p.onPickFiles}>
+            {tr("cq_pick_files", undefined, "Pick images or archives…")}
+          </Button>
         </div>
 
         {p.items.length > 0 && (
