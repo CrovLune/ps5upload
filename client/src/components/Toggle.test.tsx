@@ -81,3 +81,23 @@ describe("Toggle — disabled", () => {
     expect(out).toContain('aria-checked="true"');
   });
 });
+
+// The knob is moved with a transform, which is physical: +x is always right.
+// In a right-to-left layout the track's start is on the right, so the same
+// offsets pushed the knob out of the track. Each offset needs its mirror.
+describe("Toggle — right-to-left", () => {
+  const knob = (checked: boolean) => {
+    const out = html({ checked, onChange: () => {}, label: "Beta" });
+    return /class="([^"]*translate-x[^"]*)"/.exec(out)?.[1].split(" ") ?? [];
+  };
+
+  it("mirrors the on offset", () => {
+    expect(knob(true)).toContain("translate-x-6");
+    expect(knob(true)).toContain("rtl:-translate-x-6");
+  });
+
+  it("mirrors the off offset", () => {
+    expect(knob(false)).toContain("translate-x-1");
+    expect(knob(false)).toContain("rtl:-translate-x-1");
+  });
+});
