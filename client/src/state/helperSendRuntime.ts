@@ -149,6 +149,7 @@ export async function sendHelperAndWait(
   host: string,
   tr: Translator,
   sleep: (ms: number) => Promise<void> = (ms) => new Promise((r) => setTimeout(r, ms)),
+  check: (host: string) => Promise<{ reachable: boolean; error?: string | null }> = payloadCheck,
 ): Promise<string | null> {
   const target = host.trim();
   const result = await sendHelperTo(target, tr);
@@ -158,5 +159,14 @@ export async function sendHelperAndWait(
   }
   if (result === "ok") return null;
   const end = entry();
-  return end?.state === "fail" ? end.msg : null;
+  if (end?.state === "fail") return end.msg;
+  // No record left: a joined send that ended well clears it, but so does a
+  // failure the user dismissed. Only the helper itself can say which.
+  const probe = await check(target).catch((e: unknown) => ({
+    reachable: false,
+    error: e instanceof Error ? e.message : String(e),
+  }));
+  if (probe.reachable) return null;
+  const tail = probe.error ? ` (${probe.error})` : "";
+  return tr("connection_payload_timeout_v2", { tail }, TIMEOUT_EN);
 }

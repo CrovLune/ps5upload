@@ -341,6 +341,7 @@ export default function FirstRunScreen() {
       if (cancelled.current) return;
       updateStep("ps5upload", { state: "busy", note: undefined });
       const failure = await sendHelperAndWait(host, tr);
+      if (cancelled.current) return;
       if (failure !== null) {
         updateStep("ps5upload", { state: "fail", note: failure });
         throw new Error(failure);

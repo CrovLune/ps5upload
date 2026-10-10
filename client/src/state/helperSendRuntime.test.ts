@@ -54,13 +54,33 @@ describe("sendHelperAndWait", () => {
     useHelperSendStore.getState().put(H, { state: "busy", phase: "waiting", msg: "…", startedAtMs: 0 });
     runHelperSend.mockResolvedValue("busy");
     let slept = 0;
-    const out = await sendHelperAndWait(H, tr, async () => {
-      slept += 1;
-      // The running send ends well: its entry goes.
-      useHelperSendStore.getState().put(H, null);
-    });
+    const out = await sendHelperAndWait(
+      H,
+      tr,
+      async () => {
+        slept += 1;
+        // The running send ends well: its entry goes.
+        useHelperSendStore.getState().put(H, null);
+      },
+      async () => ({ reachable: true }),
+    );
     expect(slept).toBe(1);
     expect(out).toBeNull();
+  });
+
+  it("does not count a vanished record as success when the helper does not answer", async () => {
+    useHelperSendStore.getState().put(H, { state: "busy", phase: "waiting", msg: "…", startedAtMs: 0 });
+    runHelperSend.mockResolvedValue("busy");
+    const out = await sendHelperAndWait(
+      H,
+      tr,
+      async () => {
+        // The joined send failed and its record was dismissed.
+        useHelperSendStore.getState().put(H, null);
+      },
+      async () => ({ reachable: false, error: "connection refused" }),
+    );
+    expect(out).toContain("helper didn't start");
   });
 
   it("reports the joined send's failure", async () => {
