@@ -1104,7 +1104,7 @@ fn spawn_progress_ticker(
             last_total = total_bytes;
             // Mutate in place so the handler's initial `files` list is
             // preserved across ticks — we no longer carry it in the ctx.
-            let maybe_snapshot = {
+            let still_running = {
                 // Poison-safe: a panic in any other lock holder must not
                 // cascade through every subsequent ticker spawn. Same
                 // pattern as engine_log.rs::record — the contained
@@ -1133,25 +1133,24 @@ fn spawn_progress_ticker(
                         *bf = bytes_finalized;
                         // Nobody listening: skip building the event.
                         // Serialize from the reference (no clone of the
-                        // job); `files` serializes as a count.
-                        Some(
-                            (events_tx.receiver_count() > 0)
-                                .then(|| g.get(&job_id).map(|st| serde_json::json!(st)))
-                                .flatten(),
-                        )
+                        // job); `files` serializes as a count. Sent while
+                        // the lock is held, so it can never follow the
+                        // terminal event `set_job` sends under the same lock.
+                        if events_tx.receiver_count() > 0 {
+                            if let Some(state) = g.get(&job_id).map(|st| serde_json::json!(st)) {
+                                let msg = serde_json::json!({ "job_id": job_id.to_string(), "job": with_live_notes(job_id, state) });
+                                let _ = events_tx.send(msg.to_string());
+                            }
+                        }
+                        true
                     }
                     // Job moved to terminal state (Done/Failed) — stop
                     // ticking to avoid writing over the terminal record.
-                    _ => None,
+                    _ => false,
                 }
             };
-            match maybe_snapshot {
-                Some(Some(state)) => {
-                    let msg = serde_json::json!({ "job_id": job_id.to_string(), "job": with_live_notes(job_id, state) });
-                    let _ = events_tx.send(msg.to_string());
-                }
-                Some(None) => {}
-                None => break,
+            if !still_running {
+                break;
             }
         }
     });
@@ -1518,16 +1517,18 @@ pub(crate) fn set_job(
             evict_oldest_terminal(&mut g);
         }
         g.insert(job_id, state);
+        // Sent under the lock, as the progress ticker does: a ticker's "running" can then
+        // never reach a client after this "done".
+        if events_tx.receiver_count() > 0 {
+            let msg = serde_json::json!({ "job_id": job_id.to_string(), "job": with_live_notes(job_id, json.clone()) });
+            let _ = events_tx.send(msg.to_string());
+        }
     }
     if terminal {
         telemetry::on_state(job_id, &json);
         if let Some(e) = job_event(&job_id.to_string(), &json) {
             ps5upload_core::events::emit_event(e);
         }
-    }
-    if events_tx.receiver_count() > 0 {
-        let msg = serde_json::json!({ "job_id": job_id.to_string(), "job": with_live_notes(job_id, json) });
-        let _ = events_tx.send(msg.to_string());
     }
 }
 
@@ -10947,6 +10948,69 @@ mod helpers_tests {
     }
 
     /// An event carries the count too, and nothing is built when no one listens.
+    /// The progress ticker never broadcasts "running" after the job's terminal event.
+    #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+    async fn the_ticker_never_sends_running_after_the_end() {
+        for _ in 0..5 {
+            let jobs: Arc<Mutex<HashMap<Uuid, JobState>>> = Arc::new(Mutex::new(HashMap::new()));
+            let (events_tx, mut rx) = broadcast::channel(4096);
+            let job_id = Uuid::new_v4();
+            set_job(&jobs, &events_tx, job_id, running_with_files(0));
+            let progress = Arc::new(AtomicU64::new(0));
+            let stop = spawn_progress_ticker(
+                jobs.clone(),
+                events_tx.clone(),
+                job_id,
+                TickerContext {
+                    started_at_ms: 1,
+                    total_bytes: 100,
+                    dynamic_total_bytes: None,
+                    skipped_files: 0,
+                    skipped_bytes: 0,
+                },
+                progress.clone(),
+                Arc::default(),
+                Arc::default(),
+                Arc::default(),
+            );
+            let bump = progress.clone();
+            let bumper = std::thread::spawn(move || {
+                for i in 0..2000 {
+                    bump.store(i, Ordering::Relaxed);
+                    std::thread::sleep(Duration::from_micros(300));
+                }
+            });
+            tokio::time::sleep(Duration::from_millis(410)).await;
+            set_job(
+                &jobs,
+                &events_tx,
+                job_id,
+                JobState::Failed {
+                    started_at_ms: 1,
+                    completed_at_ms: 2,
+                    elapsed_ms: 1,
+                    error: "x".into(),
+                    error_reason: None,
+                    error_detail: None,
+                    error_console: None,
+                },
+            );
+            tokio::time::sleep(Duration::from_millis(450)).await;
+            stop.store(true, Ordering::Relaxed);
+            bumper.join().unwrap();
+            let mut ended = false;
+            while let Ok(m) = rx.try_recv() {
+                let v: serde_json::Value = serde_json::from_str(&m).unwrap();
+                match v["job"]["status"].as_str() {
+                    Some("failed") => ended = true,
+                    Some("running") => assert!(!ended, "running after the end"),
+                    _ => {}
+                }
+            }
+            assert!(ended);
+        }
+    }
+
     #[test]
     fn set_job_events_carry_the_count_only() {
         let jobs: Arc<Mutex<HashMap<Uuid, JobState>>> = Arc::new(Mutex::new(HashMap::new()));

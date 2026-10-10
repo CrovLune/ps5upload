@@ -1935,7 +1935,12 @@ mod tests {
         }
         let running = jobs.begin("10.9.9.9").unwrap();
         // The oldest of all (set directly: `update` stamps the time).
-        jobs.jobs.lock().unwrap().get_mut(&running).unwrap().updated_at = 0;
+        jobs.jobs
+            .lock()
+            .unwrap()
+            .get_mut(&running)
+            .unwrap()
+            .updated_at = 0;
         // Still holding its slot (Resolve): a finish elsewhere never prunes it.
         let other = jobs.begin("10.9.9.8").unwrap();
         jobs.update(&other, |s| s.phase = Phase::Done);
