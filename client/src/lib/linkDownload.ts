@@ -8,6 +8,7 @@
 // command path keeps only the error text and drops the id and sizes.
 
 import { getEngineUrl } from "../state/engine";
+import { fetchStart } from "./startRequestTimeout";
 
 export type ExistingChoice = "resume" | "replace";
 
@@ -32,7 +33,7 @@ export async function startLinkDownload(
   args: LinkDownloadArgs,
   fetchImpl: Fetch = (i, init) => fetch(i, init),
 ): Promise<LinkDownloadStart> {
-  const res = await fetchImpl(`${getEngineUrl()}/api/pkg/remote/download/start`, {
+  const res = await fetchStart("the download", `${getEngineUrl()}/api/pkg/remote/download/start`, {
     method: "POST",
     headers: { "content-type": "application/json" },
     body: JSON.stringify({
@@ -42,7 +43,7 @@ export async function startLinkDownload(
       keep_name: args.keepName ?? false,
       ...(args.existing ? { existing: args.existing } : {}),
     }),
-  });
+  }, fetchImpl);
   const text = await res.text().catch(() => "");
   let body: Record<string, unknown> = {};
   try {

@@ -5,6 +5,7 @@
 
 import { getEngineUrl } from "../state/engine";
 import { consoleAddr } from "../lib/addr";
+import { fetchStart } from "../lib/startRequestTimeout";
 
 /** What the pairing dialog needs to know (engine `GET /api/ava1/pairing`). Passkey entry:
  *  the console shows a six-digit code on its own screen and the user types it into the app,
@@ -120,7 +121,7 @@ export async function startPs5ToPs5(
   dest: string,
   txId?: string | null,
 ): Promise<string> {
-  const res = await fetch(`${getEngineUrl()}/api/transfer/ps5-to-ps5`, {
+  const res = await fetchStart("the PS5 to PS5 copy", `${getEngineUrl()}/api/transfer/ps5-to-ps5`, {
     method: "POST",
     headers: { "content-type": "application/json" },
     body: JSON.stringify({
