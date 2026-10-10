@@ -6,6 +6,7 @@ import { SendToConsoleDialog } from "./SendToConsoleDialog";
 import { useUploadQueueStore } from "../../state/uploadQueue";
 import type { SendItem } from "../../lib/consoleSend";
 import { queueLinkFor } from "../../lib/gamePage";
+import { menuKeyAction } from "../../lib/menuKeys";
 import {
   useCallback,
   useEffect,
@@ -14,6 +15,7 @@ import {
   useRef,
   useState,
   type ComponentType,
+  type KeyboardEvent as ReactKeyboardEvent,
 } from "react";
 import { createPortal } from "react-dom";
 import { useNavigate, useSearchParams } from "react-router";
@@ -3836,7 +3838,9 @@ interface RowMenuItem {
 }
 
 /** The Files row's right-click menu: at the pointer, kept on screen, closed by a click
- *  elsewhere, Escape, scroll or a resize. */
+ *  elsewhere, Escape, scroll or a resize. It takes focus on its first item when it opens;
+ *  the arrow keys, Home and End move between items, and Escape or Tab close it and hand
+ *  focus back to whatever had it (the row). */
 function RowMenu({
   x,
   y,
@@ -3859,13 +3863,47 @@ function RowMenu({
       top: Math.max(4, Math.min(y, window.innerHeight - r.height - 4)),
     });
   }, [x, y]);
+  // Whatever had focus when the menu opened, for a keyboard close to return to.
+  const openerRef = useRef<HTMLElement | null>(null);
+  const menuItems = () =>
+    Array.from(
+      ref.current?.querySelectorAll<HTMLElement>(
+        '[role="menuitem"]:not([disabled])',
+      ) ?? [],
+    );
+  useEffect(() => {
+    const active = document.activeElement;
+    openerRef.current = active instanceof HTMLElement ? active : null;
+    menuItems()[0]?.focus({ preventScroll: true });
+  }, []);
+  /** Close, then put focus back where it was (keyboard close or picking an item). */
+  const closeAndRestore = () => {
+    onClose();
+    const opener = openerRef.current;
+    if (opener?.isConnected) opener.focus({ preventScroll: true });
+  };
+  const onMenuKeyDown = (e: ReactKeyboardEvent) => {
+    const items = menuItems();
+    const action = menuKeyAction(
+      e.key,
+      items.indexOf(document.activeElement as HTMLElement),
+      items.length,
+    );
+    if (action === null) return;
+    e.preventDefault();
+    e.stopPropagation();
+    if (action === "close") closeAndRestore();
+    else items[action]?.focus();
+  };
   useEffect(() => {
     const close = (e: Event) => {
       if (e instanceof MouseEvent && ref.current?.contains(e.target as Node))
         return;
       onClose();
     };
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
+    // Escape with focus somewhere else (the menu's own handler stops it otherwise).
+    const onKey = (e: KeyboardEvent) =>
+      e.key === "Escape" && !e.defaultPrevented && onClose();
     window.addEventListener("mousedown", close);
     window.addEventListener("scroll", close, true);
     window.addEventListener("resize", close);
@@ -3886,6 +3924,7 @@ function RowMenu({
       ref={ref}
       role="menu"
       data-testid="fs-row-menu"
+      onKeyDown={onMenuKeyDown}
       style={{ left: pos.left, top: pos.top }}
       // The same floating glass as the app's other menus (components/Menu).
       // `--color-surface` is the translucent page tint: with it the rows under
@@ -3897,13 +3936,16 @@ function RowMenu({
           key={it.label}
           type="button"
           role="menuitem"
+          tabIndex={-1}
           disabled={it.disabled}
           onClick={() => {
-            onClose();
+            // Focus back on the row first, so a dialog the item opens returns
+            // focus there when it closes.
+            closeAndRestore();
             it.run();
           }}
           className={
-            "flex w-full items-center gap-2 rounded-full px-3 py-1.5 text-start hover:bg-[var(--color-surface-3)] disabled:opacity-40 " +
+            "flex w-full items-center gap-2 rounded-full px-3 py-1.5 text-start hover:bg-[var(--color-surface-3)] focus:bg-[var(--color-surface-3)] disabled:opacity-40 " +
             (it.destructive ? "text-[var(--color-bad)]" : "")
           }
         >

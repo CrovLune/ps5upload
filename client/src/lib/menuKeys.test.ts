@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { menuKeyTarget } from "./menuKeys";
+import { menuKeyAction, menuKeyTarget } from "./menuKeys";
 
 describe("menuKeyTarget", () => {
   it("moves down and wraps past the last item", () => {
@@ -32,5 +32,26 @@ describe("menuKeyTarget", () => {
 
   it("has nowhere to go in an empty menu", () => {
     expect(menuKeyTarget("ArrowDown", -1, 0)).toBeNull();
+  });
+});
+
+describe("menuKeyAction", () => {
+  it("closes on Escape and Tab", () => {
+    expect(menuKeyAction("Escape", 1, 3)).toBe("close");
+    expect(menuKeyAction("Tab", 0, 3)).toBe("close");
+    // Even with nothing to move between.
+    expect(menuKeyAction("Escape", -1, 0)).toBe("close");
+  });
+
+  it("moves like menuKeyTarget for the movement keys", () => {
+    expect(menuKeyAction("ArrowDown", 2, 3)).toBe(0);
+    expect(menuKeyAction("ArrowUp", 0, 3)).toBe(2);
+    expect(menuKeyAction("Home", 2, 3)).toBe(0);
+    expect(menuKeyAction("End", 0, 3)).toBe(2);
+  });
+
+  it("leaves Enter and Space to the focused item", () => {
+    expect(menuKeyAction("Enter", 0, 3)).toBeNull();
+    expect(menuKeyAction(" ", 0, 3)).toBeNull();
   });
 });

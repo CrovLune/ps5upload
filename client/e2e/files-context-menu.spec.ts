@@ -63,7 +63,27 @@ test("right-click offers New folder on a row and on empty space", async ({
   await expect(menu).toBeVisible();
   await expect(menu.getByRole("menuitem", { name: "Open" })).toBeVisible();
   await expect(menu.getByRole("menuitem", { name: "New folder" })).toBeVisible();
+
+  // The keyboard works in it: focus starts on the first item, the arrows move
+  // and wrap, Home/End jump, Escape closes.
+  const items = menu.getByRole("menuitem");
+  const enabled = menu.locator('[role="menuitem"]:not([disabled])');
+  await expect(enabled.first()).toBeFocused();
+  await page.keyboard.press("ArrowDown");
+  await expect(enabled.nth(1)).toBeFocused();
+  await page.keyboard.press("ArrowUp");
+  await page.keyboard.press("ArrowUp");
+  await expect(enabled.last()).toBeFocused();
+  await page.keyboard.press("Home");
+  await expect(enabled.first()).toBeFocused();
+  expect(await items.count()).toBeGreaterThan(1);
   await page.keyboard.press("Escape");
+  await expect(menu).toHaveCount(0);
+
+  // Tab closes it too rather than walking out into the page.
+  await row.click({ button: "right" });
+  await expect(enabled.first()).toBeFocused();
+  await page.keyboard.press("Tab");
   await expect(menu).toHaveCount(0);
 
   // On the empty space below the rows: the folder menu, without row actions.
