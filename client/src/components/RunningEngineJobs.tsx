@@ -8,6 +8,9 @@ import { isTauriEnv } from "../lib/tauriEnv";
 import { formatEtaSeconds } from "../lib/uploadEta";
 import { useRateEta } from "../lib/useRateEta";
 import { useDocumentVisible } from "../lib/visibility";
+import { watchedJobIds } from "../lib/watchedJobIds";
+import { downloadForHost, useFsDownloadOpStore } from "../state/fsBulkOp";
+import { useFpkgConversion } from "../state/fpkgConversion";
 import { useTr } from "../state/lang";
 import { useTransferStore } from "../state/transfer";
 import { useUploadQueueStore } from "../state/uploadQueue";
@@ -57,6 +60,20 @@ export const RunningEngineJobs = memo(function RunningEngineJobs() {
       .flatMap((p) => (p.kind === "running" && p.jobId ? [p.jobId] : []))
       .join(SEP),
   );
+  // Files downloads and the Convert pipeline name their job in a store; every
+  // other follower (uploads, image builds, RAR, link downloads) is claimed by
+  // polling it — see lib/watchedJobIds.
+  const downloadClaimed = useFsDownloadOpStore((s) =>
+    Object.keys(s.byHost)
+      .flatMap((h) => {
+        const d = downloadForHost(s, h);
+        return d.active && d.jobId ? [d.jobId] : [];
+      })
+      .join(SEP),
+  );
+  const convertClaimed = useFpkgConversion((s) =>
+    s.pipeline.phase === "running" ? (s.pipeline.jobId ?? "") : "",
+  );
 
   useEffect(() => {
     if (!web || !visible) return;
@@ -74,11 +91,13 @@ export const RunningEngineJobs = memo(function RunningEngineJobs() {
   }, [web, visible]);
 
   const orphans = useMemo(() => {
-    const claimed = new Set(
-      [queueClaimed, oneShotClaimed].flatMap((ids) => (ids ? ids.split(SEP) : [])),
-    );
+    // `jobs` changes every tick, so the polled set is re-read as often.
+    const claimed = watchedJobIds();
+    for (const ids of [queueClaimed, oneShotClaimed, downloadClaimed, convertClaimed]) {
+      if (ids) for (const id of ids.split(SEP)) claimed.add(id);
+    }
     return unclaimedJobs(jobs, claimed);
-  }, [jobs, queueClaimed, oneShotClaimed]);
+  }, [jobs, queueClaimed, oneShotClaimed, downloadClaimed, convertClaimed]);
 
   if (!web || orphans.length === 0) return null;
   return (

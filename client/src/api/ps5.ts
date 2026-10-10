@@ -17,6 +17,7 @@ import { getEngineUrl } from "../state/engine";
 import { isTauriEnv } from "../lib/tauriEnv";
 import { invoke } from "../lib/invokeLogged";
 import { randomHexId } from "../lib/randomId";
+import { noteJobWatched } from "../lib/watchedJobIds";
 import { getCachedIcon, setCachedIcon } from "../lib/iconMemoryCache";
 import {
   appendManualListLine,
@@ -4331,6 +4332,9 @@ export async function jobStatus(
    *  console's pairing dialog. Without it the failure opens nothing. */
   host?: string,
 ): Promise<JobSnapshot> {
+  // Whoever polls a job is following it: the running-jobs banner must not
+  // offer it as an orphan.
+  noteJobWatched(jobId);
   const raw = await invoke<Record<string, unknown>>("job_status", { jobId });
   // Cheap shape validation. If the Rust side ever returns a non-snapshot
   // payload (e.g., an error envelope we forgot to map to a thrown
