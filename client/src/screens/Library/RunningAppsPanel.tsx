@@ -8,12 +8,10 @@ import {
   AlertTriangle,
 } from "lucide-react";
 import {
-  appListRunning,
   appdbQuery,
   appSuspend,
   appResume,
   type AppDbEntry,
-  type RunningApp,
 } from "../../api/ps5";
 import { Button, EmptyState, Spinner } from "../../components";
 // Direct import to avoid the barrel's circular-dep warning at build.
@@ -22,18 +20,12 @@ import { useTr } from "../../state/lang";
 import { pushNotification } from "../../state/notifications";
 import { withConsolePrefix } from "../../state/roster";
 import { humanizePs5Error } from "../../lib/humanizeError";
-import { useRunningAppsStore } from "../../state/runningApps";
 import { useDocumentVisible } from "../../lib/visibility";
 import { transferScreenBusy } from "../../lib/ps5Transfers";
 import { killGame } from "../../lib/killGame";
-
-interface RunningJoined {
-  app_id: number;
-  /** Resolved from app.db when found; null when the running app isn't
-   *  in app.db (rare — system processes, ephemeral installers). */
-  title_id: string | null;
-  name: string | null;
-}
+import { useStaleHostGuard } from "../../lib/staleHostGuard";
+import { isTauriEnv } from "../../lib/tauriEnv";
+import { refreshRunningApps, type RunningJoined } from "./runningAppsRead";
 
 /**
  * Live "running apps" panel. Joins Phase 18's app_list_running with
@@ -51,6 +43,7 @@ export default function RunningAppsPanel({ mgmtAddr }: { mgmtAddr: string }) {
   const [error, setError] = useState<string | null>(null);
   const [busyApp, setBusyApp] = useState<number | null>(null);
   const { confirm: confirmDialog, dialog: confirmDialogNode } = useConfirm();
+  const guard = useStaleHostGuard();
   // Cache lives in a ref, not state. With state, every 30s cache
   // refresh would change `fetchAppdb`'s identity, then `refresh`'s,
   // then tear down + recreate the 5s setInterval and immediately
@@ -85,46 +78,35 @@ export default function RunningAppsPanel({ mgmtAddr }: { mgmtAddr: string }) {
         entries: r.apps,
       };
       return r.apps;
-    } catch {
-      // Only fall back to stale entries if they belong to THIS console.
-      return cached?.addr === mgmtAddr ? cached.entries : [];
+    } catch (e) {
+      // Only fall back to stale entries if they belong to THIS console;
+      // otherwise the read failed and the caller must not treat it as
+      // "nothing is running".
+      if (cached?.addr === mgmtAddr) return cached.entries;
+      throw e;
     }
   }, [mgmtAddr]);
 
   const refresh = useCallback(async () => {
+    const probe = guard.capture();
     setLoading(true);
     setError(null);
     try {
-      const [running, db] = await Promise.all([
-        appListRunning(mgmtAddr),
-        fetchAppdb(),
-      ]);
-      const dbByAppId = new Map<number, AppDbEntry>();
-      for (const e of db) dbByAppId.set(e.app_id, e);
-      const list: RunningApp[] = running.apps ?? [];
-      const joined: RunningJoined[] = list.map((r) => {
-        const hit = dbByAppId.get(r.app_id);
-        return {
-          app_id: r.app_id,
-          title_id: hit?.title_id ?? null,
-          name: hit?.name ?? null,
-        };
+      // The browser build has no app.db read; titles come from the process
+      // list there. Publishing into the shared store lets Library rows render
+      // their "running" badge without each one polling.
+      await refreshRunningApps({
+        addr: mgmtAddr,
+        probe,
+        appdb: isTauriEnv() ? fetchAppdb : null,
+        onRows: setApps,
       });
-      setApps(joined);
-      // Publish title IDs into the shared store so Library rows can
-      // render their "running" badge without each one polling
-      // separately. Tag with the address so a profile switch in the
-      // PS5 roster can clear stale data tied to a different console.
-      useRunningAppsStore.getState().setRunning(
-        joined.map((j) => j.title_id).filter((t): t is string => !!t),
-        mgmtAddr,
-      );
     } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
+      if (!probe.isStale()) setError(e instanceof Error ? e.message : String(e));
     } finally {
       setLoading(false);
     }
-  }, [mgmtAddr, fetchAppdb]);
+  }, [mgmtAddr, fetchAppdb, guard]);
 
   // Pause polling while the window is hidden — `RunningAppsPanel`
   // also publishes into the shared store consumed by the play-time
