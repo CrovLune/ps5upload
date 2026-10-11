@@ -14,6 +14,10 @@ pub enum Protocol {
     Ftp,
     Ftps,
     Sftp,
+    /// WebDAV over plain HTTP.
+    Webdav,
+    /// WebDAV over HTTPS.
+    Webdavs,
 }
 
 pub fn default_port(p: &Protocol) -> u16 {
@@ -21,6 +25,8 @@ pub fn default_port(p: &Protocol) -> u16 {
         Protocol::Smb => 445,
         Protocol::Ftp | Protocol::Ftps => 21,
         Protocol::Sftp => 22,
+        Protocol::Webdav => 80,
+        Protocol::Webdavs => 443,
     }
 }
 
@@ -43,6 +49,10 @@ pub struct Connection {
     /// SFTP: the host-key fingerprint the user accepted ("SHA256:…").
     #[serde(default)]
     pub host_key: Option<String>,
+    /// WebDAV over HTTPS: accept the server's certificate without verifying it (a NAS with a
+    /// self-signed certificate). Never a default.
+    #[serde(default)]
+    pub insecure_tls: bool,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
@@ -370,6 +380,7 @@ pub(crate) fn conn(name: &str, protocol: Protocol) -> Connection {
         user: "me".into(),
         start_path: String::new(),
         host_key: None,
+        insecure_tls: false,
     }
 }
 

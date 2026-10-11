@@ -24,6 +24,8 @@ const PROTOCOL: Record<Connection["protocol"], string> = {
   ftp: "FTP",
   ftps: "FTPS",
   sftp: "SFTP",
+  webdav: "WebDAV",
+  webdavs: "WebDAV (HTTPS)",
 };
 
 function formOf(c: Connection): FormValue {
@@ -37,6 +39,7 @@ function formOf(c: Connection): FormValue {
     guest: !c.user,
     user: c.user,
     startPath: c.start_path,
+    insecureTls: !!c.insecure_tls,
   };
 }
 

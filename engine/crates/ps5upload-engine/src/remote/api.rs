@@ -28,6 +28,9 @@ pub struct ConnectionInput {
     pub user: String,
     #[serde(default)]
     pub start_path: String,
+    /// WebDAV over HTTPS: accept a self-signed certificate.
+    #[serde(default)]
+    pub insecure_tls: bool,
 }
 
 #[derive(Deserialize)]
@@ -81,6 +84,7 @@ fn parse_body(body: ConnectionBody) -> Result<(Connection, Option<Secret>), Box<
             .filter(|p| !p.is_empty())
             .map(|password| Secret::Password { password })
     };
+    let insecure_tls = c.protocol == Protocol::Webdavs && c.insecure_tls;
     Ok((
         Connection {
             id: String::new(),
@@ -92,6 +96,7 @@ fn parse_body(body: ConnectionBody) -> Result<(Connection, Option<Secret>), Box<
             user,
             start_path: c.start_path.trim().to_string(),
             host_key: None,
+            insecure_tls,
         },
         secret,
     ))

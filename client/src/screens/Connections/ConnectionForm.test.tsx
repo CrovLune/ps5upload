@@ -14,6 +14,7 @@ import {
   ConnectionFormView,
   emptyForm,
   switchProtocol,
+  toRequest,
   type ConnectionFormProps,
   type FormValue,
 } from "./ConnectionForm";
@@ -59,6 +60,19 @@ describe("connection form", () => {
   it("labels plain FTP as unencrypted", () => {
     expect(html({ protocol: "ftp", port: 21 })).toContain("Unencrypted");
     expect(html({ protocol: "ftps", port: 21 })).not.toContain("Unencrypted");
+  });
+
+  it("offers WebDAV with its ports, its root hint and the self-signed switch", () => {
+    const smb = { ...emptyForm(), protocol: "smb" as const, port: 445 };
+    expect(switchProtocol(smb, "webdav").port).toBe(80);
+    expect(switchProtocol(smb, "webdavs").port).toBe(443);
+    expect(html({ protocol: "webdav", port: 80 })).toContain("Unencrypted");
+    expect(html({ protocol: "webdav", port: 80 })).toContain("remote.php/dav");
+    expect(html({ protocol: "webdavs", port: 443 })).toContain("self-signed");
+    expect(html({ protocol: "webdav", port: 80 })).not.toContain("self-signed");
+    const req = toRequest({ ...emptyForm(), protocol: "webdavs", port: 443, insecureTls: true, name: "n", host: "h" });
+    expect(req.connection.insecure_tls).toBe(true);
+    expect(toRequest({ ...emptyForm(), protocol: "webdav", insecureTls: true, name: "n", host: "h" }).connection.insecure_tls).toBe(false);
   });
 
   it("asks for the share only on SMB and hides credentials for guests", () => {

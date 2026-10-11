@@ -1,4 +1,4 @@
-//! Files on the user's own servers (SMB, FTP, FTPS, SFTP), read through one interface.
+//! Files on the user's own servers (SMB, FTP, FTPS, SFTP, WebDAV), read through one interface.
 //!
 //! A pick from a server is a `remote://<connection-id>/<path>` string (see [`path`]). The engine
 //! resolves it against the saved connections and reads it through [`RemoteFs`]: listing for the
@@ -19,6 +19,7 @@ pub mod sftp_fs;
 pub mod smb_fs;
 pub mod source_fs;
 pub mod store;
+pub mod webdav_fs;
 
 #[cfg(test)]
 use std::collections::BTreeMap;

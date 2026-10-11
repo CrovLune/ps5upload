@@ -66,6 +66,9 @@ impl Connector for RealConnector {
             Protocol::Sftp => Ok(Arc::new(
                 super::sftp_fs::SftpFs::connect(conn, secret).await?,
             )),
+            Protocol::Webdav | Protocol::Webdavs => Ok(Arc::new(
+                super::webdav_fs::WebdavFs::connect(conn, secret).await?,
+            )),
         }
     }
 }

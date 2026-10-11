@@ -3,7 +3,7 @@
 
 import { getEngineUrl } from "../state/engine";
 
-export type Protocol = "smb" | "ftp" | "ftps" | "sftp";
+export type Protocol = "smb" | "ftp" | "ftps" | "sftp" | "webdav" | "webdavs";
 
 export interface Connection {
   id: string;
@@ -15,6 +15,8 @@ export interface Connection {
   user: string;
   start_path: string;
   host_key: string | null;
+  /** WebDAV over HTTPS: the server's self-signed certificate is accepted unverified. */
+  insecure_tls?: boolean;
   has_secret: boolean;
 }
 
@@ -26,6 +28,7 @@ export interface ConnectionInput {
   share?: string;
   user?: string;
   start_path?: string;
+  insecure_tls?: boolean;
 }
 
 export interface SecretInput {

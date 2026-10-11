@@ -17,6 +17,8 @@ const PROTOCOL: Record<Connection["protocol"], string> = {
   ftp: "FTP",
   ftps: "FTPS",
   sftp: "SFTP",
+  webdav: "WebDAV",
+  webdavs: "WebDAV (HTTPS)",
 };
 
 export interface BrowseButtonProps {

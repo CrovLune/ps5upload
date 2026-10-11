@@ -20,9 +20,23 @@ export interface FormValue {
   keyName: string;
   keyPassphrase: string;
   startPath: string;
+  /** WebDAV over HTTPS: accept a self-signed certificate. */
+  insecureTls: boolean;
 }
 
-export const DEFAULT_PORT: Record<Protocol, number> = { smb: 445, ftp: 21, ftps: 21, sftp: 22 };
+export const DEFAULT_PORT: Record<Protocol, number> = {
+  smb: 445,
+  ftp: 21,
+  ftps: 21,
+  sftp: 22,
+  webdav: 80,
+  webdavs: 443,
+};
+
+/** Both WebDAV flavours. */
+export function isWebdav(p: Protocol): boolean {
+  return p === "webdav" || p === "webdavs";
+}
 
 export function emptyForm(): FormValue {
   return {
@@ -39,6 +53,7 @@ export function emptyForm(): FormValue {
     keyName: "",
     keyPassphrase: "",
     startPath: "",
+    insecureTls: false,
   };
 }
 
@@ -58,6 +73,7 @@ export function toRequest(v: FormValue): { connection: ConnectionInput; secret: 
     share: v.protocol === "smb" ? v.share.trim() : "",
     user: v.guest ? "" : v.user.trim(),
     start_path: v.startPath.trim(),
+    insecure_tls: v.protocol === "webdavs" && v.insecureTls,
   };
   const secret: SecretInput = {};
   if (!v.guest) {
@@ -95,7 +111,9 @@ export function ConnectionFormView(p: ConnectionFormProps) {
   const guestLabel =
     v.protocol === "smb"
       ? tr("conn_guest", undefined, "Guest (no user or password)")
-      : tr("conn_anonymous", undefined, "Anonymous (no user or password)");
+      : isWebdav(v.protocol)
+        ? tr("conn_no_signin", undefined, "No sign-in (public share)")
+        : tr("conn_anonymous", undefined, "Anonymous (no user or password)");
   const canTest = !!v.name.trim() && !!v.host.trim() && (v.protocol !== "smb" || !!v.share.trim());
   return (
     <div className="space-y-4">
@@ -106,6 +124,8 @@ export function ConnectionFormView(p: ConnectionFormProps) {
           { value: "ftp", label: "FTP" },
           { value: "ftps", label: "FTPS" },
           { value: "sftp", label: "SFTP" },
+          { value: "webdav", label: "WebDAV" },
+          { value: "webdavs", label: "WebDAV (HTTPS)" },
         ]}
         value={v.protocol}
         onChange={(pr) => p.onChange(switchProtocol(v, pr as Protocol))}
@@ -117,6 +137,25 @@ export function ConnectionFormView(p: ConnectionFormProps) {
             "conn_ftp_unencrypted",
             undefined,
             "Unencrypted — use FTPS or SFTP where the server supports it.",
+          )}
+        </p>
+      )}
+      {v.protocol === "webdav" && (
+        <p className="flex items-start gap-2 text-xs text-[var(--color-warn)]">
+          <ShieldAlert size={14} className="mt-0.5 shrink-0" />
+          {tr(
+            "conn_webdav_unencrypted",
+            undefined,
+            "Unencrypted — use WebDAV (HTTPS) where the server supports it.",
+          )}
+        </p>
+      )}
+      {isWebdav(v.protocol) && (
+        <p className="text-xs text-[var(--color-muted)]">
+          {tr(
+            "conn_webdav_root_hint",
+            undefined,
+            "Put the server's WebDAV root in Start folder: /remote.php/dav/files/USER for Nextcloud, /dav for Alist, / for rclone serve webdav. Sign-in is Basic authentication.",
           )}
         </p>
       )}
@@ -172,10 +211,23 @@ export function ConnectionFormView(p: ConnectionFormProps) {
         <Input
           label={tr("conn_start_path", undefined, "Start folder (optional)")}
           value={v.startPath}
-          placeholder="/games"
+          placeholder={isWebdav(v.protocol) ? "/remote.php/dav/files/USER" : "/games"}
           onChange={(e) => set({ startPath: e.target.value })}
         />
       </div>
+
+      {v.protocol === "webdavs" && (
+        <Toggle
+          checked={v.insecureTls}
+          onChange={(insecureTls) => set({ insecureTls })}
+          label={tr("conn_insecure_tls", undefined, "Accept a self-signed certificate")}
+          hint={tr(
+            "conn_insecure_tls_hint",
+            undefined,
+            "Only for a NAS on your own network whose certificate is self-signed. Anyone between this computer and the server could then read the connection.",
+          )}
+        />
+      )}
 
       {v.protocol !== "sftp" && (
         <Toggle checked={v.guest} onChange={(guest) => set({ guest })} label={guestLabel} />
