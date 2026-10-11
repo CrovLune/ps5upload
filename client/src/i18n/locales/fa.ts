@@ -385,6 +385,7 @@ about_tagline: "بارگذاری‌های سریع و قابل اعتماد از
 about_what_it_does: "چه کار می‌کند",
 about_credits: "اعتبارها",
 about_credits_text: "برای شرایط مجوز LICENSE را ببینید.",
+about_support_scene: "ps5upload تنها یکی از ابزارهای بسیار است. صحنهٔ PS5 پر از کارهای عالی است: لودرها، وصله‌های کرنل، ابزارهای مونت، دامپرها، موتورهای تقلب، مدیران فایل و بیشتر. اگر چیزی اینجا در وقت شما صرفه‌جویی کرد، افراد پشت آن ابزارها هم همان قدردانی را سزاوارند. لطفاً از آن‌ها هم حمایت کنید.",
 // About screen — feature cards (rendered from a {key, fallback} data table
 // in screens/About/index.tsx, which the i18n extractor doesn't walk, so
 // these are declared here by hand).

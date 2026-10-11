@@ -434,6 +434,12 @@ maintainers, the homebrew tool developers whose work this lives alongside,
 and everyone in the community who tests, reports bugs, and shares
 knowledge. None of this exists without your collective effort. 🙏
 
+ps5upload is one tool among many. The scene is full of great work:
+loaders, kernel patches, mount tools, dumpers, cheat engines, file
+managers, save tools and more, most of it made by people in their spare
+time. If something here saves you time, the people behind the tools it
+lives alongside deserve the same thanks. **Please support them too.**
+
 ## License
 
 GNU General Public License v3.0 (GPLv3).

@@ -388,6 +388,7 @@ about_tagline: "Gyors, megbízható feltöltések a számítógépedről a PS5-�
 about_what_it_does: "Mit csinál",
 about_credits: "Köszönetnyilvánítás",
 about_credits_text: "A licencfeltételekért lásd a LICENSE fájlt.",
+about_support_scene: "A ps5upload csak egy eszköz a sok közül. A PS5-szcéna tele van nagyszerű munkával: betöltők, kernelfoltok, csatoló eszközök, dumperek, csalómotorok, fájlkezelők és még sok más. Ha itt valami időt spórol neked, az azok mögött az eszközök mögött álló emberek ugyanazt a köszönetet érdemlik. Kérlek, támogasd őket is.",
 // Névjegy képernyő — funkciókártyák (egy {key, fallback} adattáblából
 // renderelve a screens/About/index.tsx-ben, amit az i18n extraktor nem
 // jár be, így ezeket itt kézzel deklaráljuk).

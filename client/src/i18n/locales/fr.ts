@@ -206,6 +206,7 @@ about_tagline: "Transferts rapides et fiables de votre ordinateur vers votre PS5
 about_what_it_does: "Fonctionnalités",
 about_credits: "Crédits",
 about_credits_text: "Voir LICENSE pour les conditions de licence.",
+about_support_scene: "ps5upload n'est qu'un outil parmi beaucoup d'autres. La scène PS5 regorge de travail formidable : loaders, patchs noyau, outils de montage, dumpers, moteurs de triche, gestionnaires de fichiers et plus encore. Si quelque chose ici vous fait gagner du temps, les personnes derrière ces outils méritent les mêmes remerciements. Soutenez-les aussi.",
 dismiss: "Ignorer",
 library_row_kind_game: "Jeu",
 library_row_kind_ffpkg: "image .ffpkg",

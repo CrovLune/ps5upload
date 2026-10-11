@@ -212,6 +212,7 @@ about_tagline: "Tải lên nhanh, đáng tin cậy từ máy tính sang PS5. Tru
 about_what_it_does: "Tính năng",
 about_credits: "Ghi nhận",
 about_credits_text: "Xem LICENSE để biết các điều khoản cấp phép.",
+about_support_scene: "ps5upload chỉ là một trong nhiều công cụ. Cộng đồng PS5 có rất nhiều công trình tuyệt vời: loader, bản vá kernel, công cụ mount, dumper, công cụ cheat, trình quản lý tệp và hơn thế nữa. Nếu thứ gì ở đây tiết kiệm thời gian cho bạn, những người đứng sau các công cụ đó cũng xứng đáng được cảm ơn. Hãy ủng hộ họ nữa.",
 dismiss: "Bỏ qua",
 library_row_kind_game: "Trò chơi",
 library_row_kind_ffpkg: "ảnh .ffpkg",

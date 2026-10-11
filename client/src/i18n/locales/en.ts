@@ -413,6 +413,7 @@ about_tagline: "Fast, reliable uploads from your computer to your PS5. Transfer,
 about_what_it_does: "What it does",
 about_credits: "Credits",
 about_credits_text: "See LICENSE for licensing terms.",
+about_support_scene: "ps5upload is one tool among many. The PS5 scene is full of great work: loaders, kernel patches, mount tools, dumpers, cheat engines, file managers and more. If something here saves you time, the people behind those tools deserve the same thanks. Please support them too.",
 // About screen — feature cards (rendered from a {key, fallback} data table
 // in screens/About/index.tsx, which the i18n extractor doesn't walk, so
 // these are declared here by hand).

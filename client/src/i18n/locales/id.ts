@@ -211,6 +211,7 @@ about_tagline: "Unggahan cepat dan andal dari komputer Anda ke PS5 Anda. Transfe
 about_what_it_does: "Apa yang dilakukannya",
 about_credits: "Kredit",
 about_credits_text: "Lihat LICENSE untuk ketentuan lisensi.",
+about_support_scene: "ps5upload hanyalah satu alat di antara banyak alat. Scene PS5 penuh karya hebat: loader, patch kernel, alat mount, dumper, mesin cheat, pengelola file, dan lainnya. Jika sesuatu di sini menghemat waktu Anda, orang-orang di balik alat-alat itu pantas mendapat terima kasih yang sama. Dukung mereka juga.",
 dismiss: "Tutup",
 library_row_kind_game: "Permainan",
 library_row_kind_ffpkg: "Gambar .ffpkg",

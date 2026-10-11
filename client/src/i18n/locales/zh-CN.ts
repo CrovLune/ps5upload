@@ -213,6 +213,7 @@ about_tagline: "从您的电脑快速、可靠地上传到 PS5。传输、挂载
 about_what_it_does: "功能",
 about_credits: "鸣谢",
 about_credits_text: "请参阅 LICENSE 了解许可条款。",
+about_support_scene: "ps5upload 只是众多工具之一。PS5 社区有大量出色的作品：加载器、内核补丁、挂载工具、转储工具、作弊引擎、文件管理器等等。如果这里的某样东西为你节省了时间，那些工具背后的人同样值得感谢。也请支持他们。",
 dismiss: "关闭",
 library_row_kind_game: "游戏",
 library_row_kind_ffpkg: ".ffpkg 镜像",

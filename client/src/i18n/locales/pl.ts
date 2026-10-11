@@ -371,6 +371,7 @@ about_tagline: "Szybkie i niezawodne przesyłanie z komputera na PS5. Przesyłaj
 about_what_it_does: "Co robi",
 about_credits: "Twórcy",
 about_credits_text: "Zobacz plik LICENSE, aby poznać warunki licencji.",
+about_support_scene: "ps5upload to tylko jedno z wielu narzędzi. Scena PS5 jest pełna świetnej pracy: loadery, łatki jądra, narzędzia do montowania, dumpery, silniki cheatów, menedżery plików i więcej. Jeśli coś tutaj oszczędza ci czas, ludzie stojący za tamtymi narzędziami zasługują na te same podziękowania. Wesprzyj też ich.",
 // About screen — feature cards (rendered from a {key, fallback} data table
 // in screens/About/index.tsx, which the i18n extractor doesn't walk, so
 // these are declared here by hand).

@@ -212,6 +212,7 @@ about_tagline: "コンピュータから PS5 への高速で信頼性の高い�
 about_what_it_does: "機能",
 about_credits: "クレジット",
 about_credits_text: "ライセンス条件については LICENSE を参照してください。",
+about_support_scene: "ps5upload は数あるツールの一つにすぎません。PS5 シーンには素晴らしい仕事があふれています。ローダー、カーネルパッチ、マウントツール、ダンパー、チートエンジン、ファイルマネージャーなど。ここで何かが時間の節約になったなら、それらのツールを作っている人たちにも同じ感謝を。ぜひ彼らも支援してください。",
 dismiss: "閉じる",
 library_row_kind_game: "ゲーム",
 library_row_kind_ffpkg: ".ffpkg イメージ",

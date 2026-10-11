@@ -135,6 +135,13 @@ export default function AboutScreen() {
                   "See LICENSE and the project README for credits to the upstream projects ps5upload builds on.",
                 )}
               </p>
+              <p className="mt-2 max-w-lg text-xs leading-relaxed text-[var(--color-muted)]">
+                {tr(
+                  "about_support_scene",
+                  undefined,
+                  "ps5upload is one tool among many. The PS5 scene is full of great work: loaders, kernel patches, mount tools, dumpers, cheat engines, file managers and more. If something here saves you time, the people behind those tools deserve the same thanks. Please support them too.",
+                )}
+              </p>
             </div>
             <Button
               variant="secondary"

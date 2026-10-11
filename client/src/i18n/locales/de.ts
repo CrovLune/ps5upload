@@ -212,6 +212,7 @@ about_tagline: "Schnelle, zuverlässige Uploads von Ihrem Computer zur PS5. Übe
 about_what_it_does: "Funktionen",
 about_credits: "Mitwirkende",
 about_credits_text: "Lizenzbedingungen finden Sie in der Datei LICENSE.",
+about_support_scene: "ps5upload ist nur eines von vielen Werkzeugen. Die PS5-Szene steckt voller großartiger Arbeit: Loader, Kernel-Patches, Mount-Tools, Dumper, Cheat-Engines, Dateimanager und mehr. Wenn dir etwas hier Zeit spart, verdienen die Menschen hinter diesen Tools denselben Dank. Bitte unterstütze auch sie.",
 dismiss: "Schließen",
 library_row_kind_game: "Spiel",
 library_row_kind_ffpkg: ".ffpkg-Image",

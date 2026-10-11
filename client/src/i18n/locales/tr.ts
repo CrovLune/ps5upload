@@ -211,6 +211,7 @@ about_tagline: "Bilgisayarınızdan PS5'inize hızlı, güvenilir yüklemeler. A
 about_what_it_does: "Özellikler",
 about_credits: "Katkılar",
 about_credits_text: "Lisans koşulları için LICENSE dosyasına bakın.",
+about_support_scene: "ps5upload birçok araçtan yalnızca biri. PS5 sahnesi harika işlerle dolu: yükleyiciler, çekirdek yamaları, bağlama araçları, dumper'lar, hile motorları, dosya yöneticileri ve dahası. Buradaki bir şey size zaman kazandırıyorsa, o araçların arkasındaki insanlar da aynı teşekkürü hak ediyor. Lütfen onları da destekleyin.",
 dismiss: "Kapat",
 library_row_kind_game: "Oyun",
 library_row_kind_ffpkg: ".ffpkg görüntüsü",
