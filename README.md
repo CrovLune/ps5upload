@@ -317,6 +317,19 @@ Common questions (connection problems, install errors, USB drives, firmware) are
 - Pull requests welcome. Read [`CONTRIBUTING.md`](CONTRIBUTING.md) and run the checks in
   [`TESTING.md`](TESTING.md) before opening.
 
+## How this project is built
+
+ps5upload is a vibe-coded project. The code is written with AI coding
+tools, directed, tested on real consoles and released by one maintainer.
+That is what keeps the development cycle fast: bug reports, feature
+requests and enhancements are usually turned around in days, not months.
+
+The trade-off is that the code has not had the slow, line-by-line human
+review a hand-written project of this size would get. Every release is
+tested on hardware, but you should expect rough edges, read the
+[disclaimer](DISCLAIMER.md), keep backups of anything you care about on
+the console, and use the tool at your own discretion.
+
 ## Disclaimer
 
 > **ps5upload is provided for research, educational, interoperability,
@@ -420,6 +433,12 @@ kernel researchers, the ELF/payload loader authors, the PS5 Payload SDK
 maintainers, the homebrew tool developers whose work this lives alongside,
 and everyone in the community who tests, reports bugs, and shares
 knowledge. None of this exists without your collective effort. 🙏
+
+ps5upload is one tool among many. The scene is full of great work:
+loaders, kernel patches, mount tools, dumpers, cheat engines, file
+managers, save tools and more, most of it made by people in their spare
+time. If something here saves you time, the people behind the tools it
+lives alongside deserve the same thanks. **Please support them too.**
 
 ## License
 

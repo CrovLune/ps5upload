@@ -1,9 +1,10 @@
-import { Boxes, Globe, HardDrive, Rocket } from "lucide-react";
+import { Boxes, Globe, HardDrive, Package, Rocket } from "lucide-react";
 
 import TabbedShell, { type TabbedShellTab } from "../../layout/TabbedShell";
 import { useTr } from "../../state/lang";
 import CatalogPanel from "./CatalogPanel";
 import SendPanel from "./SendPanel";
+import PayloadManagerPanel from "./PayloadManagerPanel";
 import NanoDnsScreen from "../NanoDns";
 import SmpPanel from "../Library/SmpPanel";
 import { ConnectionGate } from "../../components";
@@ -60,6 +61,17 @@ export default function PayloadsScreen() {
       ),
     },
     {
+      id: "manager",
+      icon: Package,
+      key: "payloads_tab_manager",
+      fallback: "Payload Manager",
+      description: tr(
+        "payloads_description_manager",
+        undefined,
+        "The payloads kept on the PS5 by Payload Manager (itsPLK): launch or delete them, and choose which ones it loads at boot and in what order. Store a catalogue payload there from the Catalog tab.",
+      ),
+    },
+    {
       id: "shadowmount",
       icon: HardDrive,
       key: "payloads_tab_shadowmount",
@@ -86,6 +98,13 @@ export default function PayloadsScreen() {
 
   const renderPanel = (id: TabId) => {
     if (id === "send") return <SendPanel />;
+    if (id === "manager") {
+      return (
+        <ConnectionGate require="host">
+          <PayloadManagerPanel />
+        </ConnectionGate>
+      );
+    }
     if (id === "nanodns") return <NanoDnsScreen />;
     if (id === "shadowmount") {
       return (

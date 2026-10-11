@@ -259,6 +259,8 @@
 #define MGMT_FRAME_APP_ICON_SET_ACK 256u
 #define MGMT_FRAME_APP_HIDDEN_LIST 257u
 #define MGMT_FRAME_APP_HIDDEN_LIST_ACK 258u
+#define MGMT_FRAME_USB_EJECT 259u
+#define MGMT_FRAME_USB_EJECT_ACK 260u
 #define MGMT_FRAME_SDK_SCAN 214u
 #define MGMT_FRAME_SDK_SCAN_ACK 215u
 #define MGMT_FRAME_SDK_PATCH 216u
@@ -7004,6 +7006,62 @@ static int handle_app_hidden_list(runtime_state_t *state) {
         rc = mgmt_reply(MGMT_FRAME_APP_HIDDEN_LIST_ACK, resp, (uint64_t)written);
     }
     free(resp);
+    pthread_mutex_lock(&state->state_mtx);
+    state->command_count += 1;
+    pthread_mutex_unlock(&state->state_mtx);
+    return rc;
+}
+
+/* Safely remove a USB drive: body {"mount_point":"/mnt/usbN","force":"1"?}. A plain
+ * unmount first; it is refused (EBUSY) while anything holds the drive open, which on
+ * a PS5 the shell's own services usually do. With "force" the unmount is forced
+ * after a sync(): the cache is flushed and the exFAT volume marked clean, which is
+ * what makes pulling the stick safe; the caller is told to close any game or app
+ * that reads from it first. */
+static int handle_usb_eject(runtime_state_t *state, const char *body,
+                            uint64_t body_len) {
+    if (!state) return -1;
+    char mp[64] = {0};
+    char force[8] = {0};
+    char resp[256];
+    int n;
+
+    (void)parse_json_string_field_local(body, body_len, "force", force, sizeof(force));
+    if (parse_json_string_field_local(body, body_len, "mount_point", mp, sizeof(mp)) != 0 ||
+        strncmp(mp, "/mnt/usb", 8) != 0 || mp[8] < '0' || mp[8] > '7' || mp[9] != '\0') {
+        n = snprintf(resp, sizeof(resp),
+                     "{\"ok\":false,\"err\":\"mount_point must be /mnt/usb0 to /mnt/usb7\"}");
+    } else {
+        int mounted = 0;
+        struct statfs *mnts = NULL;
+        int nmnts = mntinfo_snapshot(&mnts);
+        for (int i = 0; i < nmnts && mnts != NULL; i++) {
+            if (strcmp(mnts[i].f_mntonname, mp) == 0) { mounted = 1; break; }
+        }
+        free(mnts);
+        if (!mounted) {
+            n = snprintf(resp, sizeof(resp), "{\"ok\":false,\"err\":\"usb_eject_not_mounted\"}");
+        } else {
+            sync();
+            int rc_un = unmount(mp, 0);
+            if (rc_un != 0 && errno == EBUSY && force[0] == '1') {
+                sync();
+                rc_un = unmount(mp, MNT_FORCE);
+            }
+            if (rc_un == 0) {
+                n = snprintf(resp, sizeof(resp), "{\"ok\":true,\"err\":null}");
+                char toast[128];
+                snprintf(toast, sizeof(toast), "%s unmounted. The USB drive can be removed.", mp);
+                pop_notification(toast);
+            } else {
+                int e = errno;
+                n = snprintf(resp, sizeof(resp), "{\"ok\":false,\"err\":\"%s\",\"errno\":%d}",
+                             e == EBUSY ? "usb_eject_busy" : "usb_eject_failed", e);
+            }
+        }
+    }
+
+    int rc = mgmt_reply(MGMT_FRAME_USB_EJECT_ACK, resp, (uint64_t)(n > 0 ? n : 0));
     pthread_mutex_lock(&state->state_mtx);
     state->command_count += 1;
     pthread_mutex_unlock(&state->state_mtx);

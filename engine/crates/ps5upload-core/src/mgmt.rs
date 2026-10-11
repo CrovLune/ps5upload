@@ -160,6 +160,7 @@ methods! {
     (RP_DEVICES, 141, "REMOTE_PLAY_DEVICES"),
     (APP_ICON_SET, 142, "APP_ICON_SET"),
     (APP_HIDDEN_LIST, 143, "APP_HIDDEN_LIST"),
+    (USB_EJECT, 144, "USB_EJECT"),
 }
 
 /// A management call the payload refused.

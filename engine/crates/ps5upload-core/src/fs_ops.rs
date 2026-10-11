@@ -493,6 +493,28 @@ pub fn fs_unmount(addr: &str, mount_point: &str) -> Result<()> {
     Ok(())
 }
 
+/// Safely remove a USB drive: the helper unmounts `/mnt/usbN` so the stick can be pulled.
+/// A plain unmount is refused with `usb_eject_busy` while anything on the console holds the
+/// drive open (the shell's own services usually do); `force` unmounts anyway after a sync,
+/// which flushes the cache and marks the volume clean.
+pub fn usb_eject(addr: &str, mount_point: &str, force: bool) -> Result<()> {
+    let body = serde_json::to_vec(&serde_json::json!({
+        "mount_point": mount_point,
+        "force": if force { "1" } else { "0" },
+    }))
+    .context("serialize usb_eject")?;
+    let resp = mgmt::call(addr, m::USB_EJECT, &body)?;
+    let v: serde_json::Value = serde_json::from_slice(&resp).context("usb_eject reply")?;
+    if v.get("ok").and_then(|b| b.as_bool()) == Some(true) {
+        return Ok(());
+    }
+    let err = v
+        .get("err")
+        .and_then(|e| e.as_str())
+        .unwrap_or("usb_eject_failed");
+    anyhow::bail!("{err}")
+}
+
 /// Rename/move a file or directory intra-volume. Cross-volume moves
 /// surface as `fs_move_cross_mount` error — payload uses `rename(2)` which
 /// returns EXDEV across mount points.

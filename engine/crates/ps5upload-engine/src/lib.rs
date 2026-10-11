@@ -59,6 +59,7 @@ mod migrate_6;
 mod net_health;
 mod pkg_install;
 mod pkg_sidecar;
+mod pldmgr_api;
 mod remote;
 mod remote_download;
 mod remote_pkg;
@@ -3395,6 +3396,36 @@ async fn ps5_hidden_icons(
         .and_then(|r| r);
     match r {
         Ok(v) => (StatusCode::OK, Json(v)).into_response(),
+        Err(e) => json_err(StatusCode::BAD_GATEWAY, format!("{e:#}")).into_response(),
+    }
+}
+
+#[derive(Deserialize)]
+struct UsbEjectReq {
+    addr: Option<String>,
+    mount_point: String,
+    #[serde(default)]
+    force: bool,
+}
+
+/// POST /api/ps5/usb/eject `{addr, mount_point, force}` — unmount a USB drive (`/mnt/usbN`)
+/// so it can be pulled. Without `force`, `usb_eject_busy` means something on the console
+/// holds it open; `force` unmounts anyway after a sync.
+async fn ps5_usb_eject(
+    State(state): State<AppState>,
+    Json(req): Json<UsbEjectReq>,
+) -> impl IntoResponse {
+    let addr = console_addr_or_default(req.addr, &state.default_ps5_addr);
+    let mp = req.mount_point;
+    let force = req.force;
+    crate::log_info!("usb_eject: addr={addr} mount_point={mp} force={force}");
+    let r =
+        tokio::task::spawn_blocking(move || ps5upload_core::fs_ops::usb_eject(&addr, &mp, force))
+            .await
+            .map_err(anyhow::Error::from)
+            .and_then(|r| r);
+    match r {
+        Ok(()) => (StatusCode::OK, Json(serde_json::json!({ "ok": true }))).into_response(),
         Err(e) => json_err(StatusCode::BAD_GATEWAY, format!("{e:#}")).into_response(),
     }
 }
@@ -9869,6 +9900,7 @@ async fn run(cfg: EngineConfig) -> anyhow::Result<()> {
         .route("/api/ps5/fs/op-cancel", post(ps5_fs_op_cancel))
         .route("/api/ps5/fs/mount", post(ps5_fs_mount))
         .route("/api/ps5/fs/unmount", post(ps5_fs_unmount))
+        .route("/api/ps5/usb/eject", post(ps5_usb_eject))
         .route("/api/ps5/app/launch", post(ps5_app_launch))
         .route("/api/ps5/app/register", post(ps5_app_register))
         .route("/api/ps5/app/unregister", post(ps5_app_unregister))
@@ -9918,6 +9950,11 @@ async fn run(cfg: EngineConfig) -> anyhow::Result<()> {
         .route("/api/ps5/fs/read-preview", post(ps5_fs_read_preview))
         .route("/api/ps5/process/list", get(ps5_process_list))
         .route("/api/ps5/elfldr/health", get(ps5_elfldr_health))
+        .route("/api/ps5/pldmgr", get(pldmgr_api::overview))
+        .route("/api/ps5/pldmgr/launch", post(pldmgr_api::launch))
+        .route("/api/ps5/pldmgr/delete", post(pldmgr_api::delete))
+        .route("/api/ps5/pldmgr/autoload", post(pldmgr_api::autoload))
+        .route("/api/ps5/pldmgr/store", post(pldmgr_api::store))
         .route("/api/ps5/elfldr/ensure", post(ps5_elfldr_ensure))
         .route("/api/ps5/process/kill", post(ps5_process_kill))
         .route("/api/ps5/power/control", post(ps5_power_control))

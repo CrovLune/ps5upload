@@ -120,6 +120,7 @@ ones (`ava1-ctest/tests/mgmt*.rs`, `ps5upload-ava1/tests/mgmt*.rs`). Methods 119
 | ActivityReset 253 | 128 `activity.reset` | `MgmtText` | `src/runtime.c` `handle_activity_reset` | `ps5upload-core/src/activity.rs` |  |
 | AppIconSet 255 | 142 `app.icon_set` | `MgmtText` | `src/runtime.c` `handle_app_icon_set` | `ps5upload-core/src/diagnostics.rs` | hides or shows a title's home-screen icon (#407) |
 | AppHiddenList 257 | 143 `app.hidden_list` | `MgmtText` | `src/runtime.c` `handle_app_hidden_list` | `ps5upload-core/src/diagnostics.rs` |  |
+| UsbEject 259 | 144 `usb.eject` | `MgmtText` | `src/runtime.c` `handle_usb_eject` | `ps5upload-core/src/fs_ops.rs` | unmounts `/mnt/usbN` so the drive can be pulled; plain unmount, or `force` (after a sync) since the shell's own services keep the drive open (EBUSY on FW 13.60) |
 | — | 21 `job.list` | empty -> `JobListResult` | `ava1/ava1_data.c` (the data plane) | none | `ava1-ctest/tests/job_run.rs` `repeat_job_run_is_idempotent`, `at_most_eight_operations_run_at_once_and_an_unknown_op_is_refused` (listing); no engine caller yet |
 | — | 34 `fs.stat` | `FsPath` -> `FsStat` | native `src/mgmt_fs.c` `mgmt_run_fs_stat` | none | host-tested |
 | — | 44 `fs.freespace` | `FsPath` -> `FsFreeSpace{usable, free, total, reserve, dev}`: the room an upload may fill on the drive holding the path (nearest existing ancestor): free less the working margin (1/64th, at most 1 GiB), never the memory admit budget or the hidden allocator pool; the engine's up-front space check (review 015 #02) | native `src/mgmt_fs.c` `mgmt_run_fs_freespace` | `ps5upload-core/src/volumes.rs` `free_space` (`ps5upload-ava1/src/space.rs`) | `ava1-ctest/tests/mgmt_fs.rs` `fs_freespace_is_the_post_reserve_figure_of_the_drive_holding_the_path`; engine `ps5upload-ava1/tests/mgmt.rs` |
@@ -151,6 +152,7 @@ detect truncation (SPEC §7.3): a buffer smaller than the answer is `ERR_INTERNA
 | app.info_set | <= 1 KiB | fits |
 | app.icon_set | <= 1 KiB | fits |
 | app.hidden_list | 16 KiB | fits |
+| usb.eject | <= 0.3 KiB | fits |
 | app.db_query | 64 KiB | fits |
 | proc.focus | 8 KiB | fits |
 | proc.list | 64 KiB | fits |

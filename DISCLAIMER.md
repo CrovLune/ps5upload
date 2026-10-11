@@ -96,7 +96,18 @@ claims, liabilities, damages, losses, and expenses, including
 reasonable legal fees, arising out of or in any way connected with your
 use or misuse of the Software or your violation of these terms.
 
-## 8. Severability and governing terms
+## 8. Development process
+
+The Software is developed with AI coding tools ("vibe-coded"), directed
+and tested by its maintainer. This is a deliberate choice to keep a fast
+development cycle and a short turnaround on bug reports, feature
+requests and enhancements. It also means the code has not received the
+extended, line-by-line human review that a conventionally written
+project of comparable size would. Releases are tested on real consoles
+before publication, but defects may remain. You accept the Software on
+that basis and use it at your own discretion.
+
+## 9. Severability and governing terms
 
 If any provision of this disclaimer is held to be unenforceable or
 invalid, that provision shall be limited or eliminated to the minimum
@@ -109,7 +120,7 @@ distributed. See [LICENSE](LICENSE). Where this disclaimer and the
 licence differ on warranty and liability, the broader exclusion
 applies to the maximum extent permitted by applicable law.
 
-## 9. If you do not agree
+## 10. If you do not agree
 
 If you do not agree with any part of this disclaimer, **do not
 download, build, install, or use the Software**, and delete any copy in

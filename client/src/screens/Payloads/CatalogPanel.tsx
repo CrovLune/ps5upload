@@ -11,6 +11,7 @@ import {
   Plus,
   Trash2,
   X,
+  PackagePlus,
 } from "lucide-react";
 import { openExternalUrl as openExternal } from "../../lib/openExternalUrl";
 import { useConnectionStore } from "../../state/connection";
@@ -34,6 +35,8 @@ import {
   isLatestTag,
 } from "../../lib/payloadVersions";
 import { Button, ErrorCard, Spinner, Badge, Input } from "../../components";
+import { useConfirm } from "../../components/ConfirmDialog";
+import { pmOverview, pmStore } from "../../api/payloadManager";
 import { useTr } from "../../state/lang";
 import UsbAutoloaderModal from "./UsbAutoloaderModal";
 
@@ -73,6 +76,24 @@ export default function CatalogPanel() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [usbWizardOpen, setUsbWizardOpen] = useState(false);
   const [query, setQuery] = useState("");
+  // Whether the console's Payload Manager (:8084) answers: it adds a "Store in Payload
+  // Manager" action to each cached payload. Probed once per console; a miss hides it.
+  const [pmPresent, setPmPresent] = useState(false);
+  const { confirm: confirmStore, dialog: storeDialog } = useConfirm();
+  useEffect(() => {
+    const h = host.trim();
+    setPmPresent(false);
+    if (!h) return;
+    let cancelled = false;
+    pmOverview(h)
+      .then((v) => {
+        if (!cancelled) setPmPresent(v.present);
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, [host]);
 
   // Client-side filter over the already-loaded catalog (name / role /
   // description / repo). Cheap — the catalog is ~two dozen entries.
@@ -268,6 +289,66 @@ export default function CatalogPanel() {
         body: String(e),
         link: "/payloads",
       });
+    } finally {
+      setBusy(id, false);
+    }
+  }
+
+  /** Keep a cached payload on the console, in Payload Manager's own storage, under the
+   *  file's name (so it lands in the same folder Payload Manager's repository install would
+   *  use). An existing folder is confirmed first: storing removes that folder's other files. */
+  async function handleStore(id: string) {
+    const local = inventoryById[id];
+    const h = host.trim();
+    if (!local || !h) return;
+    const filename = local.path.split(/[\\/]/).pop() || `${id}.elf`;
+    setBusy(id, true);
+    try {
+      let r = await pmStore(h, filename, local.path, false);
+      if (!r.stored) {
+        const ok = await confirmStore({
+          title: tr(
+            "payloads_pm_store_confirm_title",
+            { folder: r.folder },
+            `Replace Payload Manager's "${r.folder}" folder?`,
+          ),
+          message: r.fileExists
+            ? tr(
+                "payloads_pm_store_confirm_same",
+                { name: filename },
+                `Payload Manager already has ${filename}. Storing replaces it, and removes any other file in that folder.`,
+              )
+            : tr(
+                "payloads_pm_store_confirm_other",
+                { folder: r.folder },
+                `Payload Manager already has a "${r.folder}" folder. Storing into it removes the other files there (an older version, usually).`,
+              ),
+          confirmLabel: tr("payloads_pm_store", undefined, "Store in Payload Manager"),
+          destructive: true,
+        });
+        if (!ok) return;
+        r = await pmStore(h, filename, local.path, true);
+        if (!r.stored) return;
+      }
+      pushNotification(
+        "success",
+        withConsolePrefix(h, tr("payloads_pm_stored_title", { name: filename }, `Stored ${filename} in Payload Manager`)),
+        {
+          body: tr(
+            "payloads_pm_stored_body",
+            { folder: r.folder },
+            `It is in Payload Manager's "${r.folder}" folder. The Payload Manager tab launches it or loads it at boot.`,
+          ),
+          link: "/payloads?tab=manager",
+        },
+      );
+    } catch (e) {
+      setErrors((prev) => ({ ...prev, [id]: String(e) }));
+      pushNotification(
+        "error",
+        withConsolePrefix(h, tr("payloads_pm_store_failed", { id }, `Couldn't store ${id} in Payload Manager`)),
+        { body: String(e), link: "/payloads" },
+      );
     } finally {
       setBusy(id, false);
     }
@@ -539,6 +620,7 @@ export default function CatalogPanel() {
             onCheck={(force) => handleCheck(p.id, force)}
             onDownload={() => handleDownload(p.id)}
             onSend={() => handleSend(p.id)}
+            onStore={pmPresent ? () => handleStore(p.id) : undefined}
             onOpenHomepage={() => {
               void openExternal(p.homepage);
             }}
@@ -550,6 +632,7 @@ export default function CatalogPanel() {
           />
         ))}
       </div>
+      {storeDialog}
       {usbWizardOpen && (
         <UsbAutoloaderModal
           catalog={catalog}
@@ -573,6 +656,7 @@ function PayloadCard({
   onCheck,
   onDownload,
   onSend,
+  onStore,
   onOpenHomepage,
   onRemove,
 }: {
@@ -587,6 +671,8 @@ function PayloadCard({
   onCheck: (force: boolean) => void;
   onDownload: () => void;
   onSend: () => void;
+  /** Present when the console's Payload Manager answers: keep the cached file there. */
+  onStore?: () => void;
   onOpenHomepage: () => void;
   /** Present only for a user-added custom repo (#93) — renders a Remove
    *  control. Undefined for curated catalogue entries. */
@@ -764,6 +850,22 @@ function PayloadCard({
                 disabled={busy}
               >
                 {tr("payloads_send", undefined, "Send to PS5")}
+              </Button>
+            )}
+            {local && onStore && (
+              <Button
+                variant="secondary"
+                size="sm"
+                leftIcon={<PackagePlus size={11} />}
+                onClick={onStore}
+                disabled={busy}
+                title={tr(
+                  "payloads_pm_store_tooltip",
+                  undefined,
+                  "Keep this file on the PS5 in Payload Manager, so it can be launched there or loaded at boot.",
+                )}
+              >
+                {tr("payloads_pm_store", undefined, "Store in Payload Manager")}
               </Button>
             )}
           </div>

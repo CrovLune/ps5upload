@@ -100,6 +100,255 @@ pub fn forget(ip: &str, filename: &str) {
     );
 }
 
+/// A payload Payload Manager lists (`GET /list_payloads`), with its sidecar
+/// metadata when the file has one.
+#[derive(Debug, Clone, serde::Serialize)]
+pub struct StoredPayload {
+    /// The absolute path on the console; what `/loadpayload:` takes.
+    pub path: String,
+    pub filename: String,
+    /// The folder Payload Manager keeps it under (`/data/pldmgr/payloads/<folder>/`),
+    /// or the mount root for a payload found on a USB stick.
+    pub folder: String,
+    pub name: String,
+    pub version: String,
+    pub source: String,
+    /// `"repository"`, `"upload"`, … as Payload Manager recorded it.
+    pub install_source: String,
+}
+
+/// Payload Manager's own version (`GET /version`). Err when nothing answers on :8084.
+pub fn version(ip: &str) -> Result<String, String> {
+    let (status, body) = request(ip, "GET", "/version", None)
+        .map_err(|e| format!("no Payload Manager on :{PAYLOAD_MANAGER_PORT} ({e})"))?;
+    if status != 200 {
+        return Err(format!(
+            "nothing that looks like Payload Manager on :{PAYLOAD_MANAGER_PORT} (HTTP {status})"
+        ));
+    }
+    Ok(String::from_utf8_lossy(&body).trim().to_string())
+}
+
+/// Everything Payload Manager lists, its own storage first.
+pub fn list(ip: &str) -> Result<Vec<StoredPayload>, String> {
+    let (status, body) = request(ip, "GET", "/list_payloads", None)?;
+    if status != 200 {
+        return Err(format!(
+            "Payload Manager could not list its payloads (HTTP {status})"
+        ));
+    }
+    parse_list(&body).ok_or_else(|| "Payload Manager's list is not JSON".to_string())
+}
+
+fn parse_list(list_json: &[u8]) -> Option<Vec<StoredPayload>> {
+    let v: serde_json::Value = serde_json::from_slice(list_json).ok()?;
+    let meta = v.get("meta").cloned().unwrap_or(serde_json::Value::Null);
+    let text = |m: &serde_json::Value, keys: &[&str]| -> String {
+        keys.iter()
+            .find_map(|k| m.get(*k).and_then(|x| x.as_str()))
+            .unwrap_or("")
+            .to_string()
+    };
+    let mut out: Vec<StoredPayload> = v
+        .get("payloads")?
+        .as_array()?
+        .iter()
+        .filter_map(|p| p.as_str())
+        .map(|path| {
+            let filename = path.rsplit('/').next().unwrap_or(path).to_string();
+            let folder = path
+                .strip_prefix("/data/pldmgr/payloads/")
+                .and_then(|rest| rest.split('/').next())
+                .map(str::to_string)
+                .unwrap_or_else(|| {
+                    // "/mnt/usb0/x.elf" → "/mnt/usb0"
+                    path.rsplit_once('/')
+                        .map(|(d, _)| d.to_string())
+                        .unwrap_or_default()
+                });
+            let m = meta
+                .get(&filename)
+                .cloned()
+                .unwrap_or(serde_json::Value::Null);
+            StoredPayload {
+                path: path.to_string(),
+                name: text(&m, &["display_name", "name"]),
+                version: text(&m, &["version"]),
+                source: text(&m, &["source_name", "source"]),
+                install_source: text(&m, &["install_source"]),
+                filename,
+                folder,
+            }
+        })
+        .collect();
+    // Its own storage first, then USB finds; stable within each.
+    out.sort_by_key(|p| !p.path.starts_with("/data/pldmgr/"));
+    Some(out)
+}
+
+/// Launch a payload Payload Manager already lists (`GET /loadpayload:<path>`).
+pub fn launch(ip: &str, path: &str) -> Result<(), String> {
+    let (status, body) = request(
+        ip,
+        "GET",
+        &format!("/loadpayload:{}", encode_path(path)),
+        None,
+    )?;
+    if status != 200 {
+        return Err(format!(
+            "Payload Manager could not launch {path} (HTTP {status}: {})",
+            String::from_utf8_lossy(&body).trim()
+        ));
+    }
+    Ok(())
+}
+
+/// Delete a stored payload by file name (`GET /manage:delete`). Payload Manager
+/// removes the file and its sidecar.
+pub fn delete(ip: &str, filename: &str) -> Result<(), String> {
+    let (status, body) = request(
+        ip,
+        "GET",
+        &format!("/manage:delete?filename={}", encode_query(filename)),
+        None,
+    )?;
+    if status != 200 {
+        return Err(format!(
+            "Payload Manager could not delete {filename} (HTTP {status}: {})",
+            String::from_utf8_lossy(&body).trim()
+        ));
+    }
+    Ok(())
+}
+
+/// What storing `filename` would touch (`GET /manage:check`): the folder it
+/// lands in, and whether that folder or file already exists. An import
+/// removes every other file in that folder, so the caller asks the user
+/// before storing into one that exists.
+#[derive(Debug, Clone, serde::Serialize)]
+pub struct StoreCheck {
+    pub folder: String,
+    pub folder_exists: bool,
+    pub file_exists: bool,
+}
+
+pub fn check(ip: &str, filename: &str) -> Result<StoreCheck, String> {
+    let (status, body) = request(
+        ip,
+        "GET",
+        &format!("/manage:check?filename={}", encode_query(filename)),
+        None,
+    )?;
+    if status != 200 {
+        return Err(format!(
+            "Payload Manager could not check {filename} (HTTP {status})"
+        ));
+    }
+    let v: serde_json::Value = serde_json::from_slice(&body)
+        .map_err(|_| "Payload Manager's check reply is not JSON".to_string())?;
+    Ok(StoreCheck {
+        folder: v
+            .get("folder_name")
+            .and_then(|f| f.as_str())
+            .unwrap_or("")
+            .to_string(),
+        folder_exists: v
+            .get("folder_exists")
+            .and_then(|f| f.as_bool())
+            .unwrap_or(false),
+        file_exists: v
+            .get("file_exists")
+            .and_then(|f| f.as_bool())
+            .unwrap_or(false),
+    })
+}
+
+/// Store `bytes` under its real `filename` (`POST /manage:upload`), for the
+/// user's own list. Unlike [`launch_elf`] this writes into whatever folder
+/// Payload Manager derives from the name, so it is only called after the
+/// user confirmed what [`check`] reported.
+pub fn store(ip: &str, filename: &str, bytes: &[u8]) -> Result<(), String> {
+    if filename.is_empty() || filename.contains('/') || filename.contains("..") {
+        return Err(format!("{filename:?} is not a file name"));
+    }
+    let upload = format!("/manage:upload?filename={}", encode_query(filename));
+    let (status, body) = request(ip, "POST", &upload, Some(bytes))?;
+    if status != 200 {
+        return Err(format!(
+            "Payload Manager refused the upload (HTTP {status}: {})",
+            String::from_utf8_lossy(&body).trim()
+        ));
+    }
+    Ok(())
+}
+
+/// Payload Manager's boot autoload: on/off, the seconds it waits after boot,
+/// and the ordered list. A list entry is a file name it resolves through its
+/// scan folders, or `!<ms>` for a pause.
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)]
+pub struct Autoload {
+    pub enabled: bool,
+    pub delay_s: i64,
+    pub list: Vec<String>,
+}
+
+pub fn autoload_get(ip: &str) -> Result<Autoload, String> {
+    let (status, body) = request(ip, "GET", "/get_config", None)?;
+    if status != 200 {
+        return Err(format!(
+            "Payload Manager could not read its config (HTTP {status})"
+        ));
+    }
+    parse_autoload(&body).ok_or_else(|| "Payload Manager's config is not JSON".to_string())
+}
+
+fn parse_autoload(json: &[u8]) -> Option<Autoload> {
+    let v: serde_json::Value = serde_json::from_slice(json).ok()?;
+    let list = v
+        .get("AUTOLOAD_LIST")
+        .and_then(|l| l.as_str())
+        .unwrap_or("")
+        .split(',')
+        .map(str::trim)
+        .filter(|s| !s.is_empty())
+        .map(str::to_string)
+        .collect();
+    Some(Autoload {
+        enabled: v
+            .get("AUTOLOAD_ENABLED")
+            .and_then(|b| b.as_bool())
+            .unwrap_or(false),
+        delay_s: v
+            .get("AUTOLOAD_DELAY")
+            .and_then(|d| d.as_i64())
+            .unwrap_or(0),
+        list,
+    })
+}
+
+/// Write the autoload switch and list (`POST /set_config`). Payload Manager
+/// keeps its other settings when they are not sent.
+pub fn autoload_set(ip: &str, enabled: bool, list: &[String]) -> Result<(), String> {
+    for entry in list {
+        if entry.contains(',') || entry.contains('"') || entry.contains('/') {
+            return Err(format!("{entry:?} cannot be an autoload entry"));
+        }
+    }
+    let body = serde_json::json!({
+        "AUTOLOAD_ENABLED": enabled,
+        "AUTOLOAD_LIST": list.join(","),
+    })
+    .to_string();
+    let (status, resp) = request(ip, "POST", "/set_config", Some(body.as_bytes()))?;
+    if status != 200 {
+        return Err(format!(
+            "Payload Manager refused the config (HTTP {status}: {})",
+            String::from_utf8_lossy(&resp).trim()
+        ));
+    }
+    Ok(())
+}
+
 /// Ok when Payload Manager would store `filename` in a folder of its own that
 /// can only be ours: named exactly after the file's stem, in the `ps5upload-`
 /// namespace. Anything else could be a folder holding the user's payloads.
@@ -254,6 +503,45 @@ mod tests {
         assert!(own_folder(fresh, "ps5upload-helper.elf").is_ok());
         // A name outside our namespace is refused before anything is asked.
         assert!(own_folder(fresh, "ps5upload.elf").is_err());
+    }
+
+    #[test]
+    fn lists_stored_payloads_with_their_metadata() {
+        let body = br#"{"payloads":["/mnt/usb0/kstuff.elf","/data/pldmgr/payloads/kstuff/kstuff_v1.2.elf"],"meta":{"kstuff_v1.2.elf":{"display_name":"kstuff","version":"v1.2","source_name":"Mirror","install_source":"repository"}}}"#;
+        let list = parse_list(body).unwrap();
+        assert_eq!(list[0].path, "/data/pldmgr/payloads/kstuff/kstuff_v1.2.elf");
+        assert_eq!(list[0].folder, "kstuff");
+        assert_eq!(list[0].name, "kstuff");
+        assert_eq!(list[0].version, "v1.2");
+        assert_eq!(list[0].source, "Mirror");
+        assert_eq!(list[1].filename, "kstuff.elf");
+        assert_eq!(list[1].folder, "/mnt/usb0");
+        assert_eq!(list[1].name, "");
+    }
+
+    #[test]
+    fn reads_the_autoload_list_in_order() {
+        let body = br#"{"AUTOLOAD_ENABLED":true,"AUTOLOAD_LIST":"kstuff.elf,!3000,smp.elf","LAST_REPOSITORY_UPDATE":0,"AUTO_BROWSER_OPEN":false,"AUTOLOAD_DELAY":5,"KILL_DISC_PLAYER_ON_STARTUP":false,"SCAN_USB_PAYLOADS":false,"AUTO_INSTALL_APP":false,"MULTI_SOURCES_ENABLED":false}"#;
+        assert_eq!(
+            parse_autoload(body).unwrap(),
+            Autoload {
+                enabled: true,
+                delay_s: 5,
+                list: vec!["kstuff.elf".into(), "!3000".into(), "smp.elf".into()]
+            }
+        );
+        assert_eq!(
+            parse_autoload(br#"{"AUTOLOAD_ENABLED":false,"AUTOLOAD_LIST":""}"#)
+                .unwrap()
+                .list,
+            Vec::<String>::new()
+        );
+    }
+
+    #[test]
+    fn an_autoload_entry_cannot_break_the_list_format() {
+        assert!(autoload_set("127.0.0.9", true, &["a,b".into()]).is_err());
+        assert!(store("127.0.0.9", "../x.elf", b"").is_err());
     }
 
     #[test]
