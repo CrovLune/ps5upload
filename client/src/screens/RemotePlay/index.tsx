@@ -107,7 +107,7 @@ function ReadinessPanel({
       label: tr("remotePlay_check_user", undefined, "Someone is signed in"),
       detail:
         readiness.user_slot > 0
-          ? tr("remotePlay_slot", { slot: readiness.user_slot }, `user ${readiness.user_slot}`)
+          ? tr("remotePlay_slot", { slot: readiness.user_slot }, `Slot ${readiness.user_slot}`)
           : undefined,
       hint: tr(
         "remotePlay_check_user_hint",

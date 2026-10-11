@@ -8,8 +8,10 @@
  * Switching themes only needs to redefine the tokens; no component has
  * to know which theme is active.
  *
- * Two modes. Dark is the attribute-less default; the theme store sets
- * `data-theme="light"` on <html> for light (state/theme.ts).
+ * Four themes on two sides. Dark is the attribute-less default; the theme
+ * store sets `data-theme` on <html> for the others (state/theme.ts). OLED
+ * is dark with a pure-black window and Peach is light with warm colours, so
+ * each only overrides what differs and every light rule matches Peach too.
  *
  * The look follows macOS 27: a calm neutral window, a translucent sidebar
  * that runs to the window edge, content cards a step lighter than the
@@ -116,7 +118,7 @@
 }
 
 /* ── Light ────────────────────────────────────────────────────────────── */
-:root[data-theme="light"] {
+:root:is([data-theme="light"], [data-theme="peach"]) {
   color-scheme: light;
 
   --color-surface: rgb(0 0 0 / 0.03);
@@ -165,6 +167,61 @@
   --color-accent-glow: rgb(0 113 227 / 0.22);
 }
 
+/* ── Peach ────────────────────────────────────────────────────────────── */
+/* Light, warmed: a cream window, brown text, and a burnt-peach accent.
+ * Status and PS4/PS5 colours stay light's so they keep their meaning.
+ * Contrast on the window: text 14.9:1, muted 6.5:1, accent 5.2:1; white on
+ * the fill 5.2:1. */
+:root[data-theme="peach"] {
+  --color-surface: rgb(120 60 20 / 0.04);
+  --color-surface-3: rgb(120 60 20 / 0.08);
+  --color-float: rgb(255 252 249 / 0.97);
+  --color-canvas: rgb(120 60 20 / 0.03);
+  --glass-edge: rgb(90 45 15 / 0.1);
+  --color-pill: rgb(194 65 12 / 0.1);
+
+  --color-border: rgb(90 45 15 / 0.12);
+  --color-border-strong: rgb(90 45 15 / 0.24);
+  --color-muted: #6e5244;
+  --color-text: #2b1d16;
+  --color-accent: #b93d0a;
+  --color-accent-soft: rgb(234 88 12 / 0.12);
+  --color-accent-bright: #c2410c;
+  --color-accent-pink: #c2410c;
+  --accent-fill: linear-gradient(#c2410c, #c2410c);
+  --color-accent-glow: rgb(234 88 12 / 0.22);
+
+  --shadow-logo: 0 12px 40px -10px rgb(90 45 15 / 0.22);
+  --shadow-1: 0 1px 2px rgb(90 45 15 / 0.06);
+  --shadow-2: 0 10px 30px -10px rgb(90 45 15 / 0.22), 0 0 0 0.5px rgb(90 45 15 / 0.12);
+  --shadow-3: 0 24px 70px -20px rgb(90 45 15 / 0.3), 0 0 0 0.5px rgb(90 45 15 / 0.12);
+  --overlay-scrim: rgb(60 30 10 / 0.22);
+
+  --atmosphere-base: #fbf4ee;
+}
+
+/* ── OLED ─────────────────────────────────────────────────────────────── */
+/* Dark on pure black: the window and sidebar are #000 so those pixels stay
+ * off, cards are a faint lift off black, and nothing glows. Text, accent
+ * and status colours are dark's. */
+:root[data-theme="oled"] {
+  --color-surface: rgb(255 255 255 / 0.05);
+  --color-surface-2: rgb(255 255 255 / 0.07);
+  --color-surface-raised: rgb(255 255 255 / 0.08);
+  --color-float: rgb(20 20 22 / 0.98);
+  --color-canvas: transparent;
+
+  --shadow-logo: none;
+  --shadow-1: none;
+  --shadow-2: 0 0 0 0.5px rgb(255 255 255 / 0.14);
+  --shadow-3: 0 0 0 0.5px rgb(255 255 255 / 0.16);
+  --edge-highlight: inset 0 0 0 0 transparent;
+  --overlay-scrim: rgb(0 0 0 / 0.7);
+
+  --atmosphere-base: #000000;
+  --glass-blur: 0px;
+}
+
 /* High contrast: opaque surfaces, no blur, stronger lines, unmuted text. */
 :root[data-contrast="high"] {
   --color-surface: #1c1c1e;
@@ -176,7 +233,7 @@
   --glass-edge: rgb(255 255 255 / 0.4);
   --glass-blur: 0px;
 }
-:root[data-theme="light"][data-contrast="high"] {
+:root:is([data-theme="light"], [data-theme="peach"])[data-contrast="high"] {
   --color-surface: #ffffff;
   --color-surface-2: #ffffff;
   --color-surface-3: #e5e5ea;
@@ -186,6 +243,13 @@
   --glass-edge: rgb(0 0 0 / 0.45);
   --color-border: rgb(0 0 0 / 0.35);
   --color-border-strong: rgb(0 0 0 / 0.6);
+}
+:root[data-theme="oled"][data-contrast="high"] {
+  --color-surface: #000000;
+  --color-surface-2: #121214;
+  --color-surface-raised: #1a1a1c;
+  --color-float: #1a1a1c;
+  --color-canvas: #000000;
 }
 
 /* No blur when the system asks for less transparency, or when motion is cut
@@ -198,10 +262,15 @@
     --color-surface-raised: rgb(50 50 52 / 0.96);
     --color-canvas: rgb(30 30 32 / 0.96);
   }
-  :root[data-theme="light"] {
+  :root:is([data-theme="light"], [data-theme="peach"]) {
     --color-surface-2: rgb(255 255 255 / 0.9);
     --color-surface-raised: rgb(255 255 255 / 0.92);
     --color-canvas: rgb(255 255 255 / 0.75);
+  }
+  :root[data-theme="oled"] {
+    --color-surface-2: rgb(18 18 20 / 0.98);
+    --color-surface-raised: rgb(26 26 28 / 0.98);
+    --color-canvas: transparent;
   }
 }
 :root[data-motion="reduced"],
@@ -1043,8 +1112,8 @@ input[type="radio"] {
     border-color 0.15s ease,
     box-shadow 0.15s ease;
 }
-:root[data-theme="light"] .input,
-:root[data-theme="light"] .select {
+:root:is([data-theme="light"], [data-theme="peach"]) .input,
+:root:is([data-theme="light"], [data-theme="peach"]) .select {
   border-color: rgb(0 0 0 / 0.14);
 }
 textarea.input {

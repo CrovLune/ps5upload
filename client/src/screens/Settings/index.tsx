@@ -12,6 +12,8 @@ import {
   AlertTriangle,
   Sun,
   Moon,
+  MoonStar,
+  Sunrise,
   Gauge,
   Bell,
   Zap,
@@ -1345,8 +1347,9 @@ function BackupRestorePanel() {
   );
 }
 
-/** Light or dark. The theme button elsewhere flips between the two; here
- *  both are shown with what each looks like. */
+/** The four themes, lights on the left and darks on the right, each with a
+ *  swatch of its window, card and accent. The theme button elsewhere flips
+ *  between the last light and last dark picked here. */
 function ThemePicker() {
   const tr = useTr();
   const theme = useThemeStore((s) => s.theme);
@@ -1356,6 +1359,9 @@ function ThemePicker() {
     label: string;
     description: string;
     icon: React.ReactNode;
+    /** Window, card, accent — literal colours, so every card previews its
+     *  own theme whichever theme is showing. */
+    swatch: [string, string, string];
   }> = [
     {
       value: "light",
@@ -1366,6 +1372,7 @@ function ThemePicker() {
         "Daytime colours, high readability.",
       ),
       icon: <Sun size={14} />,
+      swatch: ["#f5f5f7", "#ffffff", "#0064d2"],
     },
     {
       value: "dark",
@@ -1376,6 +1383,29 @@ function ThemePicker() {
         "Default. Slight surface elevation, balanced contrast.",
       ),
       icon: <Moon size={14} />,
+      swatch: ["#1e1e20", "#2a2a2c", "#4da3ff"],
+    },
+    {
+      value: "peach",
+      label: tr("theme_peach", undefined, "Peach"),
+      description: tr(
+        "theme_peach_hint",
+        undefined,
+        "A warmer light: cream window, burnt-peach accent.",
+      ),
+      icon: <Sunrise size={14} />,
+      swatch: ["#fbf4ee", "#ffffff", "#c2410c"],
+    },
+    {
+      value: "oled",
+      label: tr("theme_oled", undefined, "OLED"),
+      description: tr(
+        "theme_oled_hint",
+        undefined,
+        "Dark on pure black, so an OLED screen's pixels stay off.",
+      ),
+      icon: <MoonStar size={14} />,
+      swatch: ["#000000", "#0e0e10", "#4da3ff"],
     },
   ];
   return (
@@ -1394,7 +1424,17 @@ function ThemePicker() {
         >
           <span className="icon-disc !h-7 !w-7" aria-hidden>{o.icon}</span>
           <span className="min-w-0 flex-1">
-            <div className="text-sm font-medium">{o.label}</div>
+            <div className="flex items-center gap-2 text-sm font-medium">
+              {o.label}
+              <span
+                className="inline-flex overflow-hidden rounded-full border border-[var(--color-border-strong)]"
+                aria-hidden
+              >
+                {o.swatch.map((c, i) => (
+                  <span key={i} className="h-3 w-3" style={{ background: c }} />
+                ))}
+              </span>
+            </div>
             <div className="text-xs text-[var(--color-muted)]">
               {o.description}
             </div>

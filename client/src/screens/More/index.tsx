@@ -25,7 +25,7 @@ import { useTr } from "../../state/lang";
 import { useNavSidebarStore } from "../../state/navSidebar";
 import { useLogsStore } from "../../state/logs";
 import { useUpdateStore } from "../../state/update";
-import { useThemeStore } from "../../state/theme";
+import { isDarkTheme, useThemeStore } from "../../state/theme";
 import { isTauriEnv } from "../../lib/tauriEnv";
 import { getAppVersion } from "../../lib/appVersion";
 import { isMacOrLinuxDesktop } from "../../lib/platform";
@@ -198,7 +198,7 @@ export default function MoreScreen() {
             `Switch theme (current: ${theme})`,
           )}
         >
-          {theme === "light" ? <Moon size={16} aria-hidden /> : <Sun size={16} aria-hidden />}
+          {!isDarkTheme(theme) ? <Moon size={16} aria-hidden /> : <Sun size={16} aria-hidden />}
           {tr("more_theme", undefined, "Theme")}
         </button>
         <div className="flex items-center gap-2">

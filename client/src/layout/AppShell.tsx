@@ -69,7 +69,7 @@ import { CommandPalette, openCommandPalette } from "../components/CommandPalette
 import { AppLogo } from "../components/AppLogo";
 import { CaptureViewer } from "../components/CaptureViewer";
 import NotificationInbox from "./NotificationInbox";
-import { useThemeStore } from "../state/theme";
+import { isDarkTheme, useThemeStore } from "../state/theme";
 import { ShortcutsOverlay } from "../components/ShortcutsOverlay";
 import { LocalPathPicker } from "../components/LocalPathPicker";
 import { Toaster } from "../components/Toaster";
@@ -1511,7 +1511,7 @@ function TopBarActions() {
         title={tr("switch_theme", { current: theme }, `Switch theme (current: ${theme})`)}
         className="icon-orb-button"
       >
-        {theme === "light" ? <Moon size={18} aria-hidden /> : <Sun size={18} aria-hidden />}
+        {!isDarkTheme(theme) ? <Moon size={18} aria-hidden /> : <Sun size={18} aria-hidden />}
       </button>
     </div>
   );
