@@ -330,7 +330,7 @@ const chosen = only ? [only] : Object.keys(sections);
 console.log(chosen.map((k) => sections[k]()).join("\n\n"));
 
 fs.mkdirSync(outDir, { recursive: true });
-for (const f of fs.readdirSync(outDir)) fs.rmSync(path.join(outDir, f)); // only this version's files
+for (const f of fs.readdirSync(outDir)) fs.rmSync(path.join(outDir, f), { recursive: true }); // only this version's files
 const files = [];
 const write = (name, text) => {
   fs.writeFileSync(path.join(outDir, name), `${text}\n`);
