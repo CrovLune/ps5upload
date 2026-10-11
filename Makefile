@@ -529,6 +529,7 @@ _wait-payload-ready:
 # Exceptions (each is a path excluded from the search; keep this list to files that must name
 # the legacy protocol, and reword anything else to AVA1 terms):
 #   CHANGELOG.md                     history keeps FTX2 by design.
+#   site/releases.json               the website's copy of the release notes (same history).
 #   protocol/ava1/                   the spec, the cutover checklist and the method
 #                                    checklist describe the migration from FTX2.
 #   Makefile, .github/workflows/engine-ci.yml
@@ -547,7 +548,7 @@ CHECK_NO_FTX2_PATTERN := ftx2|(^|[^0-9])911[34]([^0-9]|$$)
 CHECK_NO_FTX2_SCOPE := .
 CHECK_NO_FTX2_EXCEPT := \
 	':!engine/crates/ava1-ctest/tests/payload_cutover.rs' \
-	':!CHANGELOG.md' \
+	':!CHANGELOG.md' ':!site/releases.json' \
 	':!CONTRIBUTING.md' ':!TESTING.md' \
 	':!protocol/ava1' \
 	':!Makefile' \
