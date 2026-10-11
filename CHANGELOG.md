@@ -4,6 +4,21 @@ What's new in ps5upload, written for humans.
 
 ---
 
+## 7.0.7
+
+- **Hide an icon from the PS5 home screen.** For shortcuts and loaders you set up once and never
+  open again: Games → ⋯ → **Hide from home screen**. It stays installed and playable, a
+  "Hidden" badge marks it, "N hidden from the home screen" at the top finds them, and ⋯ →
+  **Show on home screen** brings it back. Only the icon's visibility changes (the same flag the
+  PS5 uses for its own hidden apps); system apps can't be hidden, and the console's app list is
+  backed up before the first change. The home screen updates the next time you open and close
+  any app.
+- **Upload: "Limited by" names the right cause.** When the console was idle waiting for data, the
+  upload said "console memory"; it now says "network" (for example a PC sharing its connection
+  with the PS5 while it is busy converting).
+
+---
+
 ## 7.0.6
 
 - **Your PS5 got a new address? The app finds it.** When the router gives the console a new IP,
