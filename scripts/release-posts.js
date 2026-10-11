@@ -39,6 +39,7 @@ const { execFileSync } = require("child_process");
 const REPO = "phantomptr/ps5upload";
 const DISCORD_INVITE = "https://discord.gg/fzK3xddtrM";
 const ISSUES_URL = `https://github.com/${REPO}/issues`;
+const COFFEE_URL = "https://ko-fi.com/B0B81S0WUA"; // client/src/lib/supportLinks.ts
 const DOCKER_IMAGE = "ghcr.io/phantomptr/ps5upload-engine-webui";
 const X_LIMIT = 280;
 const X_URL_LEN = 23; // X counts every link as 23 characters
@@ -208,7 +209,7 @@ function buildX() {
     if (g.heading && g !== groups[0]) lines.push({ text: stripMd(g.heading), heading: true });
     for (const text of items) lines.push({ text, heading: false });
   }
-  lines.push({ text: `Help & ideas: ${DISCORD_INVITE}\nBugs: ${ISSUES_URL}`, heading: false });
+  lines.push({ text: `Help & ideas: ${DISCORD_INVITE}\nBugs: ${ISSUES_URL}\n☕ ${COFFEE_URL}`, heading: false });
   const replies = [];
   let current = [];
   const fits = (extra) => xLength([...current, ...extra].join("\n")) <= X_LIMIT;
@@ -234,6 +235,7 @@ function buildDiscord() {
     `**[Download ${tag}](<${releaseUrl}>)**`,
     `[Report a bug](<${ISSUES_URL}>)`,
     `Docker web UI: \`${DOCKER_IMAGE}:${version}\``,
+    `[☕ Buy me a coffee](<${COFFEE_URL}>)`,
   ].join(" · ");
   const render = (full, ping) => {
     const out = [];
@@ -284,6 +286,8 @@ function buildReddit() {
     `- **Docker (web UI):** \`${DOCKER_IMAGE}:${version}\``,
     `- **Bugs:** [open an issue](${ISSUES_URL})`,
     `- **Help and ideas:** [Discord](${DISCORD_INVITE})`,
+    "",
+    `PS5Upload is free. If it saves you time, [a coffee](${COFFEE_URL}) keeps it going ☕`,
   );
   return { title: title.slice(0, 300), body: body.join("\n") };
 }
