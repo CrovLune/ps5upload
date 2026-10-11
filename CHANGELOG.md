@@ -4,7 +4,7 @@ What's new in ps5upload, written for humans.
 
 ---
 
-## 7.0.2
+## 7.0.3
 
 - **OLED theme is back, and there's a new Peach theme.** OLED is dark on pure black, so an OLED
   screen's pixels stay off; Peach is a warmer light theme with a cream window and a burnt-peach
