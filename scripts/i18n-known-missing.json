@@ -36,6 +36,7 @@
       "power_wake_signin_rpkey",
       "processes_pid",
       "remotePlay",
+      "remotePlay_slot",
       "remote_play",
       "smp_meta_json"
     ]
@@ -126,6 +127,7 @@
       "health_cat_remoteplay",
       "processes_pid",
       "remotePlay",
+      "remotePlay_slot",
       "remote_play",
       "smp_meta_json"
     ]
@@ -140,6 +142,7 @@
       "ffpkg_inspect_sce_sys",
       "processes_pid",
       "remotePlay",
+      "remotePlay_slot",
       "remote_play",
       "shortcuts_sec_filesystem",
       "smp_meta_json",
@@ -197,6 +200,7 @@
       "processes_pid",
       "queue_console_total",
       "remotePlay",
+      "remotePlay_slot",
       "remote_play",
       "smp_meta_json"
     ]
