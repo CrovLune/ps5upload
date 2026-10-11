@@ -159,7 +159,9 @@ function shortItem(it, max = 64) {
   const lead = stripMd(it.lead).trim();
   const rest = stripMd(it.rest || "").trim();
   if (lead !== stripMd(it.text).trim()) {
-    if (/:$/.test(lead) && rest) {
+    // A label that is already a phrase ("Collection scans show their progress:") stands alone;
+    // a short one ("Convert:") needs the clause after it to say anything.
+    if (/:$/.test(lead) && rest && lead.split(/\s+/).length < 4) {
       const clause = rest.split(/[;(]|,\s(?=and |or )|\.\s/)[0].trim().replace(/[.,;:]$/, "");
       return clip(`${lead} ${clause}`, max);
     }
@@ -196,7 +198,10 @@ function buildX() {
   const lead = `PS5Upload ${tag}${channel} is out 🎮`;
   // The changelog's opening line is the best one-sentence summary there is.
   const intro = summary ? clip(summary, 160) : headline;
-  const main = [lead, intro, `Download: ${releaseUrl}`, "#PS5 #PS5Homebrew"].filter(Boolean).join("\n\n");
+  // Without a summary to open with, the post points at the thread below it instead.
+  const main = [lead, intro, `Download: ${releaseUrl}`, "#PS5 #PS5Homebrew", intro ? null : "What's new 👇"]
+    .filter(Boolean)
+    .join("\n\n");
   // Pack every group heading and item into as few replies as fit, without
   // splitting a group heading from its first item.
   const lines = [];
@@ -272,7 +277,9 @@ function buildDiscord() {
 // ── Reddit ──────────────────────────────────────────────────────────────────
 
 function buildReddit() {
-  const title = `PS5Upload ${tag}${channel} released${headline ? ` — ${headline}` : summary ? ` — ${clip(summary.replace(/\.$/, ""), 120)}` : ""}`;
+  const firstChange = groups[0]?.items[0] ? shortItem(groups[0].items[0]).replace(/:.*$/, "") : null;
+  const lede = headline || (summary ? clip(summary.replace(/\.$/, ""), 120) : firstChange);
+  const title = `PS5Upload ${tag}${channel} released${lede ? ` — ${lede}` : ""}`;
   const body = [`**PS5Upload ${tag}** is out${prerelease ? " as a pre-release" : ""}.${summary ? ` ${summary}` : ""}`, "", "### What's new", ""];
   for (const g of groups) {
     if (g.heading) body.push("", `#### ${stripMd(g.heading)}`, "");
