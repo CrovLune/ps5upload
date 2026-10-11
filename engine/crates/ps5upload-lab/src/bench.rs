@@ -2858,17 +2858,33 @@ mod tests {
         l.local_addr().unwrap().to_string()
     }
 
+    /// A port held for this test but not listening yet (a connect is refused): unlike a port
+    /// bound and released, no other test running in parallel can take it in the meantime and
+    /// answer on it early, which made the late-listener test flaky on CI.
+    fn reserved_port() -> (socket2::Socket, String) {
+        use socket2::{Domain, Socket, Type};
+        let s = Socket::new(Domain::IPV4, Type::STREAM, None).unwrap();
+        s.bind(
+            &"127.0.0.1:0"
+                .parse::<std::net::SocketAddr>()
+                .unwrap()
+                .into(),
+        )
+        .unwrap();
+        let addr = s.local_addr().unwrap().as_socket().unwrap().to_string();
+        (s, addr)
+    }
+
     #[test]
     fn wait_for_ports_waits_for_listeners_that_appear_late() {
-        let (a, b) = (free_addr(), free_addr());
-        let (a2, b2) = (a.clone(), b.clone());
+        let ((sa, a), (sb, b)) = (reserved_port(), reserved_port());
         let t = std::thread::spawn(move || {
             std::thread::sleep(Duration::from_millis(400));
-            let la = std::net::TcpListener::bind(&a2).unwrap();
+            sa.listen(16).unwrap();
             std::thread::sleep(Duration::from_millis(400));
-            let lb = std::net::TcpListener::bind(&b2).unwrap();
+            sb.listen(16).unwrap();
             std::thread::sleep(Duration::from_secs(2));
-            drop((la, lb));
+            drop((sa, sb));
         });
         let waited =
             wait_for_ports(&[a, b], Duration::from_secs(10), Duration::from_millis(50)).unwrap();

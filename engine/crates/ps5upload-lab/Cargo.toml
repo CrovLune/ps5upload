@@ -16,3 +16,7 @@ ava1-chaos = { path = "../ava1-chaos" }
 ps5upload-ava1 = { path = "../ps5upload-ava1" }
 tokio = { workspace = true, features = ["net", "time", "io-util", "rt-multi-thread", "macros", "io-std"] }
 uuid.workspace = true
+
+[dev-dependencies]
+# Reserve a test port without listening on it (bench wait_for_ports tests).
+socket2 = "0.6"
