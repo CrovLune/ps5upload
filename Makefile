@@ -1269,6 +1269,9 @@ start: run-client
 release-post:
 	@node scripts/release-posts.js $(ARGS)
 
+promo-post:
+	@node scripts/promo-posts.js $(ARGS)
+
 AVA1_C := payload/ava1
 AVA1_C_CODEC := $(AVA1_C)/ava1_wire.c $(AVA1_C)/ava1_frame.c $(AVA1_C)/gen/ava1_gen.c \
 	$(AVA1_C)/ava1_keys.c $(AVA1_C)/ava1_noise.c $(AVA1_C)/ava1_aead.c $(AVA1_C)/platform_posix.c \
