@@ -15,6 +15,9 @@ What's new in ps5upload, written for humans.
   the wrong order, so pxplay refused it. The account ID field now takes the hex ID (with or
   without 0x), the base64 ID or the pxplay number. The PIN itself was always correct.
 - Remote Play names the signed-in account by its slot ("Slot 7"), the same as Profile.
+- **Upload: the "exfat" destination is a folder, not a conversion.** Its hint is now shown as
+  text (phones have no hover) and says so, and sending a game folder there warns that it will
+  arrive as a folder and points to "Or send it as one game image", which builds the .exfat.
 
 ---
 

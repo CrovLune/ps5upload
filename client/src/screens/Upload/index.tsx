@@ -87,6 +87,7 @@ import { isRemotePath } from "../../lib/remotePath";
 import { useUploadSettingsStore } from "../../state/uploadSettings";
 import { useUploadQueueStore } from "../../state/uploadQueue";
 import { SendAsImageCard } from "./SendAsImageCard";
+import { isImageFolder } from "./imageDirNote";
 import { pkgLibraryStore } from "../../state/pkgLibrary";
 import { pkgStorageFor } from "../../lib/pkgStorage";
 import { useInstallSettingsStore } from "../../state/installSettings";
@@ -1501,6 +1502,7 @@ function Step2Options(props: {
             subpath={destinationSubpath}
             onChange={onSetDestination}
             availableVolumes={availableVolumes}
+            gameFolder={source.kind === "game-folder" && !isRemotePath(source.path)}
             resolvedDest={
               resolveUploadDest(
                 destinationVolume,
@@ -3357,7 +3359,12 @@ const DESTINATION_PRESETS: { label: string; subpath: string; hintKey: string; hi
       hintKey: "upload_preset_etahen_hint",
       hintFallback: "etaHEN game folder (etaHEN app loader scans here)",
     },
-    { label: "exfat", subpath: "exfat", hintKey: "upload_preset_exfat_hint", hintFallback: "Disk images" },
+    {
+      label: "exfat",
+      subpath: "exfat",
+      hintKey: "upload_preset_exfat_hint",
+      hintFallback: "A folder for disk images. It does not turn a game folder into an image.",
+    },
     {
       label: "ps5upload",
       subpath: "ps5upload",
@@ -3372,6 +3379,7 @@ function DestinationCard({
   onChange,
   resolvedDest,
   availableVolumes,
+  gameFolder = false,
 }: {
   volume: string | null;
   subpath: string;
@@ -3386,8 +3394,12 @@ function DestinationCard({
    *  rather than a hardcoded short list. Empty when host isn't set or
    *  the payload isn't reachable yet. */
   availableVolumes: Volume[];
+  /** A local game folder, which "Or send it as one game image" above can
+   *  turn into an image; sending it to the exfat folder does not. */
+  gameFolder?: boolean;
 }) {
   const tr = useTr();
+  const activePreset = DESTINATION_PRESETS.find((p) => p.subpath === subpath);
   // Trust the payload when it answers: it already filters to writable
   // non-placeholder volumes (see the upstream filter where
   // availableVolumes is set). Hardcoded roots are only a placeholder
@@ -3473,6 +3485,21 @@ function DestinationCard({
           );
         })}
       </div>
+      {/* The hint as text, not only a tooltip: a phone has no hover. */}
+      {activePreset && (
+        <p className="mt-1.5 text-xs text-[var(--color-muted)]">
+          {tr(activePreset.hintKey, activePreset.hintFallback)}
+        </p>
+      )}
+      {gameFolder && isImageFolder(subpath) && (
+        <p className="mt-2 rounded-[var(--radius-card)] bg-[var(--color-warn-soft)] px-3 py-2 text-xs text-[var(--color-text)]">
+          {tr(
+            "upload_dest_image_folder_note",
+            undefined,
+            "This game folder will arrive in the exfat folder as a folder. To send it as an .exfat image, use \"Or send it as one game image\" above.",
+          )}
+        </p>
+      )}
 
       <div className="rounded-[var(--radius-card)] border border-[var(--glass-edge)] bg-[var(--color-surface)] mt-3 p-2.5">
         <div className="text-xs uppercase tracking-wide text-[var(--color-muted)]">
