@@ -1553,7 +1553,7 @@ upload_scanning_archive_hint:
 upload_disabled_scanning:
   "Játékmappa pásztázása — várd meg, amíg a pásztázás befejeződik, utána válik elérhetővé ez a gomb.",
 upload_choose_diff_source: "Válassz más forrást",
-upload_cancel: "Mégse",
+upload_change_source: "Forrás módosítása",
 upload_add_to_queue: "Hozzáadás a várólistához",
 upload_now: "Feltöltés",
 upload_checking: "Ellenőrzés…",

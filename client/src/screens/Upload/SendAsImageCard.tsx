@@ -93,8 +93,9 @@ export function SendAsImageCard({
             },
           ]}
         />
+        {/* The alternative to the Upload button below, so not filled: one primary per screen. */}
         <Button
-          variant="primary"
+          variant="secondary"
           disabled={
             !host ||
             busyElsewhere ||

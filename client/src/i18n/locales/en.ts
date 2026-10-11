@@ -1749,7 +1749,7 @@ upload_scanning_archive_hint:
 upload_disabled_scanning:
   "Scanning game folder — wait for the scan to finish, then this button enables.",
 upload_choose_diff_source: "Choose a different source",
-upload_cancel: "Cancel",
+upload_change_source: "Change source",
 upload_add_to_queue: "Add to queue",
 upload_now: "Upload",
 upload_checking: "Checking…",

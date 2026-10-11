@@ -1359,7 +1359,7 @@ upload_scanning_archive_hint:
 upload_disabled_scanning:
   "Skanowanie folderu gry — poczekaj na zakończenie skanowania, aby aktywować ten przycisk.",
 upload_choose_diff_source: "Wybierz inne źródło",
-upload_cancel: "Anuluj",
+upload_change_source: "Zmień źródło",
 upload_add_to_queue: "Dodaj do kolejki",
 upload_now: "Prześlij",
 upload_checking: "Sprawdzanie…",

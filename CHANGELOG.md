@@ -4,7 +4,7 @@ What's new in ps5upload, written for humans.
 
 ---
 
-## 7.0.4
+## 7.0.5
 
 - **OLED theme is back, and there's a new Peach theme.** OLED is dark on pure black, so an OLED
   screen's pixels stay off; Peach is a warmer light theme with a cream window and a burnt-peach
@@ -17,6 +17,11 @@ What's new in ps5upload, written for humans.
 - **7z uploads on 32-bit Android:** archives with more than 4 GiB in one block (most game
   backups) failed with "dist overflow", and files over 4 GiB inside an archive were cut short.
   They upload in full now.
+- **Upload's buttons say what they do.** The next step is the one blue button: "Start upload"
+  in the confirm is blue again, Retry is blue after a failure, and Add to queue is blue while
+  the queue runs (Upload waits then). "Cancel" before an upload has started is now "Change
+  source", and "Build the image, then upload it" is no longer a second blue button competing
+  with Upload.
 - Remote Play names the signed-in account by its slot ("Slot 7"), the same as Profile.
 - **Upload: the "exfat" destination is a folder, not a conversion.** Its hint is now shown as
   text (phones have no hover) and says so, and sending a game folder there warns that it will

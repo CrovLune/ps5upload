@@ -1541,12 +1541,13 @@ function Step2Options(props: {
             <ConsoleChip addr={stepHost} />
           </span>
         )}
+        {/* Nothing has started yet, so this is not a Cancel: it clears the source. */}
         <button
           type="button"
           onClick={onClear}
-          className="rounded-full border shadow-[var(--edge-highlight),var(--shadow-1)] hover:bg-[var(--color-float)] border-[var(--glass-edge)] bg-[var(--color-surface-raised)] px-4 py-2 text-sm"
+          className={ACTION_PLAIN}
         >
-          {tr("upload_cancel", "Cancel")}
+          {tr("upload_change_source", undefined, "Change source")}
         </button>
         {/* Add-to-queue: capture the current source + options into the
             persisted upload queue without starting the transfer. The
@@ -1556,7 +1557,8 @@ function Step2Options(props: {
           type="button"
           onClick={() => onAddToQueue("overwrite")}
           disabled={detecting || preflightBusy || !!detectError}
-          className="rounded-full border shadow-[var(--edge-highlight),var(--shadow-1)] hover:bg-[var(--color-float)] border-[var(--glass-edge)] bg-[var(--color-surface-raised)] px-4 py-2 text-sm disabled:opacity-50"
+          // While the queue runs, Upload is disabled and this is the way forward.
+          className={queueRunning && source.kind !== "pkg" ? ACTION_PRIMARY : ACTION_PLAIN}
           title={
             detecting
               ? tr(
@@ -1594,9 +1596,7 @@ function Step2Options(props: {
           className={
             // For a package, Stream & install (on its card) is the main
             // action; uploading it first is the fallback.
-            source.kind === "pkg"
-              ? "rounded-full border border-[var(--glass-edge)] bg-[var(--color-surface-raised)] px-6 py-2 text-sm font-medium text-[var(--color-text)] shadow-[var(--edge-highlight),var(--shadow-1)] hover:bg-[var(--color-float)] disabled:opacity-50"
-              : "rounded-full bg-[image:var(--accent-fill)] px-6 py-2 text-sm font-semibold text-[var(--color-accent-contrast)] shadow-[var(--accent-glow)] hover:brightness-105 disabled:opacity-50"
+            source.kind === "pkg" || queueRunning ? ACTION_PLAIN : ACTION_PRIMARY
           }
         >
           {preflightBusy
@@ -1620,7 +1620,7 @@ function Step2Options(props: {
               `Couldn't check the destination: ${preflightError}. Make sure the PS5 is reachable, then try again.`,
             )}
             action={
-              <Button variant="secondary" size="sm" onClick={onUpload}>
+              <Button variant="primary" size="sm" onClick={onUpload}>
                 {tr("upload_failed_retry", "Retry")}
               </Button>
             }
@@ -1751,6 +1751,20 @@ function MirrorToRosterButton({
   );
 }
 
+/** The action row under the form: the next step filled, the rest plain. */
+const ACTION_PLAIN =
+  "rounded-full border border-[var(--glass-edge)] bg-[var(--color-surface-raised)] px-5 py-2 text-sm font-medium text-[var(--color-text)] shadow-[var(--edge-highlight),var(--shadow-1)] hover:bg-[var(--color-float)] disabled:opacity-50";
+const ACTION_PRIMARY =
+  "rounded-full bg-[image:var(--accent-fill)] px-6 py-2 text-sm font-semibold text-[var(--color-accent-contrast)] shadow-[var(--accent-glow)] hover:brightness-105 disabled:opacity-50";
+
+/** The upload confirm's choices: one shape for all, the primary one filled with the accent. */
+const DIALOG_OPTION =
+  "flex items-start gap-3 rounded-[var(--radius-card)] border p-3.5 text-left text-sm transition";
+const DIALOG_PRIMARY =
+  "border-transparent bg-[image:var(--accent-fill)] text-[var(--color-accent-contrast)] shadow-[var(--accent-glow)] hover:brightness-105";
+const DIALOG_PLAIN =
+  "border-[var(--glass-edge)] bg-[var(--color-surface)] hover:bg-[var(--color-surface-raised)]";
+
 function ExistingDestinationDialog({
   entryCount,
   dest,
@@ -1807,7 +1821,7 @@ function ExistingDestinationDialog({
             <button
               type="button"
               onClick={onResume}
-              className="rounded-full border shadow-[var(--edge-highlight),var(--shadow-1)] hover:bg-[var(--color-float)] flex items-start gap-3 border-[color-mix(in_srgb,var(--color-accent)_40%,transparent)] bg-[image:var(--accent-fill)] shadow-[var(--accent-glow)] p-3 text-left text-sm text-[var(--color-accent-contrast)] hover:opacity-90"
+              className={`${DIALOG_OPTION} ${DIALOG_PRIMARY}`}
             >
               <span className="font-medium">
                 {tr("upload_dialog_resume", "Resume")}
@@ -1820,15 +1834,12 @@ function ExistingDestinationDialog({
               </span>
             </button>
           )}
+          {/* Start is the primary action in a clean destination (filled, like Resume);
+              with files already there Override is the risky one, so it stays plain. */}
           <button
             type="button"
             onClick={onOverride}
-            className={
-              "flex items-start gap-3 rounded-[var(--radius-card)] border p-3.5 text-left text-sm transition-colors " +
-              (hasExisting
-                ? "border-[var(--color-border)] bg-[var(--color-surface)] hover:bg-[var(--color-surface-raised)]"
-                : "border-[color-mix(in_srgb,var(--color-accent)_45%,transparent)] bg-[var(--color-surface-raised)] shadow-[var(--edge-highlight),var(--shadow-1)] ring-1 ring-[color-mix(in_srgb,var(--color-accent)_30%,transparent)]")
-            }
+            className={`${DIALOG_OPTION} ${hasExisting ? DIALOG_PLAIN : DIALOG_PRIMARY}`}
           >
             <span className="font-medium">
               {hasExisting
@@ -1849,7 +1860,7 @@ function ExistingDestinationDialog({
           <button
             type="button"
             onClick={onCancel}
-            className="rounded-full border shadow-[var(--edge-highlight),var(--shadow-1)] hover:bg-[var(--color-float)] flex items-start gap-3 border-[var(--glass-edge)] bg-[var(--color-surface)] p-3 text-left text-sm"
+            className={`${DIALOG_OPTION} ${DIALOG_PLAIN}`}
           >
             <span className="font-medium">
               {tr("upload_dialog_cancel", "Cancel")}
@@ -2248,7 +2259,7 @@ function TransferStatus({ onRetry }: { onRetry: () => void }) {
         onDismiss={clearPhase}
         action={
           <Button
-            variant="secondary"
+            variant="primary"
             size="sm"
             // The upload that failed, not whatever the form holds now (it may
             // have moved on to another source or console since).

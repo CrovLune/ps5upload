@@ -1611,7 +1611,7 @@ upload_scanning_archive_hint:
 upload_disabled_scanning:
   "در حال اسکن پوشه‌ی بازی — منتظر پایان اسکن بمانید، سپس این دکمه فعال می‌شود.",
 upload_choose_diff_source: "انتخاب منبع متفاوت",
-upload_cancel: "لغو",
+upload_change_source: "تغییر منبع",
 upload_add_to_queue: "افزودن به صف",
 upload_now: "بارگذاری",
 upload_checking: "در حال بررسی…",
