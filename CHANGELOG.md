@@ -4,6 +4,20 @@ What's new in ps5upload, written for humans.
 
 ---
 
+## 7.0.12
+
+- **Convert: a "Stored" package option (no compression).** Reports of packages that install but
+  will not start on FW 8.60 and 10.40 arrived while compressed packages have only been proven
+  to play on FW 5.10. Stored writes the same block layout with every block uncompressed, the
+  one form that has played on hardware; the package is the game's size. Pick it under
+  Compression if a compressed package installs but will not launch, and please say so on
+  GitHub, with your firmware, so the default can be set right.
+- **Helper mismatch notice** now says there is nothing to do on the PS5 itself: Reload helper
+  sends the matching helper from the app.
+- **RAR errors keep the library's reason** after the advice, so a report can be diagnosed.
+
+---
+
 ## 7.0.11
 
 - **Game page: Install on a package card.** "On your drives" showed a package with only Copy
