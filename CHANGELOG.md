@@ -29,6 +29,10 @@ What's new in ps5upload, written for humans.
   reached the PS5 and Start continued from there since 6.0; the app forgot a one-shot
   upload's resume id after 24 hours though, while the console keeps the data for 7 days.
   Both now agree on 7 days, and the Stop buttons explain what is kept.
+- **Home at a large Text size.** The action tiles squeezed their labels to one letter per line
+  ("U p l o a d") once the text was big enough. Home's grids now answer to their own width,
+  so they drop to fewer columns, and a tile too narrow for icon and label side by side
+  stacks them.
 - **"Coffee or tokens"** replaces "Buy me a coffee" on Home, About and the site.
 - README and DISCLAIMER say how the project is built (with AI coding tools, directed and
   tested by the maintainer) and what that means for you.

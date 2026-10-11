@@ -442,10 +442,9 @@ body {
 /* A main action on Home: a plain glass tile with an icon, a label and a
  * status line. */
 .action-tile {
-  display: flex;
+  display: block;
+  container-type: inline-size;
   min-height: 5.5rem;
-  align-items: center;
-  gap: 0.875rem;
   padding: 1rem 1.125rem;
   border-radius: var(--radius-card);
   border: 1px solid var(--glass-edge);
@@ -465,18 +464,31 @@ body {
   cursor: not-allowed;
   opacity: 0.6;
 }
-/* Phones: two tiles side by side leave too little room beside the icon, and labels broke
- * mid-word ("Uplo|ad"). The icon goes above the label, and the chevron goes. */
-@media (max-width: 639px) {
-  .action-tile {
+.action-tile-inner {
+  display: flex;
+  min-height: 3.5rem;
+  align-items: center;
+  gap: 0.875rem;
+}
+/* A tile too narrow for icon + label side by side (two tiles across on a phone, or three
+ * across at a large Text size) stacks them, and the chevron goes. Labels used to break
+ * mid-word ("Uplo|ad") and, at a large Text size, one letter per line. The limit is in rem
+ * so it scales with the text. */
+@container (max-width: 15rem) {
+  .action-tile-inner {
     flex-direction: column;
     align-items: flex-start;
     gap: 0.625rem;
     min-height: 0;
-    padding: 0.875rem;
   }
-  .action-tile .action-tile-chevron {
+  .action-tile-inner .action-tile-chevron {
     display: none;
+  }
+}
+@media (max-width: 639px) {
+  .action-tile {
+    min-height: 0;
+    padding: 0.875rem;
   }
 }
 
