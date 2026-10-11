@@ -4,12 +4,24 @@
  * version's section of CHANGELOG.md.
  *
  * Usage
+ *   make release-post                             # = node scripts/release-posts.js
  *   node scripts/release-posts.js                 # version from VERSION
  *   node scripts/release-posts.js 5.35.0
- *   node scripts/release-posts.js --only discord  # one platform
- *   node scripts/release-posts.js --out /tmp/posts   # also write x.txt, discord.md, reddit.md
+ *   node scripts/release-posts.js --only discord  # print one platform
+ *   node scripts/release-posts.js --out /tmp/posts   # write there instead
  *   node scripts/release-posts.js --prerelease | --stable   # override detection
  *   node scripts/release-posts.js --url https://…      # override the release link
+ *
+ * Writes one file per thing you paste to `.release_posts/v<version>/` (git-ignored), shaped
+ * for each platform:
+ *   X        plain text, no markdown; 280 characters with every link counted as 23. A short
+ *            main post with the link (X shows the release as a card), then a reply thread.
+ *            One file per post: x-1-main.txt, x-2-reply.txt, …
+ *   Discord  markdown: ## heading, bullets, **bold**, `-#` small print, [named links](<url>)
+ *            (the <> stops Discord from embedding each link). 2000 characters at most.
+ *   Reddit   the title and the body are separate boxes: reddit-title.txt, reddit-body.md
+ *            (markdown, ### headings, named links).
+ * plus README.md: what to paste where, with each post's length.
  *
  * The changelog section is read as groups: a bold paragraph line
  * (`**One install path for everything.**`) starts a group, and each `- `
@@ -26,6 +38,7 @@ const { execFileSync } = require("child_process");
 
 const REPO = "phantomptr/ps5upload";
 const DISCORD_INVITE = "https://discord.gg/fzK3xddtrM";
+const ISSUES_URL = `https://github.com/${REPO}/issues`;
 const DOCKER_IMAGE = "ghcr.io/phantomptr/ps5upload-engine-webui";
 const X_LIMIT = 280;
 const X_URL_LEN = 23; // X counts every link as 23 characters
@@ -47,7 +60,7 @@ const version =
 const tag = `v${version}`;
 const releaseUrl = option("--url") || `https://github.com/${REPO}/releases/tag/${tag}`;
 const only = option("--only");
-const outDir = option("--out");
+const outDir = option("--out") || path.join(repoRoot, ".release_posts", tag);
 
 function detectPrerelease() {
   if (flag("--prerelease")) return true;
@@ -128,15 +141,44 @@ const stripMd = (s) =>
     .replace(/`([^`]+)`/g, "$1")
     .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1");
 
-/** One line for short formats: the bold lead, or the first sentence. */
-function shortItem(it) {
-  const s = stripMd(it.lead).trim();
-  const trim = (t) => t.replace(/[.,:;]$/, "");
-  if (s !== stripMd(it.text).trim()) return trim(s);
-  return trim(s.split(/(?<=[.!?])\s/)[0]);
+/** Shortens `s` to at most `max` characters: at the last comma that leaves at least half of
+ *  it (a list reads fine cut there), else at a word boundary with "…". */
+function clip(s, max) {
+  if (s.length <= max) return s;
+  const cut = s.slice(0, max - 1);
+  const comma = cut.lastIndexOf(", ");
+  if (comma >= max / 2) return cut.slice(0, comma);
+  return `${cut.slice(0, Math.max(cut.lastIndexOf(" "), max / 2)).replace(/[,;:\s]+$/, "")}…`;
 }
 
-const groups = parseGroups(readSection());
+/** One line for short formats. A bold lead that is a sentence ("**Faster installs.** …")
+ *  stands alone; a label ("**Convert:** AMPR LZ4 packs, …") keeps the first clause after it
+ *  so the line still says something. Otherwise the first sentence. */
+function shortItem(it, max = 64) {
+  const lead = stripMd(it.lead).trim();
+  const rest = stripMd(it.rest || "").trim();
+  if (lead !== stripMd(it.text).trim()) {
+    if (/:$/.test(lead) && rest) {
+      const clause = rest.split(/[;(]|,\s(?=and |or )|\.\s/)[0].trim().replace(/[.,;:]$/, "");
+      return clip(`${lead} ${clause}`, max);
+    }
+    return clip(lead.replace(/[.,:;]$/, ""), max);
+  }
+  return clip(lead.split(/(?<=[.!?])\s/)[0].replace(/[.,:;]$/, ""), max);
+}
+
+const sectionLines = readSection();
+const groups = parseGroups(sectionLines);
+/** The section's opening paragraph (the line before the bullets), if there is one. */
+const summary = (() => {
+  const para = [];
+  for (const l of sectionLines) {
+    if (l.trim().startsWith("- ") || /^\*\*.+\*\*$/.test(l.trim()) || l.startsWith("#")) break;
+    if (l.trim()) para.push(l.trim());
+    else if (para.length) break;
+  }
+  return para.length ? stripMd(para.join(" ")) : null;
+})();
 if (groups.length === 0) {
   console.error(`The ${version} section has no bullet points to announce.`);
   process.exit(1);
@@ -150,8 +192,10 @@ const channel = prerelease ? " (pre-release)" : "";
 const xLength = (s) => s.replace(/https?:\/\/\S+/g, "x".repeat(X_URL_LEN)).length;
 
 function buildX() {
-  const lead = `PS5Upload ${tag}${channel} is out!`;
-  const main = [lead, headline, releaseUrl].filter(Boolean).join("\n\n");
+  const lead = `PS5Upload ${tag}${channel} is out 🎮`;
+  // The changelog's opening line is the best one-sentence summary there is.
+  const intro = summary ? clip(summary, 160) : headline;
+  const main = [lead, intro, `Download: ${releaseUrl}`, "#PS5 #PS5Homebrew"].filter(Boolean).join("\n\n");
   // Pack every group heading and item into as few replies as fit, without
   // splitting a group heading from its first item.
   const lines = [];
@@ -164,7 +208,7 @@ function buildX() {
     if (g.heading && g !== groups[0]) lines.push({ text: stripMd(g.heading), heading: true });
     for (const text of items) lines.push({ text, heading: false });
   }
-  lines.push({ text: `Bugs, questions, ideas: ${DISCORD_INVITE}`, heading: false });
+  lines.push({ text: `Help & ideas: ${DISCORD_INVITE}\nBugs: ${ISSUES_URL}`, heading: false });
   const replies = [];
   let current = [];
   const fits = (extra) => xLength([...current, ...extra].join("\n")) <= X_LIMIT;
@@ -186,50 +230,62 @@ function buildX() {
 // ── Discord ─────────────────────────────────────────────────────────────────
 
 function buildDiscord() {
-  const footer = [
-    "",
-    `**Download:** ${releaseUrl}`,
-    `**Docker (web UI):** \`${DOCKER_IMAGE}:${version}\``,
-    `**Help & bug reports:** ${DISCORD_INVITE}`,
-  ];
-  if (prerelease) {
-    footer.unshift("", "_Pre-release: in Settings → Updates, turn on “Get pre-release versions” to be offered it._");
-  }
-  const render = (full) => {
-    const out = [`@everyone`, `## PS5Upload ${tag}${channel} is out`];
+  const links = [
+    `**[Download ${tag}](<${releaseUrl}>)**`,
+    `[Report a bug](<${ISSUES_URL}>)`,
+    `Docker web UI: \`${DOCKER_IMAGE}:${version}\``,
+  ].join(" · ");
+  const render = (full, ping) => {
+    const out = [];
+    if (ping) out.push("@everyone");
+    out.push(`## 🎮 PS5Upload ${tag}${channel} is out`);
+    if (summary) out.push(summary);
     for (const g of groups) {
       out.push("");
-      if (g.heading) out.push(`**${stripMd(g.heading)}**`);
+      if (g.heading) out.push(`### ${stripMd(g.heading)}`);
       for (const it of g.items) {
-        out.push(full ? `- ${it.text}` : `- ${shortItem(it)}`);
+        if (full) {
+          out.push(`- ${it.text}`);
+          continue;
+        }
+        // Bold only the label: "**Convert:** AMPR LZ4 asset packs…".
+        const line = shortItem(it);
+        const lead = stripMd(it.lead).trim();
+        const head = /:$/.test(lead) ? lead : null;
+        out.push(head && line.startsWith(head) ? `- **${head}**${line.slice(head.length)}` : `- **${line}**`);
       }
     }
-    return [...out, ...footer].join("\n");
+    out.push("", links);
+    if (prerelease) {
+      out.push("-# Pre-release: in Settings → Updates, turn on “Get pre-release versions” to be offered it.");
+    }
+    out.push("-# Questions and ideas: ask here.");
+    return out.join("\n");
   };
   // Full bullets when they fit Discord's 2000-character limit, short ones when not.
-  const full = render(true);
-  return full.length <= DISCORD_LIMIT ? full : render(false);
+  const full = render(true, true);
+  return full.length <= DISCORD_LIMIT ? full : render(false, true);
 }
 
 // ── Reddit ──────────────────────────────────────────────────────────────────
 
 function buildReddit() {
-  const title = `PS5Upload ${tag}${channel} released${headline ? ` — ${headline}` : ""}`;
-  const body = [`**PS5Upload ${tag}** is out${prerelease ? " as a pre-release" : ""}.`];
+  const title = `PS5Upload ${tag}${channel} released${headline ? ` — ${headline}` : summary ? ` — ${clip(summary.replace(/\.$/, ""), 120)}` : ""}`;
+  const body = [`**PS5Upload ${tag}** is out${prerelease ? " as a pre-release" : ""}.${summary ? ` ${summary}` : ""}`, "", "### What's new", ""];
   for (const g of groups) {
-    body.push("");
-    if (g.heading) body.push(`### ${stripMd(g.heading)}`, "");
+    if (g.heading) body.push("", `#### ${stripMd(g.heading)}`, "");
     for (const it of g.items) body.push(`- ${it.text}`);
   }
   body.push(
     "",
-    `**Download:** ${releaseUrl}`,
+    "### Links",
     "",
-    `**Docker (web UI):** \`${DOCKER_IMAGE}:${version}\``,
-    "",
-    `**Discord (help, bugs, feature requests):** ${DISCORD_INVITE}`,
+    `- **Download:** [${tag} on GitHub](${releaseUrl})`,
+    `- **Docker (web UI):** \`${DOCKER_IMAGE}:${version}\``,
+    `- **Bugs:** [open an issue](${ISSUES_URL})`,
+    `- **Help and ideas:** [Discord](${DISCORD_INVITE})`,
   );
-  return { title, body: body.join("\n") };
+  return { title: title.slice(0, 300), body: body.join("\n") };
 }
 
 // ── Output ──────────────────────────────────────────────────────────────────
@@ -257,16 +313,37 @@ if (only && !sections[only]) {
 const chosen = only ? [only] : Object.keys(sections);
 console.log(chosen.map((k) => sections[k]()).join("\n\n"));
 
-if (outDir) {
-  fs.mkdirSync(outDir, { recursive: true });
-  const files = {
-    x: ["x.txt", [x.main, ...x.replies].join("\n\n---\n\n")],
-    discord: ["discord.md", discord],
-    reddit: ["reddit.md", `${reddit.title}\n\n${reddit.body}`],
-  };
-  for (const k of chosen) {
-    const [name, text] = files[k];
-    fs.writeFileSync(path.join(outDir, name), `${text}\n`);
-  }
-  console.error(`\nWrote ${chosen.map((k) => files[k][0]).join(", ")} to ${outDir}`);
-}
+fs.mkdirSync(outDir, { recursive: true });
+for (const f of fs.readdirSync(outDir)) fs.rmSync(path.join(outDir, f)); // only this version's files
+const files = [];
+const write = (name, text) => {
+  fs.writeFileSync(path.join(outDir, name), `${text}\n`);
+  files.push(name);
+};
+const xPosts = [x.main, ...x.replies];
+xPosts.forEach((t, i) => write(`x-${i + 1}-${i === 0 ? "main" : "reply"}.txt`, t));
+write("discord.md", discord);
+write("reddit-title.txt", reddit.title);
+write("reddit-body.md", reddit.body);
+write(
+  "README.md",
+  [
+    `# PS5Upload ${tag} release posts`,
+    "",
+    "Copy each file's contents into the place named. Nothing here is committed (.release_posts is git-ignored).",
+    "",
+    "## X",
+    ...xPosts.map((t, i) =>
+      `- \`x-${i + 1}-${i === 0 ? "main" : "reply"}.txt\` — ${i === 0 ? "the post" : `reply ${i} (reply to the previous post)`}, ${xLength(t)}/${X_LIMIT} characters`,
+    ),
+    "",
+    "## Discord",
+    `- \`discord.md\` — the announcement, ${discord.length}/${DISCORD_LIMIT} characters. Remove the @everyone line to post without a ping.`,
+    "",
+    "## Reddit",
+    "- `reddit-title.txt` — the Title box",
+    "- `reddit-body.md` — the body (switch the editor to Markdown first)",
+    "",
+  ].join("\n"),
+);
+console.error(`\nWrote ${files.length} files to ${path.relative(repoRoot, outDir) || outDir}`);
