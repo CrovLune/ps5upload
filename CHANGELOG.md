@@ -4,6 +4,16 @@ What's new in ps5upload, written for humans.
 
 ---
 
+## 7.0.6
+
+- **Your PS5 got a new address? The app finds it.** When the router gives the console a new IP,
+  the saved address stops answering. While it does, the desktop and Android apps look for the
+  same paired console on your network and, once it proves who it is, show "Your PS5 now answers
+  at …" with **Switch**. A different PS5 is never offered. (It needs the helper running at the
+  new address; after a reboot, use Find PS5s on Connection.)
+
+---
+
 ## 7.0.5
 
 - **OLED theme is back, and there's a new Peach theme.** OLED is dark on pure black, so an OLED

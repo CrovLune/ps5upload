@@ -2674,7 +2674,7 @@ dependencies = [
 
 [[package]]
 name = "sevenz-rust2"
-version = "7.0.5"
+version = "0.23.0"
 dependencies = [
  "aes 0.9.3",
  "bzip2",
