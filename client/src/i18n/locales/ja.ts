@@ -1830,6 +1830,7 @@ queue_installed_warn: "インストール済み（起動しない可能性あり
 queue_will_install: "アップロード後にインストール",
 remotePlay_account_id_label: "アカウントID（任意）",
 remotePlay_account_id_placeholder: "0000000000000000",
+remotePlay_account_id_invalid: "アカウントIDではありません。16進数のID（0xの有無は問いません）、base64のID、またはpxplayの番号を使用してください。",
 remotePlay_cancel: "キャンセル",
 remotePlay_field_account_id: "アカウントID",
 remotePlay_field_pin: "PIN",

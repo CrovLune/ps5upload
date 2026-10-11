@@ -1818,6 +1818,7 @@ queue_installed_warn: "ติดตั้งแล้ว (อาจเปิด�
 queue_will_install: "ติดตั้งหลังอัปโหลด",
 remotePlay_account_id_label: "รหัสบัญชี (ไม่บังคับ)",
 remotePlay_account_id_placeholder: "0000000000000000",
+remotePlay_account_id_invalid: "นี่ไม่ใช่รหัสบัญชี ใช้รหัสฐานสิบหก (มีหรือไม่มี 0x ก็ได้) รหัส base64 หรือหมายเลข pxplay",
 remotePlay_cancel: "ยกเลิก",
 remotePlay_field_account_id: "รหัสบัญชี",
 remotePlay_field_pin: "PIN",

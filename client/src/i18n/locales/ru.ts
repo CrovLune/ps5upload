@@ -1759,6 +1759,7 @@ queue_installed_warn: "установлено (может не запустит�
 queue_will_install: "установить после загрузки",
 remotePlay_account_id_label: "ID аккаунта (необязательно)",
 remotePlay_account_id_placeholder: "0000000000000000",
+remotePlay_account_id_invalid: "Это не идентификатор аккаунта. Используйте шестнадцатеричный ID (с 0x или без), ID в base64 или номер pxplay.",
 remotePlay_cancel: "Отмена",
 remotePlay_field_account_id: "ID аккаунта",
 remotePlay_field_pin: "PIN",

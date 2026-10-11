@@ -22,7 +22,7 @@ import { useConnectionStore } from "../../state/connection";
 import { useDocumentVisible } from "../../lib/visibility";
 import { useStaleHostGuard } from "../../lib/staleHostGuard";
 import { transferAddr } from "../../lib/addr";
-import { accountIdToChiakiNumeric } from "../../lib/remoteplay";
+import { accountIdToChiakiNumeric, accountIdToPairingB64 } from "../../lib/remoteplay";
 import {
   remoteplayRequest,
   remoteplayStatus,
@@ -299,11 +299,25 @@ export default function RemotePlayScreen() {
 
   const handleRequest = useCallback(async () => {
     if (!addr) return;
+    // The id may be typed as hex, base64 or pxplay's number; the payload
+    // shows it back as given, so send the console's base64 spelling.
+    const typed = manualAccountId.trim();
+    const manual = typed ? accountIdToPairingB64(typed) : null;
+    if (typed && !manual) {
+      setError(
+        tr(
+          "remotePlay_account_id_invalid",
+          undefined,
+          "That is not an account ID. Use the hex ID (with or without 0x), the base64 ID, or the pxplay number.",
+        ),
+      );
+      return;
+    }
     const probe = guard.capture();
     setBusy(true);
     setError(null);
     try {
-      await remoteplayRequest(manualAccountId.trim() || undefined, addr);
+      await remoteplayRequest(manual ?? undefined, addr);
       if (probe.isStale()) return;
       await refresh();
     } catch (e) {
@@ -312,7 +326,7 @@ export default function RemotePlayScreen() {
     } finally {
       setBusy(false);
     }
-  }, [addr, manualAccountId, refresh, guard]);
+  }, [addr, manualAccountId, refresh, guard, tr]);
 
   const handleCancel = useCallback(async () => {
     if (!addr) return;

@@ -2374,6 +2374,7 @@ roster_order_hint: "این ترتیب تب‌های کنسول و انتخابگ
 
   remotePlay_account_id_label: "شناسه‌ی حساب (اختیاری)",
   remotePlay_account_id_placeholder: "0000000000000000",
+  remotePlay_account_id_invalid: "این شناسهٔ حساب نیست. از شناسهٔ هگز (با یا بدون 0x)، شناسهٔ base64 یا شمارهٔ pxplay استفاده کنید.",
   remotePlay_field_account_id: "شناسه‌ی حساب",
   remotePlay_field_seconds_left: "ثانیه‌های باقی‌مانده",
   remotePlay_pxplay_label: "pxplay:",

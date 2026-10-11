@@ -1809,6 +1809,7 @@ queue_installed_warn: "ইনস্টল হয়েছে (চালু ন�
 queue_will_install: "আপলোডের পরে ইনস্টল করুন",
 remotePlay_account_id_label: "অ্যাকাউন্ট আইডি (ঐচ্ছিক)",
 remotePlay_account_id_placeholder: "0000000000000000",
+remotePlay_account_id_invalid: "এটি কোনো অ্যাকাউন্ট আইডি নয়। হেক্স আইডি (0x সহ বা ছাড়া), base64 আইডি অথবা pxplay নম্বর ব্যবহার করুন।",
 remotePlay_cancel: "বাতিল",
 remotePlay_field_account_id: "অ্যাকাউন্ট আইডি",
 remotePlay_field_pin: "PIN",

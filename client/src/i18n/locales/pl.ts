@@ -2091,6 +2091,7 @@ shortcuts_activate: "Otwórz / aktywuj",
 
   remotePlay_account_id_label: "Identyfikator konta (opcjonalnie)",
   remotePlay_account_id_placeholder: "0000000000000000",
+  remotePlay_account_id_invalid: "To nie jest identyfikator konta. Użyj identyfikatora szesnastkowego (z 0x lub bez), identyfikatora base64 albo numeru pxplay.",
   remotePlay_field_account_id: "Identyfikator konta",
   remotePlay_field_seconds_left: "Pozostało sekund",
 

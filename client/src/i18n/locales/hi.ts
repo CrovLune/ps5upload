@@ -1825,6 +1825,7 @@ queue_installed_warn: "इंस्टॉल किया गया (शाय�
 queue_will_install: "अपलोड के बाद इंस्टॉल करें",
 remotePlay_account_id_label: "खाता ID (वैकल्पिक)",
 remotePlay_account_id_placeholder: "0000000000000000",
+remotePlay_account_id_invalid: "यह खाता आईडी नहीं है। हेक्स आईडी (0x के साथ या बिना), base64 आईडी या pxplay नंबर का उपयोग करें।",
 remotePlay_cancel: "रद्द करें",
 remotePlay_field_account_id: "खाता ID",
 remotePlay_field_pin: "PIN",

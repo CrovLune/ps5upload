@@ -2319,6 +2319,7 @@ roster_order_hint: "Ez a sorrend állítja be a konzolfüleket és a választót
 
   remotePlay_account_id_label: "Fiókazonosító (opcionális)",
   remotePlay_account_id_placeholder: "0000000000000000",
+  remotePlay_account_id_invalid: "Ez nem fiókazonosító. Használd a hexa azonosítót (0x-szel vagy anélkül), a base64 azonosítót vagy a pxplay számot.",
   remotePlay_field_account_id: "Fiókazonosító",
   remotePlay_field_seconds_left: "Hátralévő másodpercek",
   remotePlay_pxplay_label: "pxplay:",

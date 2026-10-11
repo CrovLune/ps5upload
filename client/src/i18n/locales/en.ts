@@ -2572,6 +2572,7 @@ roster_order_hint: "This order sets the console tabs and the picker.",
 
   remotePlay_account_id_label: "Account ID (optional)",
   remotePlay_account_id_placeholder: "0000000000000000",
+  remotePlay_account_id_invalid: "That is not an account ID. Use the hex ID (with or without 0x), the base64 ID, or the pxplay number.",
   remotePlay_field_account_id: "Account ID",
   remotePlay_field_seconds_left: "Seconds remaining",
   remotePlay_pxplay_label: "pxplay:",
