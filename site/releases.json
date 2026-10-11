@@ -1,0 +1,1370 @@
+[
+ {
+  "tag_name": "v7.0.0",
+  "prerelease": false,
+  "published_at": "2026-10-11T01:14:51Z",
+  "html_url": "https://github.com/phantomptr/ps5upload/releases/tag/v7.0.0",
+  "body": "A new look for the whole app, a better Android app, and a long list of fixes.\r\n\r\n- **New look, modelled on macOS 27.** Light and dark themes with a calm neutral window, a sidebar\r\n  that runs to the window edge, rounded cards, one blue accent and your system's own typeface.\r\n  Home has simple action tiles and a console panel that stays beside the page; every screen,\r\n  desktop and phone, was brought into the new style. Your old theme choice carries over.\r\n- **Android catches up.** Install or download from a link, install straight from a saved server,\r\n  community cheat search and online covers now work on Android too, and the app icon is the\r\n  PS5Upload logo. Layout fixes for phones throughout.\r\n- **Convert:** AMPR LZ4 asset packs for exFAT game images (for games that use ampr_emu 0.4 or\r\n  newer), one place to choose what to make and what happens after, and a queue that only adds\r\n  real games and takes several game folders at once.\r\n- **Captures:** view the app's own screenshots large, page through and delete them; delete PS5\r\n  screenshots and clips too.\r\n- **Game page:** install updates and DLC right where they are listed.\r\n- **Sturdier:** uploads, installs, builds, link downloads and PS5 to PS5 copies recover from\r\n  missed checks, crashes and interruptions instead of failing or hanging; status checks no\r\n  longer slow transfers down.\r\n- **Easier to use:** keyboard focus stays inside dialogs, right-to-left languages are mirrored,\r\n  narrow windows no longer clip, error cards have Retry, and every string is translated into\r\n  all 21 languages.\r\n- **Under the hood:** the payload is built with PS5 Payload SDK v0.44 (`make update-sdk` moves\r\n  to the latest), and the engine refuses console actions that don't name a console.\r\n\r\n",
+  "assets": [
+   {
+    "name": "latest.json",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v7.0.0/latest.json",
+    "size": 3434
+   },
+   {
+    "name": "PS5Upload-7.0.0-android.apk",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v7.0.0/PS5Upload-7.0.0-android.apk",
+    "size": 97603539
+   },
+   {
+    "name": "PS5Upload-7.0.0-linux-arm64.deb",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v7.0.0/PS5Upload-7.0.0-linux-arm64.deb",
+    "size": 24316842
+   },
+   {
+    "name": "PS5Upload-7.0.0-linux-arm64.rpm",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v7.0.0/PS5Upload-7.0.0-linux-arm64.rpm",
+    "size": 24313588
+   },
+   {
+    "name": "PS5Upload-7.0.0-linux-arm64.zip",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v7.0.0/PS5Upload-7.0.0-linux-arm64.zip",
+    "size": 98174587
+   },
+   {
+    "name": "PS5Upload-7.0.0-linux-x64.deb",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v7.0.0/PS5Upload-7.0.0-linux-x64.deb",
+    "size": 24190396
+   },
+   {
+    "name": "PS5Upload-7.0.0-linux-x64.rpm",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v7.0.0/PS5Upload-7.0.0-linux-x64.rpm",
+    "size": 24197066
+   },
+   {
+    "name": "PS5Upload-7.0.0-linux-x64.zip",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v7.0.0/PS5Upload-7.0.0-linux-x64.zip",
+    "size": 100258576
+   },
+   {
+    "name": "PS5Upload-7.0.0-mac-arm64.dmg",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v7.0.0/PS5Upload-7.0.0-mac-arm64.dmg",
+    "size": 22423120
+   },
+   {
+    "name": "PS5Upload-7.0.0-mac-x64.dmg",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v7.0.0/PS5Upload-7.0.0-mac-x64.dmg",
+    "size": 23558985
+   },
+   {
+    "name": "PS5Upload-7.0.0-win-arm64-setup.exe",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v7.0.0/PS5Upload-7.0.0-win-arm64-setup.exe",
+    "size": 14368748
+   },
+   {
+    "name": "PS5Upload-7.0.0-win-arm64.zip",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v7.0.0/PS5Upload-7.0.0-win-arm64.zip",
+    "size": 20817608
+   },
+   {
+    "name": "PS5Upload-7.0.0-win-x64-setup.exe",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v7.0.0/PS5Upload-7.0.0-win-x64-setup.exe",
+    "size": 16143892
+   },
+   {
+    "name": "PS5Upload-7.0.0-win-x64.zip",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v7.0.0/PS5Upload-7.0.0-win-x64.zip",
+    "size": 22055179
+   },
+   {
+    "name": "ps5upload-7.0.0.elf",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v7.0.0/ps5upload-7.0.0.elf",
+    "size": 3289744
+   },
+   {
+    "name": "ps5upload-engine-7.0.0-linux-arm64",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v7.0.0/ps5upload-engine-7.0.0-linux-arm64",
+    "size": 43938384
+   },
+   {
+    "name": "ps5upload-engine-7.0.0-linux-x64",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v7.0.0/ps5upload-engine-7.0.0-linux-x64",
+    "size": 46329360
+   },
+   {
+    "name": "ps5upload-engine-7.0.0-macos-arm64",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v7.0.0/ps5upload-engine-7.0.0-macos-arm64",
+    "size": 39691872
+   },
+   {
+    "name": "ps5upload-engine-7.0.0-macos-x64",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v7.0.0/ps5upload-engine-7.0.0-macos-x64",
+    "size": 41545688
+   },
+   {
+    "name": "ps5upload-engine-7.0.0-windows-arm64.exe",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v7.0.0/ps5upload-engine-7.0.0-windows-arm64.exe",
+    "size": 32157696
+   },
+   {
+    "name": "ps5upload-engine-7.0.0-windows-x64.exe",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v7.0.0/ps5upload-engine-7.0.0-windows-x64.exe",
+    "size": 37905408
+   }
+  ]
+ },
+ {
+  "tag_name": "v6.8.2",
+  "prerelease": false,
+  "published_at": "2026-10-10T17:18:38Z",
+  "html_url": "https://github.com/phantomptr/ps5upload/releases/tag/v6.8.2",
+  "body": "A clean-up release: every screen was gone through for things that no longer make sense, and\r\nthe code nothing used was removed.\r\n\r\n### Fixed\r\n\r\n- **The upload speed limit was up to 8× too high.** It held each of a transfer's connections to\r\n  the limit instead of the whole transfer, so 10 MB/s could run at 80. It now limits the whole\r\n  upload, and also applies to uploads from Files and to single files, which ignored it before.\r\n- **Stop on Upload and on Files downloads now really cancels.** It only stopped watching\r\n  before; the transfer kept running.\r\n- **First-time setup and \"Bring up PS5\" now pair with a new console** instead of timing out:\r\n  they send the helper the same way the rest of the app does.\r\n- **Home's Servers card** could show twice or vanish once you had activity; it shows once.\r\n- **Kill on Running apps** now uses the same close as Close game, which works on firmware where\r\n  the plain close fails. The game page can close a running game too.\r\n- **Fan presets were labelled backwards** (the quiet one said it was louder). Fixed, and fan\r\n  changes ask first.\r\n- **Profile, Shell and Payloads in the web UI**: Profile's confirms work there, Shell is hidden\r\n  there (it can't run), and Payloads offers the ShadowMount+ and nanoDNS tabs that do work.\r\n- **Send payload** no longer says an unreadable or empty file \"looks OK\".\r\n- **Cheats**: Refresh only re-reads the list; re-applying to the running game is its own button.\r\n- **Reset all settings & data** now names everything it deletes (pairings, the Collection,\r\n  saved servers and passwords, backport libraries and more).\r\n- Search results open the folder in Files.\r\n\r\n### Changed\r\n\r\n- **Bug report** sits right under Home in the sidebar and can't be hidden.\r\n- **Removed screens that only repeated others:** Dashboard (Home has it all), Fan Curve (the\r\n  console only takes one target temperature; the Console screen sets it), the speed test\r\n  (Health has it), and the typed \"From another PS5\" card on Upload (Files → Send to another\r\n  console does it better). Stats is a tab of Tasks.\r\n- **Game page:** fewer tabs (Media, Storage and Play Time repeated the overview); play time\r\n  everywhere comes from the console's helper.\r\n- **Settings:** grouped by what they affect (Console, Installs, Files & saves, Backporting);\r\n  options that did nothing (Color blind palette, Screen reader hints, Density, the PS5 power\r\n  tick) are gone; desktop-only options are hidden in the web UI.\r\n- \"Connections\" is now **Servers**; \"Backup\" is **Console snapshots**, and says the snapshots stay\r\n  on the PS5.\r\n- Many texts were corrected to say what the app does today (no FTP, current screen names).\r\n- **Removed dead code** across the app, engine and console helper, including the old FTP server\r\n  and the FTX2 upgrade shims, and 415 unused translations.\r\n\r\n",
+  "assets": [
+   {
+    "name": "latest.json",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.8.2/latest.json",
+    "size": 4532
+   },
+   {
+    "name": "PS5Upload-6.8.2-android.apk",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.8.2/PS5Upload-6.8.2-android.apk",
+    "size": 94556115
+   },
+   {
+    "name": "PS5Upload-6.8.2-linux-arm64.deb",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.8.2/PS5Upload-6.8.2-linux-arm64.deb",
+    "size": 23828062
+   },
+   {
+    "name": "PS5Upload-6.8.2-linux-arm64.rpm",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.8.2/PS5Upload-6.8.2-linux-arm64.rpm",
+    "size": 23827419
+   },
+   {
+    "name": "PS5Upload-6.8.2-linux-arm64.zip",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.8.2/PS5Upload-6.8.2-linux-arm64.zip",
+    "size": 97708316
+   },
+   {
+    "name": "PS5Upload-6.8.2-linux-x64.deb",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.8.2/PS5Upload-6.8.2-linux-x64.deb",
+    "size": 23684984
+   },
+   {
+    "name": "PS5Upload-6.8.2-linux-x64.rpm",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.8.2/PS5Upload-6.8.2-linux-x64.rpm",
+    "size": 23687618
+   },
+   {
+    "name": "PS5Upload-6.8.2-linux-x64.zip",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.8.2/PS5Upload-6.8.2-linux-x64.zip",
+    "size": 99774281
+   },
+   {
+    "name": "PS5Upload-6.8.2-mac-arm64.dmg",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.8.2/PS5Upload-6.8.2-mac-arm64.dmg",
+    "size": 22000266
+   },
+   {
+    "name": "PS5Upload-6.8.2-mac-x64.dmg",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.8.2/PS5Upload-6.8.2-mac-x64.dmg",
+    "size": 23102580
+   },
+   {
+    "name": "PS5Upload-6.8.2-win-arm64-setup.exe",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.8.2/PS5Upload-6.8.2-win-arm64-setup.exe",
+    "size": 14070417
+   },
+   {
+    "name": "PS5Upload-6.8.2-win-arm64.zip",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.8.2/PS5Upload-6.8.2-win-arm64.zip",
+    "size": 20396982
+   },
+   {
+    "name": "PS5Upload-6.8.2-win-x64-setup.exe",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.8.2/PS5Upload-6.8.2-win-x64-setup.exe",
+    "size": 15788488
+   },
+   {
+    "name": "PS5Upload-6.8.2-win-x64.zip",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.8.2/PS5Upload-6.8.2-win-x64.zip",
+    "size": 21579869
+   },
+   {
+    "name": "ps5upload-6.8.2.elf",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.8.2/ps5upload-6.8.2.elf",
+    "size": 3286520
+   },
+   {
+    "name": "ps5upload-engine-6.8.2-linux-arm64",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.8.2/ps5upload-engine-6.8.2-linux-arm64",
+    "size": 42981200
+   },
+   {
+    "name": "ps5upload-engine-6.8.2-linux-x64",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.8.2/ps5upload-engine-6.8.2-linux-x64",
+    "size": 45229968
+   },
+   {
+    "name": "ps5upload-engine-6.8.2-macos-arm64",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.8.2/ps5upload-engine-6.8.2-macos-arm64",
+    "size": 38827712
+   },
+   {
+    "name": "ps5upload-engine-6.8.2-macos-x64",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.8.2/ps5upload-engine-6.8.2-macos-x64",
+    "size": 40608896
+   },
+   {
+    "name": "ps5upload-engine-6.8.2-windows-arm64.exe",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.8.2/ps5upload-engine-6.8.2-windows-arm64.exe",
+    "size": 31474176
+   },
+   {
+    "name": "ps5upload-engine-6.8.2-windows-x64.exe",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.8.2/ps5upload-engine-6.8.2-windows-x64.exe",
+    "size": 36984832
+   }
+  ]
+ },
+ {
+  "tag_name": "v6.8.1",
+  "prerelease": false,
+  "published_at": "2026-10-10T12:12:04Z",
+  "html_url": "https://github.com/phantomptr/ps5upload/releases/tag/v6.8.1",
+  "body": "### Fixed\r\n\r\n- **Convert's queue always made a package.** Picking a game image (.ffpkg, .exfat or .ffpfs, or\r\n  compressed into a .ffpfsc) and then queueing the game still built a .pkg: the queue only ever\r\n  made packages. The queue now has a **Make** choice, a package or a game image, and choosing\r\n  image options under ③ switches it to the image you picked. Each queued game shows the file it\r\n  becomes (.pkg, .ffpfsc, ...) and is built as exactly that. A queued image can be kept or sent\r\n  to the PS5 through the Upload queue. Only game folders on this computer can become images;\r\n  others are skipped with a note.\r\n\r\n",
+  "assets": [
+   {
+    "name": "latest.json",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.8.1/latest.json",
+    "size": 2307
+   },
+   {
+    "name": "PS5Upload-6.8.1-android.apk",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.8.1/PS5Upload-6.8.1-android.apk",
+    "size": 100917203
+   },
+   {
+    "name": "PS5Upload-6.8.1-linux-arm64.deb",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.8.1/PS5Upload-6.8.1-linux-arm64.deb",
+    "size": 25012590
+   },
+   {
+    "name": "PS5Upload-6.8.1-linux-arm64.rpm",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.8.1/PS5Upload-6.8.1-linux-arm64.rpm",
+    "size": 25020147
+   },
+   {
+    "name": "PS5Upload-6.8.1-linux-arm64.zip",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.8.1/PS5Upload-6.8.1-linux-arm64.zip",
+    "size": 98760703
+   },
+   {
+    "name": "PS5Upload-6.8.1-linux-x64.deb",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.8.1/PS5Upload-6.8.1-linux-x64.deb",
+    "size": 24874546
+   },
+   {
+    "name": "PS5Upload-6.8.1-linux-x64.rpm",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.8.1/PS5Upload-6.8.1-linux-x64.rpm",
+    "size": 24875133
+   },
+   {
+    "name": "PS5Upload-6.8.1-linux-x64.zip",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.8.1/PS5Upload-6.8.1-linux-x64.zip",
+    "size": 100810078
+   },
+   {
+    "name": "PS5Upload-6.8.1-mac-arm64.dmg",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.8.1/PS5Upload-6.8.1-mac-arm64.dmg",
+    "size": 23055686
+   },
+   {
+    "name": "PS5Upload-6.8.1-mac-x64.dmg",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.8.1/PS5Upload-6.8.1-mac-x64.dmg",
+    "size": 24248847
+   },
+   {
+    "name": "PS5Upload-6.8.1-win-arm64-setup.exe",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.8.1/PS5Upload-6.8.1-win-arm64-setup.exe",
+    "size": 14809470
+   },
+   {
+    "name": "PS5Upload-6.8.1-win-arm64.zip",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.8.1/PS5Upload-6.8.1-win-arm64.zip",
+    "size": 21454396
+   },
+   {
+    "name": "PS5Upload-6.8.1-win-x64-setup.exe",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.8.1/PS5Upload-6.8.1-win-x64-setup.exe",
+    "size": 16582908
+   },
+   {
+    "name": "PS5Upload-6.8.1-win-x64.zip",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.8.1/PS5Upload-6.8.1-win-x64.zip",
+    "size": 22676689
+   },
+   {
+    "name": "ps5upload-6.8.1.elf",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.8.1/ps5upload-6.8.1.elf",
+    "size": 3340056
+   },
+   {
+    "name": "ps5upload-engine-6.8.1-linux-arm64",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.8.1/ps5upload-engine-6.8.1-linux-arm64",
+    "size": 43799248
+   },
+   {
+    "name": "ps5upload-engine-6.8.1-linux-x64",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.8.1/ps5upload-engine-6.8.1-linux-x64",
+    "size": 46045240
+   },
+   {
+    "name": "ps5upload-engine-6.8.1-macos-arm64",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.8.1/ps5upload-engine-6.8.1-macos-arm64",
+    "size": 39599168
+   },
+   {
+    "name": "ps5upload-engine-6.8.1-macos-x64",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.8.1/ps5upload-engine-6.8.1-macos-x64",
+    "size": 41415352
+   },
+   {
+    "name": "ps5upload-engine-6.8.1-windows-arm64.exe",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.8.1/ps5upload-engine-6.8.1-windows-arm64.exe",
+    "size": 32055808
+   },
+   {
+    "name": "ps5upload-engine-6.8.1-windows-x64.exe",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.8.1/ps5upload-engine-6.8.1-windows-x64.exe",
+    "size": 37628928
+   }
+  ]
+ },
+ {
+  "tag_name": "v6.8.0",
+  "prerelease": true,
+  "published_at": "2026-10-10T06:42:59Z",
+  "html_url": "https://github.com/phantomptr/ps5upload/releases/tag/v6.8.0",
+  "body": "\n### New\n\n- **Send files from one console to another (#433).** In Files, select files or folders and choose\n  **Send to another console…** (in the toolbar or a row's menu). Pick the console and the folder\n  on it; before anything runs you see whether it fits and which names already there get replaced.\n  Each item is queued on that console as a copy, and the originals stay where they are. The queue\n  row says where it came from.\n- **Straight between the consoles (Beta).** When the two consoles can reach each other, the copy\n  now goes directly from one to the other instead of through this computer, so the computer's\n  network and disk no longer slow it down. When they can't (different networks, an older helper,\n  a firewall), it goes through this computer as before, and the queue row says which way it went\n  and why. Both routes pick up where the other left off. Both consoles need the 6.8.0 helper for\n  the direct route.\n\n",
+  "assets": [
+   {
+    "name": "latest.json",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.8.0/latest.json",
+    "size": 2628
+   },
+   {
+    "name": "PS5Upload-6.8.0-android.apk",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.8.0/PS5Upload-6.8.0-android.apk",
+    "size": 100941779
+   },
+   {
+    "name": "PS5Upload-6.8.0-linux-arm64.deb",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.8.0/PS5Upload-6.8.0-linux-arm64.deb",
+    "size": 25012184
+   },
+   {
+    "name": "PS5Upload-6.8.0-linux-arm64.rpm",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.8.0/PS5Upload-6.8.0-linux-arm64.rpm",
+    "size": 25012008
+   },
+   {
+    "name": "PS5Upload-6.8.0-linux-arm64.zip",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.8.0/PS5Upload-6.8.0-linux-arm64.zip",
+    "size": 98756880
+   },
+   {
+    "name": "PS5Upload-6.8.0-linux-x64.deb",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.8.0/PS5Upload-6.8.0-linux-x64.deb",
+    "size": 24873446
+   },
+   {
+    "name": "PS5Upload-6.8.0-linux-x64.rpm",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.8.0/PS5Upload-6.8.0-linux-x64.rpm",
+    "size": 24876201
+   },
+   {
+    "name": "PS5Upload-6.8.0-linux-x64.zip",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.8.0/PS5Upload-6.8.0-linux-x64.zip",
+    "size": 100819516
+   },
+   {
+    "name": "PS5Upload-6.8.0-mac-arm64.dmg",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.8.0/PS5Upload-6.8.0-mac-arm64.dmg",
+    "size": 23050305
+   },
+   {
+    "name": "PS5Upload-6.8.0-mac-x64.dmg",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.8.0/PS5Upload-6.8.0-mac-x64.dmg",
+    "size": 24247551
+   },
+   {
+    "name": "PS5Upload-6.8.0-win-arm64-setup.exe",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.8.0/PS5Upload-6.8.0-win-arm64-setup.exe",
+    "size": 14808969
+   },
+   {
+    "name": "PS5Upload-6.8.0-win-arm64.zip",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.8.0/PS5Upload-6.8.0-win-arm64.zip",
+    "size": 21447153
+   },
+   {
+    "name": "PS5Upload-6.8.0-win-x64-setup.exe",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.8.0/PS5Upload-6.8.0-win-x64-setup.exe",
+    "size": 16578301
+   },
+   {
+    "name": "PS5Upload-6.8.0-win-x64.zip",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.8.0/PS5Upload-6.8.0-win-x64.zip",
+    "size": 22667902
+   },
+   {
+    "name": "ps5upload-6.8.0.elf",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.8.0/ps5upload-6.8.0.elf",
+    "size": 3340056
+   },
+   {
+    "name": "ps5upload-engine-6.8.0-linux-arm64",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.8.0/ps5upload-engine-6.8.0-linux-arm64",
+    "size": 43785216
+   },
+   {
+    "name": "ps5upload-engine-6.8.0-linux-x64",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.8.0/ps5upload-engine-6.8.0-linux-x64",
+    "size": 46055960
+   },
+   {
+    "name": "ps5upload-engine-6.8.0-macos-arm64",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.8.0/ps5upload-engine-6.8.0-macos-arm64",
+    "size": 39582848
+   },
+   {
+    "name": "ps5upload-engine-6.8.0-macos-x64",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.8.0/ps5upload-engine-6.8.0-macos-x64",
+    "size": 41420096
+   },
+   {
+    "name": "ps5upload-engine-6.8.0-windows-arm64.exe",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.8.0/ps5upload-engine-6.8.0-windows-arm64.exe",
+    "size": 32049152
+   },
+   {
+    "name": "ps5upload-engine-6.8.0-windows-x64.exe",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.8.0/ps5upload-engine-6.8.0-windows-x64.exe",
+    "size": 37620736
+   }
+  ]
+ },
+ {
+  "tag_name": "v6.7.4",
+  "prerelease": false,
+  "published_at": "2026-10-10T05:26:41Z",
+  "html_url": "https://github.com/phantomptr/ps5upload/releases/tag/v6.7.4",
+  "body": "### Fixed\r\n\r\n- **Send helper took 20 to 40 seconds.** The console showed the helper arriving at once, but the\r\n  app kept waiting. When you pressed Send helper while the app was also re-sending the helper on\r\n  its own (after a reconnect, or to update it), two helpers started together and spent that time\r\n  fighting over which one stays. The app now sends one helper per console at a time: a press\r\n  during an automatic send waits for that helper instead of starting a second.\r\n\r\n",
+  "assets": [
+   {
+    "name": "latest.json",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.7.4/latest.json",
+    "size": 2158
+   },
+   {
+    "name": "PS5Upload-6.7.4-android.apk",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.7.4/PS5Upload-6.7.4-android.apk",
+    "size": 100745171
+   },
+   {
+    "name": "PS5Upload-6.7.4-linux-arm64.deb",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.7.4/PS5Upload-6.7.4-linux-arm64.deb",
+    "size": 24902776
+   },
+   {
+    "name": "PS5Upload-6.7.4-linux-arm64.rpm",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.7.4/PS5Upload-6.7.4-linux-arm64.rpm",
+    "size": 24903491
+   },
+   {
+    "name": "PS5Upload-6.7.4-linux-arm64.zip",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.7.4/PS5Upload-6.7.4-linux-arm64.zip",
+    "size": 98658283
+   },
+   {
+    "name": "PS5Upload-6.7.4-linux-x64.deb",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.7.4/PS5Upload-6.7.4-linux-x64.deb",
+    "size": 24785826
+   },
+   {
+    "name": "PS5Upload-6.7.4-linux-x64.rpm",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.7.4/PS5Upload-6.7.4-linux-x64.rpm",
+    "size": 24786909
+   },
+   {
+    "name": "PS5Upload-6.7.4-linux-x64.zip",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.7.4/PS5Upload-6.7.4-linux-x64.zip",
+    "size": 100713093
+   },
+   {
+    "name": "PS5Upload-6.7.4-mac-arm64.dmg",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.7.4/PS5Upload-6.7.4-mac-arm64.dmg",
+    "size": 22956162
+   },
+   {
+    "name": "PS5Upload-6.7.4-mac-x64.dmg",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.7.4/PS5Upload-6.7.4-mac-x64.dmg",
+    "size": 24137249
+   },
+   {
+    "name": "PS5Upload-6.7.4-win-arm64-setup.exe",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.7.4/PS5Upload-6.7.4-win-arm64-setup.exe",
+    "size": 14720035
+   },
+   {
+    "name": "PS5Upload-6.7.4-win-arm64.zip",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.7.4/PS5Upload-6.7.4-win-arm64.zip",
+    "size": 21313231
+   },
+   {
+    "name": "PS5Upload-6.7.4-win-x64-setup.exe",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.7.4/PS5Upload-6.7.4-win-x64-setup.exe",
+    "size": 16494742
+   },
+   {
+    "name": "PS5Upload-6.7.4-win-x64.zip",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.7.4/PS5Upload-6.7.4-win-x64.zip",
+    "size": 22556105
+   },
+   {
+    "name": "ps5upload-6.7.4.elf",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.7.4/ps5upload-6.7.4.elf",
+    "size": 3297392
+   },
+   {
+    "name": "ps5upload-engine-6.7.4-linux-arm64",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.7.4/ps5upload-engine-6.7.4-linux-arm64",
+    "size": 43528416
+   },
+   {
+    "name": "ps5upload-engine-6.7.4-linux-x64",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.7.4/ps5upload-engine-6.7.4-linux-x64",
+    "size": 45826848
+   },
+   {
+    "name": "ps5upload-engine-6.7.4-macos-arm64",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.7.4/ps5upload-engine-6.7.4-macos-arm64",
+    "size": 39397600
+   },
+   {
+    "name": "ps5upload-engine-6.7.4-macos-x64",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.7.4/ps5upload-engine-6.7.4-macos-x64",
+    "size": 41157832
+   },
+   {
+    "name": "ps5upload-engine-6.7.4-windows-arm64.exe",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.7.4/ps5upload-engine-6.7.4-windows-arm64.exe",
+    "size": 31766528
+   },
+   {
+    "name": "ps5upload-engine-6.7.4-windows-x64.exe",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.7.4/ps5upload-engine-6.7.4-windows-x64.exe",
+    "size": 37365760
+   }
+  ]
+ },
+ {
+  "tag_name": "v6.7.3",
+  "prerelease": false,
+  "published_at": "2026-10-09T20:54:45Z",
+  "html_url": "https://github.com/phantomptr/ps5upload/releases/tag/v6.7.3",
+  "body": "### Fixed\r\n\r\n- **A failed or interrupted conversion no longer leaves files behind (#432).** Making a game image\r\n  wrote a temporary `.partial` file the size of the image into the output folder. If the build\r\n  failed (on Windows the cleanup often lost to an antivirus still reading the file) or was cut\r\n  short, it stayed there, taking up the drive with nothing showing where. Each conversion now\r\n  clears those leftovers and unpacked archives that no running job is using, before it starts and\r\n  after it fails. Only the app's own temporary files are touched.\r\n\r\n",
+  "assets": [
+   {
+    "name": "latest.json",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.7.3/latest.json",
+    "size": 2243
+   },
+   {
+    "name": "PS5Upload-6.7.3-android.apk",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.7.3/PS5Upload-6.7.3-android.apk",
+    "size": 100736979
+   },
+   {
+    "name": "PS5Upload-6.7.3-linux-arm64.deb",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.7.3/PS5Upload-6.7.3-linux-arm64.deb",
+    "size": 24902984
+   },
+   {
+    "name": "PS5Upload-6.7.3-linux-arm64.rpm",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.7.3/PS5Upload-6.7.3-linux-arm64.rpm",
+    "size": 24905650
+   },
+   {
+    "name": "PS5Upload-6.7.3-linux-arm64.zip",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.7.3/PS5Upload-6.7.3-linux-arm64.zip",
+    "size": 98647177
+   },
+   {
+    "name": "PS5Upload-6.7.3-linux-x64.deb",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.7.3/PS5Upload-6.7.3-linux-x64.deb",
+    "size": 24781484
+   },
+   {
+    "name": "PS5Upload-6.7.3-linux-x64.rpm",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.7.3/PS5Upload-6.7.3-linux-x64.rpm",
+    "size": 24784087
+   },
+   {
+    "name": "PS5Upload-6.7.3-linux-x64.zip",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.7.3/PS5Upload-6.7.3-linux-x64.zip",
+    "size": 100712670
+   },
+   {
+    "name": "PS5Upload-6.7.3-mac-arm64.dmg",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.7.3/PS5Upload-6.7.3-mac-arm64.dmg",
+    "size": 22958490
+   },
+   {
+    "name": "PS5Upload-6.7.3-mac-x64.dmg",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.7.3/PS5Upload-6.7.3-mac-x64.dmg",
+    "size": 24144476
+   },
+   {
+    "name": "PS5Upload-6.7.3-win-arm64-setup.exe",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.7.3/PS5Upload-6.7.3-win-arm64-setup.exe",
+    "size": 14720508
+   },
+   {
+    "name": "PS5Upload-6.7.3-win-arm64.zip",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.7.3/PS5Upload-6.7.3-win-arm64.zip",
+    "size": 21311302
+   },
+   {
+    "name": "PS5Upload-6.7.3-win-x64-setup.exe",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.7.3/PS5Upload-6.7.3-win-x64-setup.exe",
+    "size": 16498372
+   },
+   {
+    "name": "PS5Upload-6.7.3-win-x64.zip",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.7.3/PS5Upload-6.7.3-win-x64.zip",
+    "size": 22553372
+   },
+   {
+    "name": "ps5upload-6.7.3.elf",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.7.3/ps5upload-6.7.3.elf",
+    "size": 3297392
+   },
+   {
+    "name": "ps5upload-engine-6.7.3-linux-arm64",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.7.3/ps5upload-engine-6.7.3-linux-arm64",
+    "size": 43527920
+   },
+   {
+    "name": "ps5upload-engine-6.7.3-linux-x64",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.7.3/ps5upload-engine-6.7.3-linux-x64",
+    "size": 45823608
+   },
+   {
+    "name": "ps5upload-engine-6.7.3-macos-arm64",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.7.3/ps5upload-engine-6.7.3-macos-arm64",
+    "size": 39397136
+   },
+   {
+    "name": "ps5upload-engine-6.7.3-macos-x64",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.7.3/ps5upload-engine-6.7.3-macos-x64",
+    "size": 41164416
+   },
+   {
+    "name": "ps5upload-engine-6.7.3-windows-arm64.exe",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.7.3/ps5upload-engine-6.7.3-windows-arm64.exe",
+    "size": 31762432
+   },
+   {
+    "name": "ps5upload-engine-6.7.3-windows-x64.exe",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.7.3/ps5upload-engine-6.7.3-windows-x64.exe",
+    "size": 37362688
+   }
+  ]
+ },
+ {
+  "tag_name": "v6.7.2",
+  "prerelease": true,
+  "published_at": "2026-10-09T20:12:26Z",
+  "html_url": "https://github.com/phantomptr/ps5upload/releases/tag/v6.7.2",
+  "body": "\n### Fixed\n\n- **Collection covers, for real this time.** 6.7.1 let the covers through the engine's guard only\n  in a form the desktop app's window never uses, so they stayed blank there. The app now fetches\n  them the same way it already fetches console icons when the window can't load them directly,\n  so every game read from your drives shows its cover in the Collection and on its page.\n\n",
+  "assets": [
+   {
+    "name": "latest.json",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.7.2/latest.json",
+    "size": 2073
+   },
+   {
+    "name": "PS5Upload-6.7.2-android.apk",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.7.2/PS5Upload-6.7.2-android.apk",
+    "size": 100716499
+   },
+   {
+    "name": "PS5Upload-6.7.2-linux-arm64.deb",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.7.2/PS5Upload-6.7.2-linux-arm64.deb",
+    "size": 24893590
+   },
+   {
+    "name": "PS5Upload-6.7.2-linux-arm64.rpm",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.7.2/PS5Upload-6.7.2-linux-arm64.rpm",
+    "size": 24898720
+   },
+   {
+    "name": "PS5Upload-6.7.2-linux-arm64.zip",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.7.2/PS5Upload-6.7.2-linux-arm64.zip",
+    "size": 98651745
+   },
+   {
+    "name": "PS5Upload-6.7.2-linux-x64.deb",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.7.2/PS5Upload-6.7.2-linux-x64.deb",
+    "size": 24778046
+   },
+   {
+    "name": "PS5Upload-6.7.2-linux-x64.rpm",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.7.2/PS5Upload-6.7.2-linux-x64.rpm",
+    "size": 24782861
+   },
+   {
+    "name": "PS5Upload-6.7.2-linux-x64.zip",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.7.2/PS5Upload-6.7.2-linux-x64.zip",
+    "size": 100716936
+   },
+   {
+    "name": "PS5Upload-6.7.2-mac-arm64.dmg",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.7.2/PS5Upload-6.7.2-mac-arm64.dmg",
+    "size": 22944469
+   },
+   {
+    "name": "PS5Upload-6.7.2-mac-x64.dmg",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.7.2/PS5Upload-6.7.2-mac-x64.dmg",
+    "size": 24140708
+   },
+   {
+    "name": "PS5Upload-6.7.2-win-arm64-setup.exe",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.7.2/PS5Upload-6.7.2-win-arm64-setup.exe",
+    "size": 14710103
+   },
+   {
+    "name": "PS5Upload-6.7.2-win-arm64.zip",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.7.2/PS5Upload-6.7.2-win-arm64.zip",
+    "size": 21299737
+   },
+   {
+    "name": "PS5Upload-6.7.2-win-x64-setup.exe",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.7.2/PS5Upload-6.7.2-win-x64-setup.exe",
+    "size": 16469902
+   },
+   {
+    "name": "PS5Upload-6.7.2-win-x64.zip",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.7.2/PS5Upload-6.7.2-win-x64.zip",
+    "size": 22543789
+   },
+   {
+    "name": "ps5upload-6.7.2.elf",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.7.2/ps5upload-6.7.2.elf",
+    "size": 3297392
+   },
+   {
+    "name": "ps5upload-engine-6.7.2-linux-arm64",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.7.2/ps5upload-engine-6.7.2-linux-arm64",
+    "size": 43526784
+   },
+   {
+    "name": "ps5upload-engine-6.7.2-linux-x64",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.7.2/ps5upload-engine-6.7.2-linux-x64",
+    "size": 45815400
+   },
+   {
+    "name": "ps5upload-engine-6.7.2-macos-arm64",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.7.2/ps5upload-engine-6.7.2-macos-arm64",
+    "size": 39324528
+   },
+   {
+    "name": "ps5upload-engine-6.7.2-macos-x64",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.7.2/ps5upload-engine-6.7.2-macos-x64",
+    "size": 41157528
+   },
+   {
+    "name": "ps5upload-engine-6.7.2-windows-arm64.exe",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.7.2/ps5upload-engine-6.7.2-windows-arm64.exe",
+    "size": 31741440
+   },
+   {
+    "name": "ps5upload-engine-6.7.2-windows-x64.exe",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.7.2/ps5upload-engine-6.7.2-windows-x64.exe",
+    "size": 37341184
+   }
+  ]
+ },
+ {
+  "tag_name": "v6.7.1",
+  "prerelease": false,
+  "published_at": "2026-10-09T19:12:19Z",
+  "html_url": "https://github.com/phantomptr/ps5upload/releases/tag/v6.7.1",
+  "body": "**Fixes: Collection covers, multi-part RAR uploads, and a full drive's leftover file.**\r\n\r\n### Fixed\r\n\r\n- **Collection covers.** The engine refused the app's requests for the covers it had read out of\r\n  your games, so a game with no online cover showed its initials and the game's page showed a\r\n  broken image. They show now.\r\n- **Cheats on a game's page** no longer shows \"no cheat files found\" as an error when a game simply\r\n  has none.\r\n- **Multi-part RAR uploads (#429).** Resuming an upload from a `.part1.rar`/`.r00` set failed with\r\n  \"the archive lists its entries in a different order than it extracts them\" whenever a file\r\n  already sent was split across two parts. Resuming works now.\r\n- **When the PS5's drive fills up during an upload,** what was sent is kept so Retry continues it,\r\n  but nothing said so and it holds its whole size. The failed upload now names that partial file\r\n  and offers to delete it.\r\n- **Stopping a stream install right after it started** removed it from the list but left it\r\n  running; it is stopped now.\r\n- **0x80B21104** explains that this console will not take this package, and links to the FAQ.\r\n- **Can't reach the PS5?** The Connection screen now suggests turning a VPN off.\r\n- **Sending a new helper** now also ends any stray copy of the old one still running on the PS5,\r\n  once the old one has had time to finish exiting.\r\n\r\n",
+  "assets": [
+   {
+    "name": "latest.json",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.7.1/latest.json",
+    "size": 3059
+   },
+   {
+    "name": "PS5Upload-6.7.1-android.apk",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.7.1/PS5Upload-6.7.1-android.apk",
+    "size": 100634579
+   },
+   {
+    "name": "PS5Upload-6.7.1-linux-arm64.deb",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.7.1/PS5Upload-6.7.1-linux-arm64.deb",
+    "size": 24886060
+   },
+   {
+    "name": "PS5Upload-6.7.1-linux-arm64.rpm",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.7.1/PS5Upload-6.7.1-linux-arm64.rpm",
+    "size": 24890520
+   },
+   {
+    "name": "PS5Upload-6.7.1-linux-arm64.zip",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.7.1/PS5Upload-6.7.1-linux-arm64.zip",
+    "size": 98626834
+   },
+   {
+    "name": "PS5Upload-6.7.1-linux-x64.deb",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.7.1/PS5Upload-6.7.1-linux-x64.deb",
+    "size": 24769970
+   },
+   {
+    "name": "PS5Upload-6.7.1-linux-x64.rpm",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.7.1/PS5Upload-6.7.1-linux-x64.rpm",
+    "size": 24772314
+   },
+   {
+    "name": "PS5Upload-6.7.1-linux-x64.zip",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.7.1/PS5Upload-6.7.1-linux-x64.zip",
+    "size": 100712895
+   },
+   {
+    "name": "PS5Upload-6.7.1-mac-arm64.dmg",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.7.1/PS5Upload-6.7.1-mac-arm64.dmg",
+    "size": 22945034
+   },
+   {
+    "name": "PS5Upload-6.7.1-mac-x64.dmg",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.7.1/PS5Upload-6.7.1-mac-x64.dmg",
+    "size": 24121773
+   },
+   {
+    "name": "PS5Upload-6.7.1-win-arm64-setup.exe",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.7.1/PS5Upload-6.7.1-win-arm64-setup.exe",
+    "size": 14712083
+   },
+   {
+    "name": "PS5Upload-6.7.1-win-arm64.zip",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.7.1/PS5Upload-6.7.1-win-arm64.zip",
+    "size": 21296089
+   },
+   {
+    "name": "PS5Upload-6.7.1-win-x64-setup.exe",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.7.1/PS5Upload-6.7.1-win-x64-setup.exe",
+    "size": 16467948
+   },
+   {
+    "name": "PS5Upload-6.7.1-win-x64.zip",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.7.1/PS5Upload-6.7.1-win-x64.zip",
+    "size": 22542461
+   },
+   {
+    "name": "ps5upload-6.7.1.elf",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.7.1/ps5upload-6.7.1.elf",
+    "size": 3297392
+   },
+   {
+    "name": "ps5upload-engine-6.7.1-linux-arm64",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.7.1/ps5upload-engine-6.7.1-linux-arm64",
+    "size": 43523088
+   },
+   {
+    "name": "ps5upload-engine-6.7.1-linux-x64",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.7.1/ps5upload-engine-6.7.1-linux-x64",
+    "size": 45835728
+   },
+   {
+    "name": "ps5upload-engine-6.7.1-macos-arm64",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.7.1/ps5upload-engine-6.7.1-macos-arm64",
+    "size": 39328320
+   },
+   {
+    "name": "ps5upload-engine-6.7.1-macos-x64",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.7.1/ps5upload-engine-6.7.1-macos-x64",
+    "size": 41148232
+   },
+   {
+    "name": "ps5upload-engine-6.7.1-windows-arm64.exe",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.7.1/ps5upload-engine-6.7.1-windows-arm64.exe",
+    "size": 31741440
+   },
+   {
+    "name": "ps5upload-engine-6.7.1-windows-x64.exe",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.7.1/ps5upload-engine-6.7.1-windows-x64.exe",
+    "size": 37337600
+   }
+  ]
+ },
+ {
+  "tag_name": "v6.7.0",
+  "prerelease": false,
+  "published_at": "2026-10-09T17:06:29Z",
+  "html_url": "https://github.com/phantomptr/ps5upload/releases/tag/v6.7.0",
+  "body": "**One page per game: every console and every copy, wherever you open it from.**\r\n\r\n### New\r\n\r\n- **A page for every game.** Open a game from Ready to play, Game files, the Collection,\r\n  Upload, Install Package's package menu, or the command palette, and you get one page that shows:\r\n  - **Each of your consoles:** installed or not, which version, and how old that is (\"now\" for\r\n    the one you're connected to, \"as of 2 h ago\" for the others). A refresh button checks a\r\n    console again.\r\n  - **Every copy on your drives,** with Send, Convert, Copy install link and Move to Trash.\r\n  - **What each console could take from your drives:** the game with its update and DLC, a\r\n    newer update, or missing DLC. Install it on any console, not only the connected one. The\r\n    console's row shows how it's going, and Open goes to that console's activity.\r\n- **The app remembers what each console has,** so the page works while a console is asleep. It\r\n  forgets a console you remove or move to a new address.\r\n- **Updates and Add-ons** on a game's page now also list newer packages from your drives.\r\n- **The command palette** finds games in your Collection by name or title ID.\r\n\r\n### Changed\r\n\r\n- Clicking a game in the Collection opens its page instead of a pop-up.\r\n- \"Open library\" now says \"Open Games\". Install Package says \"screen\" (not \"tab\") for the\r\n  Connection and File System screens.\r\n- On a phone, the Games tab stays highlighted while you're in the Collection, and screen readers\r\n  are told which section is open.\r\n\r\n### Fixed\r\n\r\n- The Collection's \"Progress shows in Install Package\" link went to Home.\r\n\r\n",
+  "assets": [
+   {
+    "name": "latest.json",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.7.0/latest.json",
+    "size": 3313
+   },
+   {
+    "name": "PS5Upload-6.7.0-android.apk",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.7.0/PS5Upload-6.7.0-android.apk",
+    "size": 100642771
+   },
+   {
+    "name": "PS5Upload-6.7.0-linux-arm64.deb",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.7.0/PS5Upload-6.7.0-linux-arm64.deb",
+    "size": 24879756
+   },
+   {
+    "name": "PS5Upload-6.7.0-linux-arm64.rpm",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.7.0/PS5Upload-6.7.0-linux-arm64.rpm",
+    "size": 24879289
+   },
+   {
+    "name": "PS5Upload-6.7.0-linux-arm64.zip",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.7.0/PS5Upload-6.7.0-linux-arm64.zip",
+    "size": 98628989
+   },
+   {
+    "name": "PS5Upload-6.7.0-linux-x64.deb",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.7.0/PS5Upload-6.7.0-linux-x64.deb",
+    "size": 24774842
+   },
+   {
+    "name": "PS5Upload-6.7.0-linux-x64.rpm",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.7.0/PS5Upload-6.7.0-linux-x64.rpm",
+    "size": 24771004
+   },
+   {
+    "name": "PS5Upload-6.7.0-linux-x64.zip",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.7.0/PS5Upload-6.7.0-linux-x64.zip",
+    "size": 100715059
+   },
+   {
+    "name": "PS5Upload-6.7.0-mac-arm64.dmg",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.7.0/PS5Upload-6.7.0-mac-arm64.dmg",
+    "size": 22965035
+   },
+   {
+    "name": "PS5Upload-6.7.0-mac-x64.dmg",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.7.0/PS5Upload-6.7.0-mac-x64.dmg",
+    "size": 24112129
+   },
+   {
+    "name": "PS5Upload-6.7.0-win-arm64-setup.exe",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.7.0/PS5Upload-6.7.0-win-arm64-setup.exe",
+    "size": 14703207
+   },
+   {
+    "name": "PS5Upload-6.7.0-win-arm64.zip",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.7.0/PS5Upload-6.7.0-win-arm64.zip",
+    "size": 21295714
+   },
+   {
+    "name": "PS5Upload-6.7.0-win-x64-setup.exe",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.7.0/PS5Upload-6.7.0-win-x64-setup.exe",
+    "size": 16453297
+   },
+   {
+    "name": "PS5Upload-6.7.0-win-x64.zip",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.7.0/PS5Upload-6.7.0-win-x64.zip",
+    "size": 22535267
+   },
+   {
+    "name": "ps5upload-6.7.0.elf",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.7.0/ps5upload-6.7.0.elf",
+    "size": 3296952
+   },
+   {
+    "name": "ps5upload-engine-6.7.0-linux-arm64",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.7.0/ps5upload-engine-6.7.0-linux-arm64",
+    "size": 43517400
+   },
+   {
+    "name": "ps5upload-engine-6.7.0-linux-x64",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.7.0/ps5upload-engine-6.7.0-linux-x64",
+    "size": 45838672
+   },
+   {
+    "name": "ps5upload-engine-6.7.0-macos-arm64",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.7.0/ps5upload-engine-6.7.0-macos-arm64",
+    "size": 39310032
+   },
+   {
+    "name": "ps5upload-engine-6.7.0-macos-x64",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.7.0/ps5upload-engine-6.7.0-macos-x64",
+    "size": 41129408
+   },
+   {
+    "name": "ps5upload-engine-6.7.0-windows-arm64.exe",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.7.0/ps5upload-engine-6.7.0-windows-arm64.exe",
+    "size": 31746560
+   },
+   {
+    "name": "ps5upload-engine-6.7.0-windows-x64.exe",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.7.0/ps5upload-engine-6.7.0-windows-x64.exe",
+    "size": 37339136
+   }
+  ]
+ },
+ {
+  "tag_name": "v6.6.3",
+  "prerelease": false,
+  "published_at": "2026-10-09T11:11:48Z",
+  "html_url": "https://github.com/phantomptr/ps5upload/releases/tag/v6.6.3",
+  "body": "**Housekeeping.** No changes to the app. The engine's own tests now clean up their temporary\r\nfiles when they finish.\r\n\r\n",
+  "assets": [
+   {
+    "name": "latest.json",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.6.3/latest.json",
+    "size": 1796
+   },
+   {
+    "name": "PS5Upload-6.6.3-android.apk",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.6.3/PS5Upload-6.6.3-android.apk",
+    "size": 100339667
+   },
+   {
+    "name": "PS5Upload-6.6.3-linux-arm64.deb",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.6.3/PS5Upload-6.6.3-linux-arm64.deb",
+    "size": 24793420
+   },
+   {
+    "name": "PS5Upload-6.6.3-linux-arm64.rpm",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.6.3/PS5Upload-6.6.3-linux-arm64.rpm",
+    "size": 24796540
+   },
+   {
+    "name": "PS5Upload-6.6.3-linux-arm64.zip",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.6.3/PS5Upload-6.6.3-linux-arm64.zip",
+    "size": 98545643
+   },
+   {
+    "name": "PS5Upload-6.6.3-linux-x64.deb",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.6.3/PS5Upload-6.6.3-linux-x64.deb",
+    "size": 24684110
+   },
+   {
+    "name": "PS5Upload-6.6.3-linux-x64.rpm",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.6.3/PS5Upload-6.6.3-linux-x64.rpm",
+    "size": 24681933
+   },
+   {
+    "name": "PS5Upload-6.6.3-linux-x64.zip",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.6.3/PS5Upload-6.6.3-linux-x64.zip",
+    "size": 100631185
+   },
+   {
+    "name": "PS5Upload-6.6.3-mac-arm64.dmg",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.6.3/PS5Upload-6.6.3-mac-arm64.dmg",
+    "size": 22877211
+   },
+   {
+    "name": "PS5Upload-6.6.3-mac-x64.dmg",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.6.3/PS5Upload-6.6.3-mac-x64.dmg",
+    "size": 24031603
+   },
+   {
+    "name": "PS5Upload-6.6.3-win-arm64-setup.exe",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.6.3/PS5Upload-6.6.3-win-arm64-setup.exe",
+    "size": 14659979
+   },
+   {
+    "name": "PS5Upload-6.6.3-win-arm64.zip",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.6.3/PS5Upload-6.6.3-win-arm64.zip",
+    "size": 21200353
+   },
+   {
+    "name": "PS5Upload-6.6.3-win-x64-setup.exe",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.6.3/PS5Upload-6.6.3-win-x64-setup.exe",
+    "size": 16404756
+   },
+   {
+    "name": "PS5Upload-6.6.3-win-x64.zip",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.6.3/PS5Upload-6.6.3-win-x64.zip",
+    "size": 22418858
+   },
+   {
+    "name": "ps5upload-6.6.3.elf",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.6.3/ps5upload-6.6.3.elf",
+    "size": 3296952
+   },
+   {
+    "name": "ps5upload-engine-6.6.3-linux-arm64",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.6.3/ps5upload-engine-6.6.3-linux-arm64",
+    "size": 43273352
+   },
+   {
+    "name": "ps5upload-engine-6.6.3-linux-x64",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.6.3/ps5upload-engine-6.6.3-linux-x64",
+    "size": 45568544
+   },
+   {
+    "name": "ps5upload-engine-6.6.3-macos-arm64",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.6.3/ps5upload-engine-6.6.3-macos-arm64",
+    "size": 38991184
+   },
+   {
+    "name": "ps5upload-engine-6.6.3-macos-x64",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.6.3/ps5upload-engine-6.6.3-macos-x64",
+    "size": 40810328
+   },
+   {
+    "name": "ps5upload-engine-6.6.3-windows-arm64.exe",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.6.3/ps5upload-engine-6.6.3-windows-arm64.exe",
+    "size": 31522304
+   },
+   {
+    "name": "ps5upload-engine-6.6.3-windows-x64.exe",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.6.3/ps5upload-engine-6.6.3-windows-x64.exe",
+    "size": 37032448
+   }
+  ]
+ },
+ {
+  "tag_name": "v6.6.2",
+  "prerelease": true,
+  "published_at": "2026-10-09T10:32:02Z",
+  "html_url": "https://github.com/phantomptr/ps5upload/releases/tag/v6.6.2",
+  "body": "\n**Fixes: the Windows app connects again, one game goes to two consoles, and bug reports work on\ndesktop.**\n\n### Fixed\n\n- **Windows: \"engine failed to start\" and no connection (#427).** An older engine still running\n  in the background, or an antivirus scan, kept the app from writing its new engine, so it never\n  connected. The app now starts its engine anyway, and the error says why if it still fails. An\n  engine that crashes while starting is reported straight away instead of after 30 seconds, and\n  a leftover engine from an older version is shut down more reliably.\n- **The same game to two consoles.** A game being sent or installed on one PS5 showed as busy on\n  every PS5, so it could not go to a second one; the engine also refused to stream a package that\n  another console was still installing, and Convert refused the same game for a second console.\n  Each console is now separate.\n- **Bug reports on desktop.** Creating a report failed every time with \"Duplicate filename:\n  README.txt\". Two screenshots with the same name no longer fail it either. Switching consoles\n  keeps each console's draft, and a failed Download zip now says so.\n- **Leftover files.** A browser upload that stops halfway no longer leaves the partial package on\n  this computer for a week, and a link download that fails can be retried.\n\n",
+  "assets": [
+   {
+    "name": "latest.json",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.6.2/latest.json",
+    "size": 3026
+   },
+   {
+    "name": "PS5Upload-6.6.2-android.apk",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.6.2/PS5Upload-6.6.2-android.apk",
+    "size": 100335571
+   },
+   {
+    "name": "PS5Upload-6.6.2-linux-arm64.deb",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.6.2/PS5Upload-6.6.2-linux-arm64.deb",
+    "size": 24788744
+   },
+   {
+    "name": "PS5Upload-6.6.2-linux-arm64.rpm",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.6.2/PS5Upload-6.6.2-linux-arm64.rpm",
+    "size": 24790646
+   },
+   {
+    "name": "PS5Upload-6.6.2-linux-arm64.zip",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.6.2/PS5Upload-6.6.2-linux-arm64.zip",
+    "size": 98564499
+   },
+   {
+    "name": "PS5Upload-6.6.2-linux-x64.deb",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.6.2/PS5Upload-6.6.2-linux-x64.deb",
+    "size": 24683908
+   },
+   {
+    "name": "PS5Upload-6.6.2-linux-x64.rpm",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.6.2/PS5Upload-6.6.2-linux-x64.rpm",
+    "size": 24681297
+   },
+   {
+    "name": "PS5Upload-6.6.2-linux-x64.zip",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.6.2/PS5Upload-6.6.2-linux-x64.zip",
+    "size": 100630444
+   },
+   {
+    "name": "PS5Upload-6.6.2-mac-arm64.dmg",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.6.2/PS5Upload-6.6.2-mac-arm64.dmg",
+    "size": 22877476
+   },
+   {
+    "name": "PS5Upload-6.6.2-mac-x64.dmg",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.6.2/PS5Upload-6.6.2-mac-x64.dmg",
+    "size": 24035230
+   },
+   {
+    "name": "PS5Upload-6.6.2-win-arm64-setup.exe",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.6.2/PS5Upload-6.6.2-win-arm64-setup.exe",
+    "size": 14661747
+   },
+   {
+    "name": "PS5Upload-6.6.2-win-arm64.zip",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.6.2/PS5Upload-6.6.2-win-arm64.zip",
+    "size": 21200067
+   },
+   {
+    "name": "PS5Upload-6.6.2-win-x64-setup.exe",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.6.2/PS5Upload-6.6.2-win-x64-setup.exe",
+    "size": 16396434
+   },
+   {
+    "name": "PS5Upload-6.6.2-win-x64.zip",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.6.2/PS5Upload-6.6.2-win-x64.zip",
+    "size": 22420181
+   },
+   {
+    "name": "ps5upload-6.6.2.elf",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.6.2/ps5upload-6.6.2.elf",
+    "size": 3296952
+   },
+   {
+    "name": "ps5upload-engine-6.6.2-linux-arm64",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.6.2/ps5upload-engine-6.6.2-linux-arm64",
+    "size": 43269320
+   },
+   {
+    "name": "ps5upload-engine-6.6.2-linux-x64",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.6.2/ps5upload-engine-6.6.2-linux-x64",
+    "size": 45586152
+   },
+   {
+    "name": "ps5upload-engine-6.6.2-macos-arm64",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.6.2/ps5upload-engine-6.6.2-macos-arm64",
+    "size": 38992928
+   },
+   {
+    "name": "ps5upload-engine-6.6.2-macos-x64",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.6.2/ps5upload-engine-6.6.2-macos-x64",
+    "size": 40799136
+   },
+   {
+    "name": "ps5upload-engine-6.6.2-windows-arm64.exe",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.6.2/ps5upload-engine-6.6.2-windows-arm64.exe",
+    "size": 31522816
+   },
+   {
+    "name": "ps5upload-engine-6.6.2-windows-x64.exe",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.6.2/ps5upload-engine-6.6.2-windows-x64.exe",
+    "size": 37028864
+   }
+  ]
+ },
+ {
+  "tag_name": "v6.6.1",
+  "prerelease": false,
+  "published_at": "2026-10-09T08:04:08Z",
+  "html_url": "https://github.com/phantomptr/ps5upload/releases/tag/v6.6.1",
+  "body": "**A new Bug report page that gathers everything we need, and two or more consoles no longer\r\nstep on each other.**\r\n\r\n### New\r\n\r\n- **Bug report.** Open it from the command palette, or from the link on any error. One page:\r\n  say what went wrong, add screenshots, check your setup (filled in for you), and pick how far\r\n  back the logs go (the last 15 minutes up to the last 7 days, or a time you choose). Everything\r\n  the app, the engine and the PS5 recorded in that time goes in. Then post it as a GitHub issue,\r\n  copy it for the Discord #bugs-report channel, or download the zip. IP addresses, serials, MAC\r\n  addresses, home folders and keys are removed before anything leaves your computer.\r\n- **Screenshots for reports.** The Capture button at the bottom right of the desktop app takes a\r\n  picture of any screen. The Bug report lists your captures to pick from and adds one you take\r\n  while writing it. You can also add, drop or paste any image.\r\n- **The app now keeps a timeline.** Connection drops, reconnects, helper crashes, failed installs\r\n  and engine restarts are noted as they happen, along with the helper's own log from each PS5,\r\n  so a report shows what happened even when the console has since restarted. It also notes when\r\n  the web UI reloads itself and why (#418).\r\n- **Buy me a coffee** is now on Home too, under the connection badge.\r\n\r\n### Fixed\r\n\r\n- **Switching consoles mid-task.** A check, a payload send, a bring-up or a folder pick that\r\n  finishes after you switched to another PS5 now lands on the console it started on, not the\r\n  one on screen.\r\n\r\n",
+  "assets": [
+   {
+    "name": "latest.json",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.6.1/latest.json",
+    "size": 3262
+   },
+   {
+    "name": "PS5Upload-6.6.1-android.apk",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.6.1/PS5Upload-6.6.1-android.apk",
+    "size": 100306899
+   },
+   {
+    "name": "PS5Upload-6.6.1-linux-arm64.deb",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.6.1/PS5Upload-6.6.1-linux-arm64.deb",
+    "size": 24791534
+   },
+   {
+    "name": "PS5Upload-6.6.1-linux-arm64.rpm",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.6.1/PS5Upload-6.6.1-linux-arm64.rpm",
+    "size": 24797569
+   },
+   {
+    "name": "PS5Upload-6.6.1-linux-arm64.zip",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.6.1/PS5Upload-6.6.1-linux-arm64.zip",
+    "size": 98547187
+   },
+   {
+    "name": "PS5Upload-6.6.1-linux-x64.deb",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.6.1/PS5Upload-6.6.1-linux-x64.deb",
+    "size": 24674236
+   },
+   {
+    "name": "PS5Upload-6.6.1-linux-x64.rpm",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.6.1/PS5Upload-6.6.1-linux-x64.rpm",
+    "size": 24675308
+   },
+   {
+    "name": "PS5Upload-6.6.1-linux-x64.zip",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.6.1/PS5Upload-6.6.1-linux-x64.zip",
+    "size": 100636437
+   },
+   {
+    "name": "PS5Upload-6.6.1-mac-arm64.dmg",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.6.1/PS5Upload-6.6.1-mac-arm64.dmg",
+    "size": 22855769
+   },
+   {
+    "name": "PS5Upload-6.6.1-mac-x64.dmg",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.6.1/PS5Upload-6.6.1-mac-x64.dmg",
+    "size": 24032398
+   },
+   {
+    "name": "PS5Upload-6.6.1-win-arm64-setup.exe",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.6.1/PS5Upload-6.6.1-win-arm64-setup.exe",
+    "size": 14668030
+   },
+   {
+    "name": "PS5Upload-6.6.1-win-arm64.zip",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.6.1/PS5Upload-6.6.1-win-arm64.zip",
+    "size": 21202327
+   },
+   {
+    "name": "PS5Upload-6.6.1-win-x64-setup.exe",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.6.1/PS5Upload-6.6.1-win-x64-setup.exe",
+    "size": 16406562
+   },
+   {
+    "name": "PS5Upload-6.6.1-win-x64.zip",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.6.1/PS5Upload-6.6.1-win-x64.zip",
+    "size": 22416658
+   },
+   {
+    "name": "ps5upload-6.6.1.elf",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.6.1/ps5upload-6.6.1.elf",
+    "size": 3296952
+   },
+   {
+    "name": "ps5upload-engine-6.6.1-linux-arm64",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.6.1/ps5upload-engine-6.6.1-linux-arm64",
+    "size": 43267688
+   },
+   {
+    "name": "ps5upload-engine-6.6.1-linux-x64",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.6.1/ps5upload-engine-6.6.1-linux-x64",
+    "size": 45581872
+   },
+   {
+    "name": "ps5upload-engine-6.6.1-macos-arm64",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.6.1/ps5upload-engine-6.6.1-macos-arm64",
+    "size": 38972976
+   },
+   {
+    "name": "ps5upload-engine-6.6.1-macos-x64",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.6.1/ps5upload-engine-6.6.1-macos-x64",
+    "size": 40807000
+   },
+   {
+    "name": "ps5upload-engine-6.6.1-windows-arm64.exe",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.6.1/ps5upload-engine-6.6.1-windows-arm64.exe",
+    "size": 31538176
+   },
+   {
+    "name": "ps5upload-engine-6.6.1-windows-x64.exe",
+    "browser_download_url": "https://github.com/phantomptr/ps5upload/releases/download/v6.6.1/ps5upload-engine-6.6.1-windows-x64.exe",
+    "size": 37035008
+   }
+  ]
+ }
+]
