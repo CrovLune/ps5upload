@@ -23,6 +23,8 @@ import { safeGetItem, safeSetItem } from "../lib/safeStorage";
  * user explicitly chooses Full/Reduced/None, that overrides auto. */
 
 export type MotionMode = "auto" | "full" | "reduced" | "none";
+/** "auto" follows the OS prefers-reduced-transparency query. */
+export type TransparencyMode = "auto" | "full" | "reduced";
 export type ResolvedMotion = "full" | "reduced" | "none";
 export type ContrastMode = "normal" | "high";
 
@@ -30,6 +32,14 @@ const STORAGE_KEY = "ps5upload.accessibility";
 
 const VALID_MOTION: MotionMode[] = ["auto", "full", "reduced", "none"];
 const VALID_CONTRAST: ContrastMode[] = ["normal", "high"];
+const VALID_TRANSPARENCY: TransparencyMode[] = ["auto", "full", "reduced"];
+
+/** Resolve "auto" transparency to the OS preference. */
+function resolveTransparency(mode: TransparencyMode): "full" | "reduced" {
+  if (mode !== "auto") return mode;
+  if (typeof window === "undefined" || !window.matchMedia) return "full";
+  return window.matchMedia("(prefers-reduced-transparency: reduce)").matches ? "reduced" : "full";
+}
 
 /** Resolve "auto" to a concrete motion by reading the OS media query.
  *  Returns "reduced" if the OS prefers reduced motion, else "full". */
@@ -51,6 +61,9 @@ function defaultContrast(): ContrastMode {
 
 export interface PersistedAccessibility {
   motion: MotionMode;
+  /** The frosted-glass blur (backdrop-filter): the one thing on screen that keeps the GPU
+   *  busy while an upload redraws its progress (#443). "reduced" turns it off. */
+  transparency: TransparencyMode;
   contrast: ContrastMode;
   dyslexia: boolean;
   hapticsEnabled: boolean;
@@ -59,6 +72,7 @@ export interface PersistedAccessibility {
 function defaults(): PersistedAccessibility {
   return {
     motion: "auto",
+    transparency: "auto",
     contrast: defaultContrast(),
     dyslexia: false,
     hapticsEnabled: true,
@@ -72,6 +86,13 @@ function isValidShape(raw: unknown): raw is Partial<PersistedAccessibility> {
     return false;
   }
   if ("contrast" in obj && typeof obj.contrast === "string" && !VALID_CONTRAST.includes(obj.contrast as ContrastMode)) {
+    return false;
+  }
+  if (
+    "transparency" in obj &&
+    typeof obj.transparency === "string" &&
+    !VALID_TRANSPARENCY.includes(obj.transparency as TransparencyMode)
+  ) {
     return false;
   }
   return true;
@@ -103,6 +124,10 @@ export function parseAccessibility(raw: string | null): PersistedAccessibility {
         typeof parsed.contrast === "string" && VALID_CONTRAST.includes(parsed.contrast)
           ? parsed.contrast
           : d.contrast,
+      transparency:
+        typeof parsed.transparency === "string" && VALID_TRANSPARENCY.includes(parsed.transparency)
+          ? parsed.transparency
+          : d.transparency,
       dyslexia:
         typeof parsed.dyslexia === "boolean" ? parsed.dyslexia : d.dyslexia,
       hapticsEnabled:
@@ -122,26 +147,29 @@ function applyAttributes(settings: PersistedAccessibility): void {
   if (typeof document === "undefined") return;
   const el = document.documentElement;
   el.dataset.motion = resolveMotion(settings.motion);
+  el.dataset.transparency = resolveTransparency(settings.transparency);
   el.dataset.contrast = settings.contrast;
   el.dataset.dyslexia = String(settings.dyslexia);
 }
 
 interface AccessibilityState extends PersistedAccessibility {
   setMotion: (mode: MotionMode) => void;
+  setTransparency: (mode: TransparencyMode) => void;
   setContrast: (contrast: ContrastMode) => void;
   setDyslexia: (on: boolean) => void;
   setHapticsEnabled: (on: boolean) => void;
   /** Resolve "auto" motion to a concrete value (for components that
    *  need to know the effective motion mode right now). */
   resolvedMotion: () => ResolvedMotion;
+  resolvedTransparency: () => "full" | "reduced";
 }
 
 /** Only the persisted fields: `get()` also carries the setters. */
 function persist(settings: PersistedAccessibility): void {
-  const { motion, contrast, dyslexia, hapticsEnabled } = settings;
+  const { motion, transparency, contrast, dyslexia, hapticsEnabled } = settings;
   safeSetItem(
     STORAGE_KEY,
-    JSON.stringify({ motion, contrast, dyslexia, hapticsEnabled }),
+    JSON.stringify({ motion, transparency, contrast, dyslexia, hapticsEnabled }),
   );
 }
 
@@ -153,6 +181,12 @@ export const useAccessibilityStore = create<AccessibilityState>((set, get) => ({
     persist(next);
     applyAttributes(next);
     set({ motion });
+  },
+  setTransparency: (transparency) => {
+    const next = { ...get(), transparency };
+    persist(next);
+    applyAttributes(next);
+    set({ transparency });
   },
   setContrast: (contrast) => {
     const next = { ...get(), contrast };
@@ -172,6 +206,7 @@ export const useAccessibilityStore = create<AccessibilityState>((set, get) => ({
     set({ hapticsEnabled });
   },
   resolvedMotion: () => resolveMotion(get().motion),
+  resolvedTransparency: () => resolveTransparency(get().transparency),
 }));
 
 // Apply data-attributes on module load so the very first paint is right

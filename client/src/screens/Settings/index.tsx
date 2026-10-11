@@ -139,6 +139,9 @@ function AccessibilitySection() {
   const setMotion = useAccessibilityStore((s) => s.setMotion);
   const contrast = useAccessibilityStore((s) => s.contrast);
   const setContrast = useAccessibilityStore((s) => s.setContrast);
+  const transparency = useAccessibilityStore((s) => s.transparency);
+  const setTransparency = useAccessibilityStore((s) => s.setTransparency);
+  const transparencyReduced = useAccessibilityStore((s) => s.resolvedTransparency() === "reduced");
   const dyslexia = useAccessibilityStore((s) => s.dyslexia);
   const setDyslexia = useAccessibilityStore((s) => s.setDyslexia);
   const hapticsEnabled = useAccessibilityStore((s) => s.hapticsEnabled);
@@ -184,6 +187,20 @@ function AccessibilitySection() {
         </div>
 
         <div className="border-t border-[var(--color-border)]" />
+
+        {/* Frosted-glass blur: the GPU cost that #443 measured during uploads. */}
+        <Toggle
+          checked={transparencyReduced}
+          onChange={(on) => setTransparency(on ? "reduced" : "full")}
+          label={tr("a11y_transparency", undefined, "Reduce transparency")}
+          hint={tr(
+            "a11y_transparency_hint",
+            undefined,
+            transparency === "auto"
+              ? "Turns off the frosted-glass blur behind panels. It is what keeps the graphics card busy while an upload redraws its progress. Following your OS setting until you change it here."
+              : "Turns off the frosted-glass blur behind panels. It is what keeps the graphics card busy while an upload redraws its progress.",
+          )}
+        />
 
         {/* High contrast toggle. */}
         <Toggle

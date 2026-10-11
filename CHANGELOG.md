@@ -4,6 +4,15 @@ What's new in ps5upload, written for humans.
 
 ---
 
+## 7.0.11
+
+- **Settings → Accessibility → Reduce transparency (#443).** Turns off the frosted-glass blur
+  behind panels, the one thing that keeps the graphics card busy while an upload redraws its
+  progress on Windows. It follows the OS "transparency effects" setting until you change it.
+  (Motion → Reduced already did this as a side effect and still does.)
+
+---
+
 ## 7.0.10
 
 7.0.9 was tagged but never published: its Android build failed on a desktop-only permission

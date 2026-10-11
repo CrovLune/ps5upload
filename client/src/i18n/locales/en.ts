@@ -1479,6 +1479,8 @@ a11y_motion_full: "Full",
 a11y_motion_reduced: "Reduced",
 a11y_motion_none: "None",
 a11y_motion_hint_v2: "Auto follows your OS setting. Reduced turns off the screen-change animation and shortens pop-up animations; None turns off all animations and transitions.",
+a11y_transparency: "Reduce transparency",
+a11y_transparency_hint: "Turns off the frosted-glass blur behind panels. It is what keeps the graphics card busy while an upload redraws its progress.",
 a11y_high_contrast: "High contrast",
 a11y_high_contrast_hint:
   "Strengthens semantic color contrast for text, borders, and focus rings.",

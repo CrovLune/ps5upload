@@ -16,6 +16,7 @@ describe("stored accessibility settings", () => {
     );
     expect(got).toEqual({
       motion: "none",
+      transparency: "auto",
       contrast: "high",
       dyslexia: true,
       hapticsEnabled: false,
@@ -35,5 +36,13 @@ describe("stored accessibility settings", () => {
   it("falls back to defaults for nothing stored or junk", () => {
     expect(parseAccessibility(null).motion).toBe("auto");
     expect(parseAccessibility("{not json").motion).toBe("auto");
+  });
+});
+
+describe("transparency setting", () => {
+  it("defaults to auto, keeps a stored value, and rejects garbage", () => {
+    expect(parseAccessibility(null).transparency).toBe("auto");
+    expect(parseAccessibility(JSON.stringify({ transparency: "reduced" })).transparency).toBe("reduced");
+    expect(parseAccessibility(JSON.stringify({ transparency: "glassy" })).transparency).toBe("auto");
   });
 });

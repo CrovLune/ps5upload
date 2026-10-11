@@ -273,6 +273,24 @@
     --color-canvas: transparent;
   }
 }
+/* The same, chosen in Settings → Accessibility → Reduce transparency (the setting's "auto"
+ * follows the OS query above; "reduced" sets this attribute on <html>). */
+  :root[data-transparency="reduced"] {
+    --glass-blur: 0px;
+    --color-surface-2: rgb(44 44 46 / 0.96);
+    --color-surface-raised: rgb(50 50 52 / 0.96);
+    --color-canvas: rgb(30 30 32 / 0.96);
+  }
+  :root[data-transparency="reduced"]:is([data-theme="light"], [data-theme="peach"]) {
+    --color-surface-2: rgb(255 255 255 / 0.9);
+    --color-surface-raised: rgb(255 255 255 / 0.92);
+    --color-canvas: rgb(255 255 255 / 0.75);
+  }
+  :root[data-transparency="reduced"][data-theme="oled"] {
+    --color-surface-2: rgb(18 18 20 / 0.98);
+    --color-surface-raised: rgb(26 26 28 / 0.98);
+    --color-canvas: transparent;
+  }
 :root[data-motion="reduced"],
 :root[data-motion="none"] {
   --glass-blur: 0px;
