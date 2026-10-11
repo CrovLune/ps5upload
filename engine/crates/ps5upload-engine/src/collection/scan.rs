@@ -3,7 +3,8 @@
 
 use std::collections::BTreeMap;
 use std::path::Path;
-use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU64, AtomicU8, Ordering};
+use std::sync::Mutex;
 use std::time::UNIX_EPOCH;
 
 use super::{
@@ -289,8 +290,63 @@ fn dates(stat: Option<(u64, i64, i64)>) -> (i64, i64, &'static str) {
 /// Live progress of a scan, read by the API while it runs.
 #[derive(Default)]
 pub struct Progress {
+    /// Items found so far (each root's are added once that root has been walked).
     pub found: AtomicU64,
+    /// Items read and identified.
     pub done: AtomicU64,
+    /// What the scan is doing: one of the `PHASE_*` values.
+    pub phase: AtomicU8,
+    pub roots_total: AtomicU64,
+    pub roots_done: AtomicU64,
+    /// Games given their name and cover at the end (looked up online when they can't name
+    /// themselves, cover read out of the game otherwise).
+    pub games_total: AtomicU64,
+    pub games_done: AtomicU64,
+    /// The folder being searched, or the item being read.
+    current: Mutex<String>,
+}
+
+pub const PHASE_FINDING: u8 = 0;
+pub const PHASE_READING: u8 = 1;
+pub const PHASE_NAMING: u8 = 2;
+pub const PHASE_SAVING: u8 = 3;
+
+impl Progress {
+    pub fn set_current(&self, what: &str) {
+        *self.current.lock().unwrap_or_else(|e| e.into_inner()) = what.to_string();
+    }
+
+    pub fn current(&self) -> String {
+        self.current
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .clone()
+    }
+
+    pub fn phase_name(&self) -> &'static str {
+        match self.phase.load(Ordering::Relaxed) {
+            PHASE_READING => "reading",
+            PHASE_NAMING => "naming",
+            PHASE_SAVING => "saving",
+            _ => "finding",
+        }
+    }
+
+    /// Back to the start, for a new scan.
+    pub fn reset(&self) {
+        for c in [
+            &self.found,
+            &self.done,
+            &self.roots_total,
+            &self.roots_done,
+            &self.games_total,
+            &self.games_done,
+        ] {
+            c.store(0, Ordering::Relaxed);
+        }
+        self.phase.store(PHASE_FINDING, Ordering::Relaxed);
+        self.set_current("");
+    }
 }
 
 /// Scans `roots` into a new library. `previous` provides the caches (and titles/covers already
@@ -315,18 +371,25 @@ pub fn scan(
         ..Library::default()
     };
     let mut games = BTreeMap::new();
+    progress
+        .roots_total
+        .store(roots.len() as u64, Ordering::Relaxed);
     for root in roots {
+        progress.phase.store(PHASE_FINDING, Ordering::Relaxed);
+        progress.set_current(root);
         let fs = Fsys::for_root(root, rt)?;
         let items = discover(&fs, root, cancel);
         progress
             .found
             .fetch_add(items.len() as u64, Ordering::Relaxed);
+        progress.phase.store(PHASE_READING, Ordering::Relaxed);
         for it in items {
             if cancel.load(Ordering::Relaxed) {
                 return Err("cancelled".into());
             }
             let key = format!("{root}|{}", it.rel);
             let name = it.rel.rsplit('/').next().unwrap_or(&it.rel).to_string();
+            progress.set_current(&name);
             let stat = Some(it.stat);
             let size = match it.kind.as_str() {
                 "rar" => rar_parts(&fs.list(&it.abs)).iter().map(|e| e.size).sum(),
@@ -394,8 +457,14 @@ pub fn scan(
             };
             group::place(&mut games, &gid, loc);
         }
+        progress.roots_done.fetch_add(1, Ordering::Relaxed);
     }
+    progress.phase.store(PHASE_NAMING, Ordering::Relaxed);
+    progress
+        .games_total
+        .store(games.len() as u64, Ordering::Relaxed);
     for g in games.values_mut() {
+        progress.set_current(&g.title);
         if let Some(old) = prev.games.get(&g.game_id) {
             g.cover_url = old.cover_url.clone();
             // A title looked up before is reused rather than fetched again, and a game that
@@ -430,7 +499,10 @@ pub fn scan(
                 .as_ref()
                 .and_then(|n| super::store::cover_stamp(&dir.join(n)));
         }
+        progress.games_done.fetch_add(1, Ordering::Relaxed);
     }
+    progress.phase.store(PHASE_SAVING, Ordering::Relaxed);
+    progress.set_current("");
     lib.summary = group::summarize(&games);
     lib.games = games;
     lib.generated_at = iso_utc(secs(std::time::SystemTime::now()));
@@ -546,6 +618,14 @@ mod tests {
         let p = Progress::default();
         let lib = scan(&[s(&root)], None, false, None, false, &cancel, &p, None).unwrap();
         assert_eq!(lib.summary.total_games, 1);
+        // What the screen shows while it runs, as it stands at the end.
+        assert_eq!(p.roots_total.load(Ordering::Relaxed), 1);
+        assert_eq!(p.roots_done.load(Ordering::Relaxed), 1);
+        assert_eq!(p.found.load(Ordering::Relaxed), 2);
+        assert_eq!(p.done.load(Ordering::Relaxed), 2);
+        assert_eq!(p.games_total.load(Ordering::Relaxed), 1);
+        assert_eq!(p.games_done.load(Ordering::Relaxed), 1);
+        assert_eq!(p.phase_name(), "saving");
         let g = &lib.games["PPSA01234"];
         assert_eq!(g.title, "Test Game");
         assert_eq!(g.platform, "PS5");
@@ -715,5 +795,17 @@ mod tests {
             .iter()
             .all(|f| f.abs.starts_with(&format!("remote://{id}/games/"))));
         assert_eq!(sizes, (102, 5));
+    }
+
+    #[test]
+    fn a_new_scan_starts_its_progress_from_nothing() {
+        let p = Progress::default();
+        p.done.store(5, Ordering::Relaxed);
+        p.phase.store(PHASE_SAVING, Ordering::Relaxed);
+        p.set_current("Some Game");
+        p.reset();
+        assert_eq!(p.phase_name(), "finding");
+        assert_eq!(p.done.load(Ordering::Relaxed), 0);
+        assert_eq!(p.current(), "");
     }
 }

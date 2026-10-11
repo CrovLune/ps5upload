@@ -17,6 +17,7 @@ import {
   Input,
   OverflowMenu,
   PageHeader,
+  ProgressBar,
   SegmentedControl,
   Select,
   Spinner,
@@ -36,7 +37,6 @@ import {
   addCollectionRoot,
   cancelCollectionScan,
   collectionGames,
-  importPsGameLibrary,
   loadCollection,
   loadConsoleStates,
   startCollectionScan,
@@ -55,6 +55,8 @@ import { CollectionCard } from "./CollectionCard";
 import { CollectionTable } from "./CollectionTable";
 import { CleanupModal } from "./CleanupModal";
 import { FoldersModal } from "./FoldersModal";
+import { elapsedLabel, scanView } from "./scanProgress";
+import { useFormatDate } from "../../lib/formatDate";
 import { OrganizeModal } from "./OrganizeModal";
 import { ServingLinks } from "./ServingLinks";
 import { gamePath } from "../../lib/gamePage";
@@ -379,18 +381,6 @@ export default function CollectionScreen() {
                       },
                     ]
                   : []),
-                ...(s.settings?.ps_game_library_found
-                  ? [
-                      {
-                        label: tr(
-                          "collection.import_pgl",
-                          undefined,
-                          "Import from PS Game Library",
-                        ),
-                        onSelect: () => void importPsGameLibrary(),
-                      },
-                    ]
-                  : []),
               ]}
             />
           </div>
@@ -460,24 +450,12 @@ export default function CollectionScreen() {
               >
                 {tr("collection.add_folder", undefined, "Add a folder")}
               </Button>
-              {s.settings?.ps_game_library_found && (
-                <Button
-                  variant="secondary"
-                  onClick={() => void importPsGameLibrary()}
-                >
-                  {tr(
-                    "collection.import_pgl",
-                    undefined,
-                    "Import from PS Game Library",
-                  )}
-                </Button>
-              )}
             </div>
           }
         />
       ) : (
         <>
-          {scanning && <ScanProgress />}
+          {scanning ? <ScanProgress /> : <LastScan />}
           {!scanning && s.scanError && (
             <div className="mb-3">
               <ErrorCard
@@ -767,18 +745,83 @@ export default function CollectionScreen() {
   );
 }
 
-/** The running scan's counters; the one part of the screen that follows them. */
+/** Re-renders every second while mounted: for the elapsed and "ago" times. */
+function useNow(): number {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const t = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(t);
+  }, []);
+  return now;
+}
+
+/** The running scan: what it is doing, how far it is, what it is reading, and how long it
+ *  has taken. The one part of the screen that follows the scan's counters. */
 function ScanProgress() {
   const tr = useTr();
-  const done = useCollectionStore((st) => st.scan?.done ?? 0);
-  const found = useCollectionStore((st) => st.scan?.found ?? 0);
+  const scan = useCollectionStore((st) => st.scan);
+  const now = useNow();
+  if (!scan) return null;
+  const v = scanView(scan);
+  const title = {
+    finding: tr("collection.scan_phase_finding", undefined, "Looking for games in your folders"),
+    reading: tr("collection.scan_phase_reading", undefined, "Reading each item"),
+    naming: tr("collection.scan_phase_naming", undefined, "Finding names and covers"),
+    saving: tr("collection.scan_phase_saving", undefined, "Saving the collection"),
+  }[v.phase];
+  const detail = v.counts
+    ? v.phase === "naming"
+      ? tr("collection.scan_games_n", { done: v.counts.done, total: v.counts.total }, "{done} of {total} games")
+      : tr("collection.scan_items_n", { done: v.counts.done, total: v.counts.total }, "{done} of {total} items")
+    : v.folder
+      ? tr("collection.scan_folder_n", { n: v.folder.n, total: v.folder.total }, "Folder {n} of {total}")
+      : null;
   return (
-    <div className="surface-panel mb-4 flex items-center gap-2 !rounded-full px-4 py-2 text-xs text-[var(--color-muted)]">
-      <Spinner size={12} />
-      {found > 0
-        ? tr("collection.scanning_n", { done, found }, "Scanning: {done} of {found} items read")
-        : tr("collection.scanning", undefined, "Scanning: looking for games…")}
-    </div>
+    <section
+      aria-live="polite"
+      data-testid="collection-scan-progress"
+      className="surface-panel mb-4 !rounded-[var(--radius-card)] px-4 py-3"
+    >
+      <div className="flex items-center gap-2 text-sm">
+        <Spinner size={14} />
+        <span className="min-w-0 flex-1 truncate font-medium">{title}</span>
+        {detail && <span className="shrink-0 text-xs tabular-nums text-[var(--color-muted)]">{detail}</span>}
+        {scan.started_ms > 0 && (
+          <span className="shrink-0 text-xs tabular-nums text-[var(--color-muted)]">
+            {elapsedLabel(scan.started_ms, now)}
+          </span>
+        )}
+      </div>
+      <ProgressBar
+        className="mt-2.5"
+        size="sm"
+        value={v.value}
+        label={title}
+      />
+      {v.current && (
+        <p className="mt-1.5 truncate text-xs text-[var(--color-muted)]" title={v.current}>
+          {v.current}
+        </p>
+      )}
+    </section>
+  );
+}
+
+/** When the last scan finished and how long it took, under the header while none runs. */
+function LastScan() {
+  const tr = useTr();
+  const fmt = useFormatDate();
+  const scan = useCollectionStore((st) => st.scan);
+  if (!scan || scan.running || scan.error || !scan.finished_ms || !scan.started_ms) return null;
+  const took = elapsedLabel(scan.started_ms, scan.finished_ms);
+  return (
+    <p className="mb-3 text-xs text-[var(--color-muted)]" data-testid="collection-last-scan">
+      {tr(
+        "collection.last_scan_took",
+        { when: fmt(scan.finished_ms), took },
+        "Last scanned {when} · took {took}",
+      )}
+    </p>
   );
 }
 

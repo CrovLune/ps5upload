@@ -110,7 +110,6 @@ export interface CollectionSettings {
   /** False in Docker or on a server without a desktop. */
   trash_available?: boolean;
   refresh_choices?: number[];
-  ps_game_library_found?: boolean;
 }
 
 export interface CollectionScanStatus {
@@ -123,6 +122,14 @@ export interface CollectionScanStatus {
   error: string | null;
   games: number;
   locations: number;
+  /** While running: what it is doing. Older engines leave these out. */
+  phase?: "finding" | "reading" | "naming" | "saving";
+  /** The folder being searched, or the item or game being read. */
+  current?: string;
+  roots_total?: number;
+  roots_done?: number;
+  games_total?: number;
+  games_done?: number;
 }
 
 /** A package in the collection a console could take. */
@@ -288,11 +295,6 @@ export const collection = {
   scanStatus: () => call<CollectionScanStatus>("/scan"),
   cancelScan: () =>
     call<CollectionScanStatus>("/scan/cancel", { method: "POST" }),
-  importPsGameLibrary: (path?: string) =>
-    call<{ ok: boolean; summary: CollectionSummary }>("/import", {
-      method: "POST",
-      body: JSON.stringify(path ? { path } : {}),
-    }),
   /** The export's text (json | csv | md). */
   exportText: async (format: "json" | "csv" | "md"): Promise<string> => {
     const res = await fetch(

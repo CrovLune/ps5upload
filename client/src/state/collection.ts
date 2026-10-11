@@ -109,6 +109,8 @@ export async function loadCollection(): Promise<void> {
   }
 }
 
+/** Starts a scan, or joins the one already running: the Collection is one per computer, so
+ *  a scan started by the automatic refresh or another window is this scan too. */
 export async function startCollectionScan(deep = false): Promise<void> {
   store().set({ error: null });
   try {
@@ -116,7 +118,18 @@ export async function startCollectionScan(deep = false): Promise<void> {
     store().set({ scan: st });
     pollScan();
   } catch (e) {
-    store().set({ error: e instanceof Error ? e.message : String(e) });
+    const msg = e instanceof Error ? e.message : String(e);
+    // An engine from before 7.0.0 refuses a second scan instead of joining it.
+    if (/already running/i.test(msg)) {
+      try {
+        store().set({ scan: await collection.scanStatus() });
+      } catch {
+        /* the poll catches up */
+      }
+      pollScan();
+      return;
+    }
+    store().set({ error: msg });
   }
 }
 
@@ -171,25 +184,6 @@ export async function setCollectionSweep(on: boolean): Promise<void> {
 export async function setCollectionRefresh(secs: number | null): Promise<void> {
   const s = store().settings;
   if (s) await saveSettings({ ...s, refresh_secs: secs });
-}
-
-/** Imports PS Game Library's index, then rescans to reconcile it with the disk. */
-export async function importPsGameLibrary(): Promise<void> {
-  store().set({ error: null, loading: true });
-  try {
-    await collection.importPsGameLibrary();
-    const [settings, library] = await Promise.all([
-      collection.settings(),
-      collection.library(),
-    ]);
-    store().set({ settings, library, loading: false });
-    if (settings.roots.length > 0) await startCollectionScan(false);
-  } catch (e) {
-    store().set({
-      loading: false,
-      error: e instanceof Error ? e.message : String(e),
-    });
-  }
 }
 
 export function collectionGames(

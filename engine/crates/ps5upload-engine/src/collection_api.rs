@@ -35,6 +35,15 @@ pub struct ScanStatus {
     /// Games and locations the last good scan found.
     pub games: usize,
     pub locations: usize,
+    /// While running: `finding` (walking the folders), `reading` (identifying each item),
+    /// `naming` (titles and covers), `saving`.
+    pub phase: String,
+    /// The folder being searched, or the item or game being read.
+    pub current: String,
+    pub roots_total: u64,
+    pub roots_done: u64,
+    pub games_total: u64,
+    pub games_done: u64,
 }
 
 struct State {
@@ -86,8 +95,26 @@ pub(crate) fn settings() -> store::Settings {
         .unwrap_or_default()
 }
 
-/// Starts a scan of the configured roots in the background. `Err` when one is running or there
-/// is nothing to scan.
+/// Marks a scan as running in `st`, unless one already is. `false` = one was running: the
+/// caller joins it rather than starting a second.
+fn claim_scan(st: &mut ScanStatus, deep: bool) -> bool {
+    if st.running {
+        return false;
+    }
+    *st = ScanStatus {
+        running: true,
+        deep,
+        started_ms: now_ms(),
+        games: st.games,
+        locations: st.locations,
+        ..ScanStatus::default()
+    };
+    true
+}
+
+/// Starts a scan of the configured roots in the background. The Collection is one per
+/// computer, so there is one scan: when one is already running (the automatic refresh, or
+/// another window), this joins it and returns `Ok`. `Err` only when there is nothing to scan.
 pub fn start_scan(deep: bool) -> Result<(), String> {
     let s = state();
     let roots: Vec<String> = settings().roots.clone();
@@ -99,21 +126,12 @@ pub fn start_scan(deep: bool) -> Result<(), String> {
     let rt = tokio::runtime::Handle::try_current().ok();
     {
         let mut st = s.status.lock().unwrap_or_else(|e| e.into_inner());
-        if st.running {
-            return Err("a scan is already running".into());
+        if !claim_scan(&mut st, deep) {
+            return Ok(());
         }
-        *st = ScanStatus {
-            running: true,
-            deep,
-            started_ms: now_ms(),
-            games: st.games,
-            locations: st.locations,
-            ..ScanStatus::default()
-        };
     }
     s.cancel.store(false, Ordering::Relaxed);
-    s.progress.found.store(0, Ordering::Relaxed);
-    s.progress.done.store(0, Ordering::Relaxed);
+    s.progress.reset();
     std::thread::spawn(move || {
         let _rt = rt.as_ref().map(|h| h.enter());
         let s = state();
@@ -131,6 +149,9 @@ pub fn start_scan(deep: bool) -> Result<(), String> {
             rt.as_ref(),
         );
         // "Remove new sidecars after each scan": AppleDouble files only, each one verified.
+        s.progress
+            .phase
+            .store(scan::PHASE_SAVING, Ordering::Relaxed);
         if result.is_ok() && settings().sweep_sidecars {
             for root in roots.iter().filter(|r| !crate::remote::path::is_remote(r)) {
                 let root = PathBuf::from(root);
@@ -226,8 +247,6 @@ struct SettingsReply {
     #[serde(flatten)]
     settings: store::Settings,
     refresh_choices: &'static [u64],
-    /// Whether PS Game Library's index is on this computer to import.
-    ps_game_library_found: bool,
     /// Whether this engine can move files to a trash (false in Docker or on a headless server,
     /// where `allow_permanent_delete` decides).
     trash_available: bool,
@@ -237,7 +256,6 @@ pub async fn get_settings() -> Response {
     Json(SettingsReply {
         settings: settings(),
         refresh_choices: store::REFRESH_CHOICES,
-        ps_game_library_found: store::ps_game_library_index().is_some(),
         trash_available: crate::collection_tidy_api::trash_available(),
     })
     .into_response()
@@ -346,8 +364,15 @@ fn get_scan_status() -> Json<ScanStatus> {
     let s = state();
     let mut st = s.status.lock().unwrap_or_else(|e| e.into_inner()).clone();
     if st.running {
-        st.found = s.progress.found.load(Ordering::Relaxed);
-        st.done = s.progress.done.load(Ordering::Relaxed);
+        let p = &s.progress;
+        st.found = p.found.load(Ordering::Relaxed);
+        st.done = p.done.load(Ordering::Relaxed);
+        st.phase = p.phase_name().to_string();
+        st.current = p.current();
+        st.roots_total = p.roots_total.load(Ordering::Relaxed);
+        st.roots_done = p.roots_done.load(Ordering::Relaxed);
+        st.games_total = p.games_total.load(Ordering::Relaxed);
+        st.games_done = p.games_done.load(Ordering::Relaxed);
     }
     Json(st)
 }
@@ -391,68 +416,6 @@ pub async fn get_export(Query(q): Query<ExportQuery>) -> Response {
         )
         .body(Body::from(body))
         .unwrap_or_else(|_| err(StatusCode::INTERNAL_SERVER_ERROR, "export"))
-}
-
-#[derive(Deserialize)]
-pub struct ImportReq {
-    /// A PS Game Library `library.json`; its default macOS location when absent.
-    #[serde(default)]
-    path: Option<String>,
-}
-
-/// Imports PS Game Library's index as the starting point, adds its library folder to the roots
-/// when it is readable here, and copies its covers. Nothing is written to its files.
-pub async fn post_import(Json(req): Json<ImportReq>) -> Response {
-    let src = match req
-        .path
-        .map(PathBuf::from)
-        .or_else(store::ps_game_library_index)
-    {
-        Some(p) => p,
-        None => {
-            return err(
-                StatusCode::NOT_FOUND,
-                "PS Game Library's index was not found on this computer",
-            )
-        }
-    };
-    let result = tokio::task::spawn_blocking(move || -> Result<Library, String> {
-        let bytes = std::fs::read(&src).map_err(|e| format!("{}: {e}", src.display()))?;
-        let mut lib = store::import_ps_game_library(&bytes)?;
-        let dir = store::dir().ok_or("no data folder for the engine")?;
-        // Its covers sit beside its index, as <GAMEID>.png.
-        if let (Some(from), Some(to)) =
-            (src.parent().map(|p| p.join("covers")), store::covers_dir())
-        {
-            let _ = std::fs::create_dir_all(&to);
-            for g in lib.games.values_mut() {
-                let name = format!("{}.png", g.game_id);
-                if std::fs::copy(from.join(&name), to.join(&name)).is_ok() {
-                    g.cover_stamp = store::cover_stamp(&to.join(&name));
-                    g.local_cover = Some(name);
-                }
-            }
-        }
-        let mut s = store::load_settings_at(&dir);
-        for r in &lib.roots {
-            if std::path::Path::new(r).is_dir() && !s.roots.contains(r) {
-                s.roots.push(r.clone());
-            }
-        }
-        store::save_settings_at(&dir, &s)?;
-        store::save_index_at(&dir, &lib)?;
-        Ok(lib)
-    })
-    .await;
-    match result {
-        Ok(Ok(lib)) => {
-            let summary = lib.summary.clone();
-            *state().library.lock().unwrap_or_else(|e| e.into_inner()) = Some(Arc::new(lib));
-            Json(serde_json::json!({ "ok": true, "summary": summary })).into_response()
-        }
-        Ok(Err(e)) => err(StatusCode::BAD_REQUEST, e),
-        Err(e) => err(StatusCode::INTERNAL_SERVER_ERROR, e.to_string()),
-    }
 }
 
 // ── The console overlay ─────────────────────────────────────────────────────
@@ -820,5 +783,21 @@ mod extras_tests {
         let facts = merge_detailed(&mut s, "10.0.0.5", "PPSA00001", &read, "Game", 3);
         assert_eq!(facts.patch_installed, Some(false));
         assert_eq!(facts.version, None);
+    }
+}
+
+#[cfg(test)]
+mod scan_claim_tests {
+    use super::*;
+
+    #[test]
+    fn a_second_scan_joins_the_running_one() {
+        let mut st = ScanStatus::default();
+        assert!(claim_scan(&mut st, false));
+        let started = st.started_ms;
+        assert!(!claim_scan(&mut st, true));
+        assert!(st.running);
+        assert!(!st.deep, "the running scan's settings stay");
+        assert_eq!(st.started_ms, started);
     }
 }

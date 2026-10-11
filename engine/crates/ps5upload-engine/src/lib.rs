@@ -9686,7 +9686,6 @@ async fn run(cfg: EngineConfig) -> anyhow::Result<()> {
             post(collection_api::post_scan_cancel),
         )
         .route("/api/collection/export", get(collection_api::get_export))
-        .route("/api/collection/import", post(collection_api::post_import))
         .route("/api/collection/console", get(collection_api::get_console))
         .route("/api/games/{id}", get(games_api::get_game))
         .route("/api/games/{id}/refresh", post(games_api::refresh))

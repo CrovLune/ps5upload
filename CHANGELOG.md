@@ -4,6 +4,18 @@ What's new in ps5upload, written for humans.
 
 ---
 
+## 7.0.1
+
+- **Collection scans show their progress:** what the scan is doing (finding games, reading
+  each item, finding names and covers, saving), how far it is, the item it is reading and how
+  long it has taken; afterwards, when the last scan finished and how long it took.
+- **One scan at a time, shared:** pressing Scan while one is already running (the automatic
+  refresh, or another window) follows that scan instead of saying the collection could not be
+  read.
+- "Import from PS Game Library" is gone.
+
+---
+
 ## 7.0.0
 
 A new look for the whole app, a better Android app, and a long list of fixes.

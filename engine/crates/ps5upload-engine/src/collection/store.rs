@@ -114,58 +114,6 @@ pub fn save_index_at(dir: &Path, lib: &Library) -> Result<(), String> {
     write_atomic(&dir.join("index.json"), &bytes)
 }
 
-/// Reads a PS Game Library index (`library.json`) as a starting point: its games, titles,
-/// covers and caches (keys rewritten to this index's `root|path` form). The next scan
-/// reconciles it with the disk.
-pub fn import_ps_game_library(bytes: &[u8]) -> Result<Library, String> {
-    let mut lib: Library =
-        serde_json::from_slice(bytes).map_err(|e| format!("not a PS Game Library index: {e}"))?;
-    let root = lib.library_root.clone();
-    if lib.roots.is_empty() && !root.is_empty() {
-        lib.roots = vec![root.clone()];
-    }
-    let rekey = |k: &str| {
-        if k.contains('|') {
-            k.to_string()
-        } else {
-            format!("{root}|{k}")
-        }
-    };
-    lib.folder_cache = std::mem::take(&mut lib.folder_cache)
-        .into_iter()
-        .map(|(k, v)| (rekey(&k), v))
-        .collect();
-    lib.pkg_cache = std::mem::take(&mut lib.pkg_cache)
-        .into_iter()
-        .map(|(k, v)| (rekey(&k), v))
-        .collect();
-    // The index is someone else's file: an id becomes a file name and a cover name is joined
-    // to our covers folder, so games with a bad id are dropped and covers are re-derived.
-    lib.games
-        .retain(|k, g| super::is_game_id(k) && *k == g.game_id);
-    for g in lib.games.values_mut() {
-        g.local_cover = None;
-        for l in &mut g.locations {
-            if l.root.is_empty() {
-                l.root = root.clone();
-            }
-            if l.absolute_path.is_empty() {
-                l.absolute_path = Path::new(&root).join(&l.path).display().to_string();
-            }
-        }
-        super::group::finish(g);
-    }
-    lib.summary = super::group::summarize(&lib.games);
-    Ok(lib)
-}
-
-/// Where PS Game Library keeps its index on macOS.
-pub fn ps_game_library_index() -> Option<PathBuf> {
-    let home = std::env::var("HOME").ok()?;
-    let p = PathBuf::from(home).join("Library/Application Support/PS Game Library/library.json");
-    p.is_file().then_some(p)
-}
-
 // ── Exports (the source app's `libexport.py`, field for field) ─────────────────
 
 /// `1.5 GiB`, `2.0 GiB`, `0 B`: the engine's one size formatter.
@@ -350,37 +298,20 @@ mod tests {
     }
 
     #[test]
-    fn a_ps_game_library_index_imports_with_its_caches_rekeyed() {
-        let src = br#"{"version":1,"library_root":"/Volumes/S/games","generated_at":"2026-10-07T12:03:06-07:00",
+    fn exports_list_each_game_with_its_copies() {
+        let src = br#"{"version":1,"library_root":"/Volumes/S/games","generated_at":"x",
           "summary":{"total_games":0,"total_locations":0,"total_size_bytes":0,"duplicates_count":0,"reclaimable_bytes":0},
           "games":{"CUSA00900":{"game_id":"CUSA00900","title":"Bloodborne","platform":"PS4","locations":[
-            {"container":"fpkg","name":"b.pkg","type":"pkg","path":"fpkg/b.pkg","size_bytes":26,"added_at":"2024-12-02T21:29:11-08:00","pkg":{"kind":"base","title":"Bloodborne"}},
+            {"container":"fpkg","name":"b.pkg","type":"pkg","path":"fpkg/b.pkg","size_bytes":26,"pkg":{"kind":"base","title":"Bloodborne"}},
             {"container":"fpkg","name":"p.pkg","type":"pkg","path":"fpkg/p.pkg","size_bytes":8,"pkg":{"kind":"patch"}}],
-            "total_size_bytes":34}},
-          "_folder_cache":{"app/X":{"sig":"s","size":1}},
-          "_pkg_cache":{"fpkg/b.pkg":{"size":26,"mtime":1,"pkg":{"kind":"base"}}}}"#;
-        let lib = import_ps_game_library(src).unwrap();
-        assert_eq!(lib.roots, vec!["/Volumes/S/games"]);
-        assert!(lib.pkg_cache.contains_key("/Volumes/S/games|fpkg/b.pkg"));
-        assert!(lib.folder_cache.contains_key("/Volumes/S/games|app/X"));
-        let g = &lib.games["CUSA00900"];
-        assert_eq!(g.locations[0].absolute_path, "/Volumes/S/games/fpkg/b.pkg");
-        assert_eq!((g.copies, lib.summary.total_locations), (1, 2));
+            "total_size_bytes":34}}}"#;
+        let mut lib: Library = serde_json::from_slice(src).unwrap();
+        for g in lib.games.values_mut() {
+            super::super::group::finish(g);
+        }
+        lib.summary = super::super::group::summarize(&lib.games);
         let csv = to_csv(&lib);
         assert!(csv.starts_with('\u{feff}') && csv.contains("\"Bloodborne\""));
         assert!(to_markdown(&lib, "now").contains("| **CUSA00900** | Bloodborne | PS4 | 2 |"));
-    }
-
-    #[test]
-    fn an_imported_index_cannot_name_files_outside_our_folders() {
-        let src = br#"{"version":1,"library_root":"/L","generated_at":"x",
-          "summary":{"total_games":0,"total_locations":0,"total_size_bytes":0,"duplicates_count":0,"reclaimable_bytes":0},
-          "games":{
-          "../../x":{"game_id":"../../x","title":"Evil","platform":"PS4","locations":[],"total_size_bytes":0},
-          "CUSA00901":{"game_id":"../../y","title":"Mismatch","platform":"PS4","locations":[],"total_size_bytes":0},
-          "CUSA00900":{"game_id":"CUSA00900","title":"Ok","platform":"PS4","local_cover":"/etc/passwd","locations":[],"total_size_bytes":0}}}"#;
-        let lib = import_ps_game_library(src).unwrap();
-        assert_eq!(lib.games.keys().collect::<Vec<_>>(), vec!["CUSA00900"]);
-        assert_eq!(lib.games["CUSA00900"].local_cover, None);
     }
 }
