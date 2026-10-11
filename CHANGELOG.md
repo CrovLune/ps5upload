@@ -6,6 +6,9 @@ What's new in ps5upload, written for humans.
 
 ## 7.0.11
 
+- **Game page: Install on a package card.** "On your drives" showed a package with only Copy
+  path and Copy install link; packages now have Install, which queues them streamed from the
+  drive (or server) they sit on, like the console row's offers.
 - **Settings → Accessibility → Reduce transparency (#443).** Turns off the frosted-glass blur
   behind panels, the one thing that keeps the graphics card busy while an upload redraws its
   progress on Windows. It follows the OS "transparency effects" setting until you change it.
