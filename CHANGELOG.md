@@ -4,7 +4,10 @@ What's new in ps5upload, written for humans.
 
 ---
 
-## 7.0.9
+## 7.0.10
+
+7.0.9 was tagged but never published: its Android build failed on a desktop-only permission
+(the file drag-out plugin), caught before the release existed. Everything below ships here.
 
 - **The app no longer sends the helper into a console that is still booting.** With the app
   open while the PS5 started, the automatic helper restore fired the moment the loader port
