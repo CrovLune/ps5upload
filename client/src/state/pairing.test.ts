@@ -199,6 +199,17 @@ describe("pairing store", () => {
     expect(naps).toHaveLength(2);
   });
 
+  it("after the helper is sent again, keeps asking for a minute: a helper can take that long to start", async () => {
+    api.pairingStatus.mockResolvedValueOnce({ state: "closed" });
+    await usePairingStore.getState().openFor("10.0.0.2");
+    api.pairingStatus.mockResolvedValue({ state: "closed" });
+    let waited = 0;
+    await usePairingStore.getState().retryAfterResend(async (ms) => {
+      waited += ms;
+    });
+    expect(waited).toBeGreaterThanOrEqual(55_000);
+  });
+
   it("after the helper is sent again, stops asking once there is a code to type or it gave up", async () => {
     api.pairingStatus.mockResolvedValueOnce({ state: "closed" });
     await usePairingStore.getState().openFor("10.0.0.2");
@@ -211,7 +222,7 @@ describe("pairing store", () => {
     api.pairingStatus.mockReset();
     api.pairingStatus.mockResolvedValue({ state: "closed" });
     await usePairingStore.getState().retryAfterResend(async () => {});
-    expect(api.pairingStatus.mock.calls.length).toBeLessThanOrEqual(10);
+    expect(api.pairingStatus.mock.calls.length).toBeLessThanOrEqual(31);
     expect(usePairingStore.getState().view).toEqual({ state: "closed" });
     expect(usePairingStore.getState().open).toBe(true);
   });

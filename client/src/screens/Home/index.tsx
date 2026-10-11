@@ -436,12 +436,12 @@ function ActionTile({
       <span className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-[var(--color-accent-soft)] text-[var(--color-accent-bright)]">
         <Icon size={18} aria-hidden />
       </span>
-      <span className="min-w-0 flex-1">
+      <span className="min-w-0 max-w-full flex-1">
         <span className="line-clamp-2 block text-[0.9375rem] font-medium leading-tight tracking-[-0.01em]">{label}</span>
         <span className="mt-0.5 block truncate text-[0.6875rem] text-[var(--color-muted)]">{detail}</span>
       </span>
       {readiness.ready && (
-        <ChevronRight size={16} aria-hidden className="shrink-0 text-[var(--color-muted)] rtl:rotate-180" />
+        <ChevronRight size={16} aria-hidden className="action-tile-chevron shrink-0 text-[var(--color-muted)] rtl:rotate-180" />
       )}
     </>
   );

@@ -56,8 +56,9 @@ interface PairingState {
   dismiss: () => void;
 }
 
-/** How often, and how far apart, a closed window is asked again after a resend (about 16 s). */
-const RESEND_ASKS = 8;
+/** How often, and how far apart, a closed window is asked again after a resend (about a minute:
+ *  on an Android emulator the new helper took over 25 s to start and pair). */
+const RESEND_ASKS = 30;
 const RESEND_ASK_GAP_MS = 2000;
 
 export const usePairingStore = create<PairingState>((set, get) => {

@@ -380,20 +380,23 @@ export default function CatalogPanel() {
               `${catalog.filter((p) => !p.is_custom).length} curated payloads. Releases are fetched from GitHub on demand and cached for 1 hour.`,
             )}
           </div>
-          <div className="flex items-center gap-2">
-            <Input
-              type="search"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder={tr(
-                "payloads_search_placeholder",
-                undefined,
-                "Search payloads…",
-              )}
-              aria-label={tr("payloads_search", undefined, "Search payloads")}
-              block={false}
-              className="w-44 text-xs"
-            />
+          {/* Wraps on a phone: the search box takes its own full-width row
+              instead of being squeezed to nothing beside the two buttons. */}
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="w-full sm:w-44">
+              <Input
+                type="search"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder={tr(
+                  "payloads_search_placeholder",
+                  undefined,
+                  "Search payloads…",
+                )}
+                aria-label={tr("payloads_search", undefined, "Search payloads")}
+                className="text-xs"
+              />
+            </div>
             <Button
               variant="secondary"
               size="sm"

@@ -209,20 +209,6 @@
   --glass-blur: 0px;
 }
 
-/* Android: no blur, solid surfaces (lib/platformMark.ts says why). The same values as
- * "reduce transparency", so text keeps its contrast without the frosting. */
-:root[data-platform="android"] {
-  --glass-blur: 0px;
-  --color-surface-2: rgb(44 44 46 / 0.96);
-  --color-surface-raised: rgb(50 50 52 / 0.96);
-  --color-canvas: rgb(30 30 32 / 0.96);
-}
-:root[data-platform="android"][data-theme="light"] {
-  --color-surface-2: #ffffff;
-  --color-surface-raised: #ffffff;
-  --color-canvas: rgb(0 0 0 / 0.025);
-}
-
 html,
 body,
 #root {
@@ -409,6 +395,20 @@ body {
 .action-tile[aria-disabled="true"] {
   cursor: not-allowed;
   opacity: 0.6;
+}
+/* Phones: two tiles side by side leave too little room beside the icon, and labels broke
+ * mid-word ("Uplo|ad"). The icon goes above the label, and the chevron goes. */
+@media (max-width: 639px) {
+  .action-tile {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.625rem;
+    min-height: 0;
+    padding: 0.875rem;
+  }
+  .action-tile .action-tile-chevron {
+    display: none;
+  }
 }
 
 .metric-row {

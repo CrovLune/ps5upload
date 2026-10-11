@@ -3,6 +3,8 @@ import { fileURLToPath } from "node:url";
 import { defineConfig, type Plugin } from "vite";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
+// @ts-expect-error plain .mjs helper shared with its vitest test, no type declarations
+import { splitLangLists } from "./postcss/langLists.mjs";
 
 /**
  * The FAQ and What's New screens show the repo-root FAQ.md and CHANGELOG.md (lib/bundledDoc.ts).
@@ -39,8 +41,23 @@ const REACT_PACKAGES =
 // @ts-expect-error process is a nodejs global
 const port = Number(process.env.PS5UPLOAD_VITE_PORT) || 1420;
 
+/** One language per `:lang()` in the built CSS (postcss/langLists.mjs says why). */
+function oneLangPerSelector(): Plugin {
+  return {
+    name: "ps5upload-one-lang-per-selector",
+    apply: "build",
+    generateBundle(_, bundle) {
+      for (const file of Object.values(bundle)) {
+        if (file.type === "asset" && file.fileName.endsWith(".css") && typeof file.source === "string") {
+          file.source = splitLangLists(file.source);
+        }
+      }
+    },
+  };
+}
+
 export default defineConfig({
-  plugins: [react(), tailwindcss(), bundledDocs()],
+  plugins: [react(), tailwindcss(), bundledDocs(), oneLangPerSelector()],
   clearScreen: false,
   base: process.env.VITE_BASE_URL || "./",
   server: {

@@ -39,7 +39,7 @@ export const LANGUAGES: { code: LanguageCode; label: string }[] = [
   { code: "fa", label: "فارسی" },
 ];
 
-const RTL_LANGS: Set<LanguageCode> = new Set(["ar", "fa"]);
+export const RTL_LANGS: Set<LanguageCode> = new Set(["ar", "fa"]);
 
 function initialLang(): LanguageCode {
   if (typeof window === "undefined") return "en";
