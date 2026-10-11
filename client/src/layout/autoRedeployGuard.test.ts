@@ -3,6 +3,8 @@ import { transferScreenBusy } from "../lib/ps5Transfers";
 import {
   autoRedeployDecision,
   liveHelperDecision,
+  LOADER_SETTLE_MS,
+  loaderSettled,
   MAX_LIVE_HELPER_HOLDS,
   MAX_REDEPLOYS_WITHOUT_RECOVERY,
 } from "../lib/autoRedeploy";
@@ -159,5 +161,26 @@ describe("a helper whose ports still accept connections", () => {
 
   it("does not delay a send when nothing of ours is listening", () => {
     expect(liveHelperDecision({ portsOpen: false, held: 0 })).toBe("send");
+  });
+});
+
+/** An FW 11.40 console crashed three times out of three when the app was running while it
+ *  booted: the loader answers before kstuff is loaded, and the loop pushed the helper into
+ *  that window. The unattended push now waits for the loader to have been up a while. */
+describe("loaderSettled", () => {
+  const now = 1_000_000;
+  it("does not send while the loader port is closed", () => {
+    expect(loaderSettled({ loaderOpen: false, firstOpenAt: undefined, now })).toBe("closed");
+  });
+  it("holds the first sighting of an open loader", () => {
+    expect(loaderSettled({ loaderOpen: true, firstOpenAt: undefined, now })).toBe("settle");
+  });
+  it("holds until the loader has been open for the settle period", () => {
+    expect(
+      loaderSettled({ loaderOpen: true, firstOpenAt: now - LOADER_SETTLE_MS + 1, now }),
+    ).toBe("settle");
+    expect(loaderSettled({ loaderOpen: true, firstOpenAt: now - LOADER_SETTLE_MS, now })).toBe(
+      "send",
+    );
   });
 });

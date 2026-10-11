@@ -4,6 +4,19 @@ What's new in ps5upload, written for humans.
 
 ---
 
+## 7.0.9
+
+- **The app no longer sends the helper into a console that is still booting.** With the app
+  open while the PS5 started, the automatic helper restore fired the moment the loader port
+  answered, which on a cold boot is before kstuff and the rest of the jailbreak chain are
+  loaded; an FW 11.40 console crashed three times out of three. The automatic restore now
+  waits 90 seconds after the loader first appears. Your own sends from the Connection screen
+  are not held.
+- README and DISCLAIMER say how the project is built (with AI coding tools, directed and
+  tested by the maintainer) and what that means for you.
+
+---
+
 ## 7.0.8
 
 - **Hide an icon from the PS5 home screen.** For shortcuts and loaders you set up once and never

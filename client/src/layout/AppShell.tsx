@@ -64,6 +64,8 @@ import { transferScreenBusy } from "../lib/ps5Transfers";
 import {
   autoRedeployDecision,
   liveHelperDecision,
+  loaderSettled,
+  LOADER_SETTLE_MS,
   MAX_REDEPLOYS_WITHOUT_RECOVERY,
 } from "../lib/autoRedeploy";
 import { CommandPalette, openCommandPalette } from "../components/CommandPalette";
@@ -706,6 +708,8 @@ function useAutoRedeployDownHelpers() {
   // Consecutive ticks a console was left alone because its helper still
   // accepted connections (see liveHelperDecision).
   const liveHoldsRef = useRef<Record<string, number>>({});
+  // When :9021 was first seen open on a down console (see loaderSettled).
+  const loaderFirstOpenRef = useRef<Record<string, number>>({});
   useEffect(() => {
     if (!visible) return;
     if (!isTauriEnv()) return;
@@ -779,6 +783,35 @@ function useAutoRedeployDownHelpers() {
           return;
         }
         liveHoldsRef.current[key] = 0;
+        // ── A loader that just appeared belongs to a console still booting ──
+        //
+        // The jailbreak's autoloader brings elfldr up before kstuff and the rest
+        // of its chain; a helper pushed into that window lands before the
+        // kernel patches it relies on and crashed an FW 11.40 console three
+        // times out of three. Wait until :9021 has been open a while.
+        const loaderOpen = await portCheck(hostOf(host) || host, PS5_LOADER_PORT).catch(
+          () => false,
+        );
+        if (cancelled) return;
+        const settle = loaderSettled({
+          loaderOpen,
+          firstOpenAt: loaderFirstOpenRef.current[key],
+          now: Date.now(),
+        });
+        if (settle === "closed") {
+          delete loaderFirstOpenRef.current[key];
+          return; // nothing listens on :9021; a send could only fail
+        }
+        if (settle === "settle") {
+          if (loaderFirstOpenRef.current[key] === undefined) {
+            loaderFirstOpenRef.current[key] = Date.now();
+            log.info(
+              "connection",
+              `auto-redeploy: ${host}'s loader just came up — waiting ${Math.round(LOADER_SETTLE_MS / 1000)}s for the console to finish booting before sending the helper`,
+            );
+          }
+          return;
+        }
         // ensurePayloadCurrent(force=true) probes, then sends + polls up to
         // ~30s. While the PS5 is in rest mode the probe/send fails fast; once
         // awake it lands and boots. Either way it never throws.
@@ -833,6 +866,7 @@ function useAutoRedeployDownHelpers() {
         });
         if (decision === "rearm") {
           liveHoldsRef.current[key] = 0;
+          delete loaderFirstOpenRef.current[key];
           if ((deliveredRef.current[key] ?? 0) > 0) {
             deliveredRef.current[key] = 0;
             log.info("connection", `auto-redeploy: ${h} is back up — re-armed`);

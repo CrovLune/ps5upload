@@ -491,8 +491,9 @@ is `<path>.ps5upload.tmp` in the same directory as `path` (so the commit rename 
 device, with the `st_dev` guard of `fs.rename`); the caller sends chunks with `FSW_AT_OFFSET`
 (or `FSW_APPEND`) in order, the last one also carrying `FSW_COMMIT`. A caller that gives up
 deletes the temporary file (`fs.rename` is not needed; `job.run` DELETE removes it). A chunk with `FSW_AT_OFFSET` at offset 0 truncates an abandoned temporary file first, so a retry
-starts clean. (`FSW_APPEND` never truncates: it has no offset to say "first", so an `FSW_APPEND` writer starts from a temporary file that does not exist; the engine uses `FSW_AT_OFFSET`.) `mode` (ext 1, the
-permission bits applied at commit; absent = 0644) is optional. Callers that need chunking because
+starts clean. (`FSW_APPEND` never truncates: it has no offset to say "first", so an `FSW_APPEND` writer starts from a temporary file that does not exist; the engine uses `FSW_AT_OFFSET`.) `mode` (ext 1) is accepted
+but ignored: the file is committed as 0777, like everything else the helper writes (see
+`umask(0)` in `main.c`; CE-107750-0 otherwise). Callers that need chunking because
 they write more than 48 KiB: `ps5upload-core/src/cheats.rs:701`, `ps5upload-core/src/profile.rs:664`,
 `ps5upload-core/src/smp_image_rw.rs:158` (the others, `smp_checkout.rs` and `smp_image_rw.rs:305/339`,
 write small state files). The core wrapper `fs_write_bytes` chunks transparently.
@@ -501,8 +502,8 @@ Other filesystem methods, as built (`payload/src/mgmt_fs.c`, host-tested): `fs.l
 (`limit` 0 = 256, at most 256; `more` = entries remain; names that are not valid UTF-8 are listed with `?` for
 their high bytes; `total_scanned` counts what the walk passed). `fs.stat` takes any absolute path without a `..`
 component (the policy of `fs.list`, not of `fs.read`; see "Scope of `fs.stat` and `fs.list`" below), follows a link (`kind` is `link` only for a dangling
-one), and answers `ERR_IO` with `fs_stat_failed_errno_<n>` for an absent path. `fs.mkdir` honours `mode`
-(applied to the new directory despite the umask; intermediate directories get 0777) and `parents` (0: a missing
+one), and answers `ERR_IO` with `fs_stat_failed_errno_<n>` for an absent path. `fs.mkdir` ignores `mode`
+(the new directory and any intermediate ones are 0777, like every file and folder the helper creates) and honours `parents` (0: a missing
 parent is `fs_mkdir_failed`); an existing directory succeeds, an existing non-directory is `ERR_EXISTS`.
 `fs.rename` with `overwrite = 0` refuses an existing destination (`ERR_EXISTS`, `fs_move_exists`); with
 `overwrite = 1` it replaces, as FTX2's move did. `fs.read` reads at most `FS_READ_MAX` and loops internally

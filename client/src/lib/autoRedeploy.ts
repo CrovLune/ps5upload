@@ -82,3 +82,30 @@ export function liveHelperDecision(input: {
   if (!input.portsOpen) return "send";
   return input.held < MAX_LIVE_HELPER_HOLDS ? "hold" : "send";
 }
+
+/** How long the loader (:9021) must have been answering before the loop pushes a helper
+ *  at a console that is down.
+ *
+ *  On a cold boot the jailbreak's own autoloader brings elfldr up first and only then
+ *  loads kstuff and the rest of the chain. The loader port is open for that whole window,
+ *  and a helper pushed into it lands before the kernel patches it relies on; an FW 11.40
+ *  report (kstuff test6 + SMP 1.7) reproduced a crash three times out of three by having
+ *  the app running while the console booted. The user's own sends are not held: this is
+ *  only the unattended loop. A wake from rest mode pays the same wait once. */
+export const LOADER_SETTLE_MS = 90_000;
+
+/**
+ * Whether the loader has been up long enough for an unattended push.
+ *
+ * `firstOpenAt` is when the loop first saw :9021 open on this console since it went
+ * down (undefined if this tick is the first sighting).
+ */
+export function loaderSettled(input: {
+  loaderOpen: boolean;
+  firstOpenAt: number | undefined;
+  now: number;
+}): "send" | "settle" | "closed" {
+  if (!input.loaderOpen) return "closed";
+  const since = input.firstOpenAt ?? input.now;
+  return input.now - since >= LOADER_SETTLE_MS ? "send" : "settle";
+}
