@@ -4,6 +4,20 @@ What's new in ps5upload, written for humans.
 
 ---
 
+## 7.0.2
+
+- **OLED theme is back, and there's a new Peach theme.** OLED is dark on pure black, so an OLED
+  screen's pixels stay off; Peach is a warmer light theme with a cream window and a burnt-peach
+  accent. Pick from four in Settings → Appearance. The sun/moon button flips between the light
+  and dark you last picked, so OLED goes to Light and back to OLED. If you used OLED before 7.0,
+  pick it once more.
+- **Remote Play: the pxplay number is right.** It was worked out with the account ID's bytes in
+  the wrong order, so pxplay refused it. The account ID field now takes the hex ID (with or
+  without 0x), the base64 ID or the pxplay number. The PIN itself was always correct.
+- Remote Play names the signed-in account by its slot ("Slot 7"), the same as Profile.
+
+---
+
 ## 7.0.1
 
 - **Collection scans show their progress:** what the scan is doing (finding games, reading
