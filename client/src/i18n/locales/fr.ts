@@ -2255,7 +2255,7 @@ library_mount_tooltip_smp: "Confier cette image à ShadowMount+, qui la monte et
 
 
 helper_mismatch_title: "L'assistant PS5 est en v{payload} mais cette application est en v{app}",
-helper_mismatch_body: "Les correctifs et fonctionnalités de la version plus récente ne fonctionneront pas tant que l'assistant de la console ne correspondra pas. Rechargez-le depuis l'écran Connexion.",
+helper_mismatch_body_v2: "Rien à faire sur la PS5 elle-même : appuyez sur Recharger l'assistant et cette application envoie l'assistant correspondant à la console. D'ici là, les correctifs et fonctions de la nouvelle version ne marcheront pas.",
 helper_mismatch_go: "Recharger l'assistant",
 
 "joberr.direct_staged_file_missing": "Cet envoi était déjà terminé, il ne restait donc rien à publier — et le fichier sur la PS5 est maintenant absent ou de taille incorrecte. Renvoyez-le en choisissant « Remplacer » plutôt que « Reprendre ».",
