@@ -66,7 +66,13 @@ status_fw: "固件 {ver}",
 // Chat
 // Logs
 // Misc
-buy_coffee: "请我喝咖啡",
+buy_coffee: "请我喝咖啡或买 token",
+fs_dragout_too_big: "“{name}”太大，无法拖出",
+fs_dragout_too_big_body: "超过 4 GB 的文件：请右键 → 下载。",
+fs_dragout_preparing: "正在获取“{name}”以便拖动…",
+fs_dragout_preparing_body: "请按住鼠标按钮，或准备好后再拖一次。",
+fs_dragout_ready: "“{name}”已就绪 — 请再拖一次",
+fs_dragout_failed: "无法获取“{name}”以便拖动",
 keep_awake: "保持唤醒",
 // 2.2.x — sidebar + framing
 update_available_short: "有可用更新",

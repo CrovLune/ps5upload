@@ -97,7 +97,13 @@ status_fw: "FW {ver}",
 // Chat
 // Logs
 // Misc
-buy_coffee: "برایم قهوه بخرید",
+buy_coffee: "قهوه یا توکن",
+fs_dragout_too_big: "«{name}» برای کشیدن خیلی بزرگ است",
+fs_dragout_too_big_body: "فایل‌های بالای ۴ گیگابایت: راست‌کلیک ← دانلود.",
+fs_dragout_preparing: "در حال دریافت «{name}» برای کشیدن…",
+fs_dragout_preparing_body: "دکمهٔ ماوس را نگه دارید یا پس از آماده شدن دوباره بکشید.",
+fs_dragout_ready: "«{name}» آماده است — دوباره بکشید",
+fs_dragout_failed: "دریافت «{name}» برای کشیدن ممکن نشد",
 keep_awake: "بیدار نگه‌داشتن",
 // Navigation + sidebar (added 2.2.x)
 update_available_short: "به‌روزرسانی موجود است",

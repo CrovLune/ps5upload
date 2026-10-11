@@ -71,7 +71,13 @@ status_fw: "FW {ver}",
 // Chat
 // Logs
 // Misc
-buy_coffee: "Belikan saya kopi",
+buy_coffee: "Kopi atau token",
+fs_dragout_too_big: "\"{name}\" terlalu besar untuk diseret",
+fs_dragout_too_big_body: "File di atas 4 GB: klik kanan → Unduh.",
+fs_dragout_preparing: "Mengambil \"{name}\" untuk diseret…",
+fs_dragout_preparing_body: "Tahan tombol mouse, atau seret lagi setelah siap.",
+fs_dragout_ready: "\"{name}\" siap — seret lagi",
+fs_dragout_failed: "Tidak dapat mengambil \"{name}\" untuk diseret",
 keep_awake: "Jaga tetap aktif",
 update_available_short: "Pembaruan tersedia",
 loading: "Memuat…",

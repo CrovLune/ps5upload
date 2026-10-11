@@ -66,7 +66,13 @@ status_fw: "FW {ver}",
 // Chat
 // Logs
 // Misc
-buy_coffee: "اشترِ لي قهوة",
+buy_coffee: "قهوة أو رموز",
+fs_dragout_too_big: "\"{name}\" كبير جدًا للسحب",
+fs_dragout_too_big_body: "الملفات الأكبر من 4 غيغابايت: انقر بزر الماوس الأيمن ← تنزيل.",
+fs_dragout_preparing: "جارٍ جلب \"{name}\" للسحب…",
+fs_dragout_preparing_body: "استمر بالضغط على زر الماوس، أو اسحبه مجددًا عندما يصبح جاهزًا.",
+fs_dragout_ready: "\"{name}\" جاهز — اسحبه مجددًا",
+fs_dragout_failed: "تعذر جلب \"{name}\" للسحب",
 keep_awake: "إبقاء الجهاز مستيقظًا",
 update_available_short: "تحديث متاح",
 loading: "جارٍ التحميل…",

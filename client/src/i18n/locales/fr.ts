@@ -66,7 +66,13 @@ status_fw: "FW {ver}",
 // Chat
 // Logs
 // Misc
-buy_coffee: "Offrez-moi un café",
+buy_coffee: "Café ou jetons",
+fs_dragout_too_big: "« {name} » est trop volumineux pour être glissé",
+fs_dragout_too_big_body: "Fichiers de plus de 4 Go : clic droit → Télécharger.",
+fs_dragout_preparing: "Récupération de « {name} » pour le glisser…",
+fs_dragout_preparing_body: "Gardez le bouton de la souris enfoncé, ou glissez-le à nouveau une fois prêt.",
+fs_dragout_ready: "« {name} » est prêt — glissez-le à nouveau",
+fs_dragout_failed: "Impossible de récupérer « {name} » pour le glisser",
 keep_awake: "Garder éveillé",
 update_available_short: "Mise à jour disponible",
 loading: "Chargement…",

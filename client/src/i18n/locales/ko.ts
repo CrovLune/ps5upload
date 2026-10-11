@@ -71,7 +71,13 @@ status_fw: "FW {ver}",
 // Chat
 // Logs
 // Misc
-buy_coffee: "커피 한 잔 사주세요",
+buy_coffee: "커피 또는 토큰",
+fs_dragout_too_big: "\"{name}\"은(는) 너무 커서 끌어낼 수 없습니다",
+fs_dragout_too_big_body: "4 GB 이상 파일: 마우스 오른쪽 클릭 → 다운로드를 사용하세요.",
+fs_dragout_preparing: "끌기용으로 \"{name}\" 가져오는 중…",
+fs_dragout_preparing_body: "마우스 버튼을 계속 누르고 있거나 준비되면 다시 끌어 주세요.",
+fs_dragout_ready: "\"{name}\" 준비됨 — 다시 끌어 주세요",
+fs_dragout_failed: "끌기용으로 \"{name}\"을(를) 가져오지 못했습니다",
 keep_awake: "화면 유지",
 // 2.2.x — sidebar + framing
 update_available_short: "업데이트 사용 가능",

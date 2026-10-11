@@ -99,7 +99,13 @@ status_fw: "FW {ver}",
 // Chat
 // Logs
 // Misc
-buy_coffee: "Kup mi kawę",
+buy_coffee: "Kawa lub tokeny",
+fs_dragout_too_big: "„{name}” jest za duży, by go przeciągnąć",
+fs_dragout_too_big_body: "Pliki powyżej 4 GB: prawy przycisk → Pobierz.",
+fs_dragout_preparing: "Pobieranie „{name}” do przeciągnięcia…",
+fs_dragout_preparing_body: "Trzymaj przycisk myszy lub przeciągnij ponownie, gdy będzie gotowy.",
+fs_dragout_ready: "„{name}” jest gotowy — przeciągnij ponownie",
+fs_dragout_failed: "Nie udało się pobrać „{name}” do przeciągnięcia",
 keep_awake: "Pozostaw obudzonego",
 // Navigation + sidebar (added 2.2.x)
 update_available_short: "Aktualizacja dostępna",

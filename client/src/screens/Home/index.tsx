@@ -143,7 +143,7 @@ export default function HomeScreen() {
             className="inline-flex min-h-9 items-center gap-1.5 rounded-full border border-[var(--color-border-strong)] px-4 text-xs font-medium text-[var(--color-text)] transition-colors hover:bg-[var(--color-surface)]"
           >
             <Coffee size={13} aria-hidden className="text-[var(--color-accent-bright)]" />
-            {tr("buy_coffee", "Buy me a coffee")}
+            {tr("buy_coffee", "Coffee or tokens")}
           </button>
         </div>
       </header>

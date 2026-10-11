@@ -71,7 +71,13 @@ status_fw: "FW {ver}",
 // Chat
 // Logs
 // Misc
-buy_coffee: "ซื้อกาแฟให้ฉัน",
+buy_coffee: "กาแฟหรือโทเคน",
+fs_dragout_too_big: "\"{name}\" ใหญ่เกินกว่าจะลากออก",
+fs_dragout_too_big_body: "ไฟล์เกิน 4 GB: คลิกขวา → ดาวน์โหลด แทน",
+fs_dragout_preparing: "กำลังดึง \"{name}\" เพื่อลาก…",
+fs_dragout_preparing_body: "กดปุ่มเมาส์ค้างไว้ หรือลากอีกครั้งเมื่อพร้อม",
+fs_dragout_ready: "\"{name}\" พร้อมแล้ว — ลากอีกครั้ง",
+fs_dragout_failed: "ดึง \"{name}\" เพื่อลากไม่สำเร็จ",
 keep_awake: "ปลุกให้ตื่น",
 update_available_short: "มีการอัปเดต",
 loading: "กำลังโหลด…",

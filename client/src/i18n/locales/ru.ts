@@ -71,7 +71,13 @@ status_fw: "FW {ver}",
 // Chat
 // Logs
 // Misc
-buy_coffee: "Купи мне кофе",
+buy_coffee: "Кофе или токены",
+fs_dragout_too_big: "«{name}» слишком велик для перетаскивания",
+fs_dragout_too_big_body: "Файлы больше 4 ГБ: правый клик → Скачать.",
+fs_dragout_preparing: "Получение «{name}» для перетаскивания…",
+fs_dragout_preparing_body: "Держите кнопку мыши нажатой или перетащите снова, когда файл будет готов.",
+fs_dragout_ready: "«{name}» готов — перетащите снова",
+fs_dragout_failed: "Не удалось получить «{name}» для перетаскивания",
 keep_awake: "Не спать",
 update_available_short: "Доступно обновление",
 loading: "Загрузка…",

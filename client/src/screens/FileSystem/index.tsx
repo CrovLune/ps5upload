@@ -107,6 +107,7 @@ import {
   FS_DEFAULT_PATH,
 } from "../../lib/fsLastPath";
 import { useFsNavStore } from "../../state/fsNavigation";
+import { dragOut, dragOutAvailable } from "../../lib/dragOut";
 import { trackTask } from "../../state/trackTask";
 import { useActivityHistoryStore } from "../../state/activityHistory";
 import { audit } from "../../state/auditLog";
@@ -338,6 +339,7 @@ export default function FileSystemScreen() {
   const payloadStatus = useConnectionStore((s) => s.payloadStatus);
   const clipboard = useFsClipboardStore();
   const systemFileRead = useUploadSettingsStore((s) => s.systemFileRead);
+  const canDragOut = dragOutAvailable();
   // Install a .pkg straight from where it sits in the browser — saves the
   // round-trip through the Install Package screen's drive scan.
   const installFromConsolePath = usePkgLibrary(
@@ -3018,6 +3020,24 @@ export default function FileSystemScreen() {
               return (
                 <li
                   key={e.name}
+                  // Drag a file out of the window onto this computer (desktop app only).
+                  draggable={!isDir && canDragOut}
+                  onDragStart={
+                    !isDir && canDragOut
+                      ? (ev) => {
+                          ev.preventDefault();
+                          dragOut(
+                            {
+                              addr: consoleAddr(host),
+                              remotePath: joinPath(path, e.name),
+                              size: e.size,
+                              unsafeRead: systemFileRead,
+                            },
+                            tr,
+                          );
+                        }
+                      : undefined
+                  }
                   onDoubleClick={(ev) => {
                     if ((ev.target as HTMLElement).closest("input,button"))
                       return;

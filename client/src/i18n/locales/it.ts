@@ -71,7 +71,13 @@ status_fw: "FW {ver}",
 // Chat
 // Logs
 // Misc
-buy_coffee: "Offrimi un caffè",
+buy_coffee: "Caffè o token",
+fs_dragout_too_big: "\"{name}\" è troppo grande per essere trascinato",
+fs_dragout_too_big_body: "File oltre 4 GB: usa clic destro → Scarica.",
+fs_dragout_preparing: "Recupero di \"{name}\" per il trascinamento…",
+fs_dragout_preparing_body: "Tieni premuto il pulsante del mouse o trascinalo di nuovo quando è pronto.",
+fs_dragout_ready: "\"{name}\" è pronto — trascinalo di nuovo",
+fs_dragout_failed: "Impossibile recuperare \"{name}\" per il trascinamento",
 keep_awake: "Mantieni attivo",
 update_available_short: "Aggiornamento disponibile",
 loading: "Caricamento…",

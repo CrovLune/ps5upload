@@ -66,7 +66,13 @@ status_fw: "FW {ver}",
 // Chat
 // Logs
 // Misc
-buy_coffee: "Invítame un café",
+buy_coffee: "Café o tokens",
+fs_dragout_too_big: "\"{name}\" es demasiado grande para arrastrar",
+fs_dragout_too_big_body: "Archivos de más de 4 GB: usa clic derecho → Descargar.",
+fs_dragout_preparing: "Obteniendo \"{name}\" para arrastrar…",
+fs_dragout_preparing_body: "Mantén pulsado el botón del ratón o vuelve a arrastrar cuando esté listo.",
+fs_dragout_ready: "\"{name}\" está listo — arrástralo de nuevo",
+fs_dragout_failed: "No se pudo obtener \"{name}\" para arrastrar",
 keep_awake: "Mantener despierto",
 update_available_short: "Actualización disponible",
 loading: "Cargando…",

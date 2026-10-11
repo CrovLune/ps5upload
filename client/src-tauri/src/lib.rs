@@ -143,6 +143,10 @@ pub fn run() {
             let _ = window.set_focus();
         }
     }));
+    // Drag a file from Files onto the desktop (desktop only; the renderer
+    // stages the download first, see commands/dragout.rs).
+    #[cfg(not(any(target_os = "android", target_os = "ios")))]
+    let builder = builder.plugin(tauri_plugin_drag::init());
     let app = builder
         .plugin(tauri_plugin_dialog::init())
         // Opener: the cross-platform way to open external URLs / reveal files.
@@ -441,6 +445,7 @@ pub fn run() {
             // (dialog paths fall outside the fs scope). See
             // commands/save_text_file.rs.
             commands::save_text_file,
+            commands::dragout_stage_dir,
             commands::read_text_file,
             // ── Automatic crash/error report collection ─────────────
             // See commands/crash_reports.rs + src/lib/crashReporter.ts.

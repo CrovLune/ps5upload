@@ -118,6 +118,10 @@ libc = "0.2"
 # is a desktop action (decode a downloaded screenshot on your computer);
 # the command returns a clear "desktop only" error on mobile. Used from
 # commands/screenshot_convert.rs.
+# Desktop-only: drag a file out of Files onto the desktop (commands/dragout.rs).
+[target.'cfg(not(any(target_os = "android", target_os = "ios")))'.dependencies]
+tauri-plugin-drag = "2"
+
 [target.'cfg(not(any(target_os = "android", target_os = "ios", all(target_os = "windows", target_arch = "aarch64"))))'.dependencies]
 jpegxr = "0.3"
 image = { version = "0.25", default-features = false, features = ["png"] }

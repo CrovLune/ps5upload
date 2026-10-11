@@ -71,7 +71,13 @@ status_fw: "FW {ver}",
 // Chat
 // Logs
 // Misc
-buy_coffee: "Bana bir kahve ısmarla",
+buy_coffee: "Kahve veya token",
+fs_dragout_too_big: "\"{name}\" sürüklemek için çok büyük",
+fs_dragout_too_big_body: "4 GB üzeri dosyalar: sağ tık → İndir.",
+fs_dragout_preparing: "\"{name}\" sürükleme için alınıyor…",
+fs_dragout_preparing_body: "Fare düğmesini basılı tutun veya hazır olunca yeniden sürükleyin.",
+fs_dragout_ready: "\"{name}\" hazır — yeniden sürükleyin",
+fs_dragout_failed: "\"{name}\" sürükleme için alınamadı",
 keep_awake: "Uyanık tut",
 update_available_short: "Güncelleme mevcut",
 loading: "Yükleniyor…",

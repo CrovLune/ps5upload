@@ -71,7 +71,13 @@ status_fw: "FW {ver}",
 // Chat
 // Logs
 // Misc
-buy_coffee: "मुझे एक कॉफ़ी खरीदें",
+buy_coffee: "कॉफ़ी या टोकन",
+fs_dragout_too_big: "\"{name}\" खींचकर निकालने के लिए बहुत बड़ा है",
+fs_dragout_too_big_body: "4 GB से बड़ी फ़ाइलें: राइट-क्लिक → डाउनलोड करें।",
+fs_dragout_preparing: "खींचने के लिए \"{name}\" लाया जा रहा है…",
+fs_dragout_preparing_body: "माउस बटन दबाए रखें, या तैयार होने पर फिर से खींचें।",
+fs_dragout_ready: "\"{name}\" तैयार है — फिर से खींचें",
+fs_dragout_failed: "खींचने के लिए \"{name}\" नहीं लाया जा सका",
 keep_awake: "जागृत रखें",
 update_available_short: "अपडेट उपलब्ध",
 loading: "लोड हो रहा है…",

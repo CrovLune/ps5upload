@@ -71,7 +71,13 @@ status_fw: "FW {ver}",
 // Chat
 // Logs
 // Misc
-buy_coffee: "আমাকে একটি কফি কিনে দিন",
+buy_coffee: "কফি বা টোকেন",
+fs_dragout_too_big: "\"{name}\" টেনে বের করার জন্য খুব বড়",
+fs_dragout_too_big_body: "4 GB-এর বেশি ফাইল: রাইট-ক্লিক → ডাউনলোড ব্যবহার করুন।",
+fs_dragout_preparing: "টানার জন্য \"{name}\" আনা হচ্ছে…",
+fs_dragout_preparing_body: "মাউস বোতাম চেপে ধরে রাখুন, বা প্রস্তুত হলে আবার টানুন।",
+fs_dragout_ready: "\"{name}\" প্রস্তুত — আবার টানুন",
+fs_dragout_failed: "টানার জন্য \"{name}\" আনা যায়নি",
 keep_awake: "জাগ্রত রাখুন",
 update_available_short: "আপডেট উপলব্ধ",
 loading: "লোড হচ্ছে…",

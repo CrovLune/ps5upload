@@ -104,7 +104,13 @@ status_fw: "FW {ver}",
 // Chat
 // Logs
 // Misc
-buy_coffee: "Buy me a coffee",
+buy_coffee: "Coffee or tokens",
+fs_dragout_too_big: "\"{name}\" is too large to drag out",
+fs_dragout_too_big_body: "Files over 4 GB: right-click → Download instead.",
+fs_dragout_preparing: "Fetching \"{name}\" for the drag…",
+fs_dragout_preparing_body: "Keep holding the mouse button, or drag it again once it is ready.",
+fs_dragout_ready: "\"{name}\" is ready — drag it again",
+fs_dragout_failed: "Couldn't fetch \"{name}\" for the drag",
 keep_awake: "Keep Awake",
 // Navigation + sidebar (added 2.2.x)
 update_available_short: "Update available",

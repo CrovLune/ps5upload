@@ -99,7 +99,13 @@ status_fw: "FW {ver}",
 // Chat
 // Naplók
 // Egyéb
-buy_coffee: "Hívj meg egy kávéra",
+buy_coffee: "Kávé vagy tokenek",
+fs_dragout_too_big: "„{name}” túl nagy a kihúzáshoz",
+fs_dragout_too_big_body: "4 GB feletti fájlok: jobb klikk → Letöltés.",
+fs_dragout_preparing: "„{name}” lekérése a húzáshoz…",
+fs_dragout_preparing_body: "Tartsd lenyomva az egérgombot, vagy húzd újra, ha kész.",
+fs_dragout_ready: "„{name}” kész — húzd újra",
+fs_dragout_failed: "Nem sikerült lekérni „{name}” a húzáshoz",
 keep_awake: "Ébren tartás",
 // Navigáció + oldalsáv (2.2.x-ben hozzáadva)
 update_available_short: "Frissítés elérhető",

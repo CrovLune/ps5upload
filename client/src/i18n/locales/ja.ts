@@ -71,7 +71,13 @@ status_fw: "FW {ver}",
 // Chat
 // Logs
 // Misc
-buy_coffee: "コーヒーをおごってください",
+buy_coffee: "コーヒーかトークン",
+fs_dragout_too_big: "「{name}」は大きすぎてドラッグできません",
+fs_dragout_too_big_body: "4 GB を超えるファイルは右クリック → ダウンロードを使ってください。",
+fs_dragout_preparing: "ドラッグ用に「{name}」を取得中…",
+fs_dragout_preparing_body: "マウスボタンを押したままにするか、準備できたらもう一度ドラッグしてください。",
+fs_dragout_ready: "「{name}」の準備ができました — もう一度ドラッグしてください",
+fs_dragout_failed: "ドラッグ用に「{name}」を取得できませんでした",
 keep_awake: "スリープ防止",
 // 2.2.x — sidebar + framing
 update_available_short: "アップデート利用可能",

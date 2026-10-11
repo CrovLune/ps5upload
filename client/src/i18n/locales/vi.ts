@@ -71,7 +71,13 @@ status_fw: "FW {ver}",
 // Chat
 // Logs
 // Misc
-buy_coffee: "Mua tôi một ly cà phê",
+buy_coffee: "Cà phê hoặc token",
+fs_dragout_too_big: "\"{name}\" quá lớn để kéo ra",
+fs_dragout_too_big_body: "Tệp trên 4 GB: nhấp chuột phải → Tải xuống.",
+fs_dragout_preparing: "Đang lấy \"{name}\" để kéo…",
+fs_dragout_preparing_body: "Giữ nút chuột, hoặc kéo lại khi đã sẵn sàng.",
+fs_dragout_ready: "\"{name}\" đã sẵn sàng — kéo lại",
+fs_dragout_failed: "Không thể lấy \"{name}\" để kéo",
 keep_awake: "Giữ máy luôn thức",
 // 2.2.x — sidebar + framing
 update_available_short: "Có bản cập nhật",
