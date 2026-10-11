@@ -240,7 +240,7 @@ function buildDiscord() {
     `**[Download ${tag}](<${releaseUrl}>)**`,
     `[Report a bug](<${ISSUES_URL}>)`,
     `Docker web UI: \`${DOCKER_IMAGE}:${version}\``,
-    `[☕ Buy me a coffee](<${COFFEE_URL}>)`,
+    `☕ [Buy me a coffee](<${COFFEE_URL}>)`,
   ].join(" · ");
   const render = (full, ping) => {
     const out = [];

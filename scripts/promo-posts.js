@@ -134,7 +134,7 @@ function buildDiscord() {
       "**Getting started**",
       ...START.map((s, i) => `${i + 1}. ${s}`),
       "",
-      `**[Download v${version}](<${RELEASES_URL}>)** · [Source](<${REPO_URL}>) · [Report a bug](<${ISSUES_URL}>) · [☕ Buy me a coffee](<${COFFEE_URL}>)`,
+      `**[Download v${version}](<${RELEASES_URL}>)** · [Source](<${REPO_URL}>) · [Report a bug](<${ISSUES_URL}>) · ☕ [Buy me a coffee](<${COFFEE_URL}>)`,
       "-# Free and open source (GPL-3.0). Not affiliated with Sony.",
     ].join("\n");
   for (const size of sizes) {
