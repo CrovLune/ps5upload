@@ -1122,7 +1122,8 @@ numbers they are fed, so both are tested against models rather than sockets.
   files/s by ≥ 10 %; revert and hold 30 s otherwise; release one after 3 idle steps; range
   2–16, start 4.
 - Bottleneck: source starved → `BN_SOURCE`; credit starved → the receiver's reported bottleneck
-  (`BN_DISK`/`BN_WORKERS`), else `BN_CREDIT`; otherwise `BN_NETWORK`.
+  (`BN_DISK`/`BN_WORKERS`; `BN_NETWORK` when its queue ran dry, the credit being slow in transit),
+  else `BN_CREDIT`; otherwise `BN_NETWORK`.
 
 16.9 Status: the receiver sends `Status` (IGNORABLE) every 250 ms while a job is open: files
 and bytes done, durable bytes, its own bottleneck (`BN_DISK` when workers are at their maximum

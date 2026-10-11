@@ -251,8 +251,11 @@ impl Governor {
         let bottleneck = if s.source_starved {
             BN_SOURCE
         } else if s.credit_starved {
+            // The console's own word decides: its disk or workers hold the credit back;
+            // an idle console (its queue ran dry) means the credit is slow in transit.
             match s.receiver_bottleneck {
                 BN_DISK | BN_WORKERS => s.receiver_bottleneck,
+                BN_NETWORK => BN_NETWORK,
                 _ => BN_CREDIT,
             }
         } else {
@@ -628,6 +631,29 @@ mod tests {
             d.lanes, 2,
             "lanes never grow while the receiver is the limit"
         );
+    }
+
+    #[test]
+    fn waiting_on_credit_while_the_console_idles_is_the_network_not_its_memory() {
+        // #437: the console's queue ran dry (it says BN_NETWORK), so the credit we wait for
+        // is slow in transit (a congested or CPU-starved software bridge), not held back by
+        // a full console. "console memory" sent people looking at the wrong thing.
+        let mut g = Governor::new();
+        let s = Sample {
+            secs: 1.0,
+            bytes_acked: 10,
+            lanes: 2,
+            credit_starved: true,
+            receiver_bottleneck: crate::gen::BN_NETWORK,
+            ..Default::default()
+        };
+        assert_eq!(g.tick(&s).bottleneck, crate::gen::BN_NETWORK);
+        // No word from the console yet: credit is all we know.
+        let s = Sample {
+            receiver_bottleneck: crate::gen::BN_NONE,
+            ..s
+        };
+        assert_eq!(g.tick(&s).bottleneck, crate::gen::BN_CREDIT);
     }
 
     #[test]
