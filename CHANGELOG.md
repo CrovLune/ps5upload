@@ -6,77 +6,29 @@ What's new in ps5upload, written for humans.
 
 ## 7.0.0
 
-A new look for the whole app, modelled on macOS 27, plus a long list of fixes that make it
-faster and harder to break.
+A new look for the whole app, a better Android app, and a long list of fixes.
 
-### New look
-
-- **Two themes, light and dark,** both new: a calm neutral window, a sidebar that runs to the
-  window edge, soft rounded cards and one blue accent, the blue of the app's logo. Text uses
-  your system's own typeface. Your old theme choice carries over (OLED becomes dark, Rose
-  becomes light).
-- **Home** opens with tiles for Upload, Install, Games, Files, Save data and Convert, your most
-  recent games, and a console panel that stays beside the page as you scroll.
-- Page content lines up with its header on every screen instead of sitting in a narrow centred
-  column.
-- Each **game's page** opens with a large cover and the facts at a glance.
-- Every screen was brought into the new style, on desktop and on phones (a floating tab bar).
-- Light mode no longer shows dark bands or an invisible page title (the cause was in how the
-  styles were built).
-
-### New
-
-- **AMPR LZ4 asset packs for game images.** For a backported game that uses ampr_emu 0.4 or
-  newer, Convert can pack its assets with LZ4 inside an exFAT image for ShadowMount+, often much
-  smaller. The game's `ampr_emu.index` is now always rebuilt from the files actually packaged.
-- **Install updates and DLC from the game page**, right where they are listed.
-- **Delete screenshots and clips** from Captures.
-- **See the app's own captures.** The Capture button's screenshots open large from the status bar
-  (next to Capture, and from the "Screenshot saved" note) and from the Bug report: page through
-  them with the arrow keys or the thumbnail strip, delete one or all, or show their folder.
-- **Missed reminders** show in Tasks with Run now.
-- **The Android app does everything that needs the internet, like the desktop app:** install or
-  download from a link, install a package straight from a saved server (SMB, FTP, SFTP), the
-  community cheat search, and the online title and cover lookup in the Collection. RAR stays
-  desktop-only.
-- `scripts/update-ps5-sdk.sh` (`make update-sdk`) moves the payload SDK to its latest release.
-
-### Fixed
-
-- An upload no longer shows as failed after one missed status check; after several it says it
-  lost contact and keeps checking, so a retry never starts a second copy.
-- Status checks pause while the window is hidden and while an upload runs to that console, so
-  they no longer slow transfers down.
-- Progress updates no longer resend a job's whole file list (megabytes for large games).
-- A Convert & install run installs on the console it was started for.
-- Package builds, image builds and installs that crash no longer stay "running" forever or block
-  the console's next install.
-- Link downloads resume after an interruption instead of refusing with "file exists".
-- The Collection reads each console with far fewer calls, and a failed read keeps what was known.
-- Cancelling a running job shows an error if the cancel fails, instead of hiding the job.
-- The game page never shows the game you just left; running-game badges follow the right console.
-- Sizes use one unit everywhere (GiB, MiB/s); dates follow the app's language.
-- Package builder fixes: DLC packages get the DLC content class, and failed builds leave no
-  partial files behind.
-- Retry buttons on error cards across the app.
-- Keyboard: dialogs and the command palette keep focus inside them, Escape works from anywhere
-  in the palette, and the console picker is a proper menu.
-- Right-to-left languages: switches, task status rails and scrolling strips are mirrored.
-- At narrow window widths the console tabs, page headers and Collection totals no longer clip.
-- Processes says it is waiting during a transfer instead of showing a blank page; task progress
-  counted in items is no longer printed as bytes.
-- The engine refuses console actions that do not name a console, keeps Collection covers, trash
-  and organizer moves inside their own folders, and never resumes a link download into a
-  partial file left by a different link.
-- A second build of the same output is refused instead of racing the first.
-- PS5 to PS5: a direct send that gets no answer always falls back and frees the receiving
-  console, a late cancel from the old route no longer stops the fallback, and a send never
-  replaces another job that happens to share its id.
-- In the web UI, copying into an existing folder merges as it does in the desktop app.
-
-### Changed
-
-- The payload is built with PS5 Payload SDK v0.44.
+- **New look, modelled on macOS 27.** Light and dark themes with a calm neutral window, a sidebar
+  that runs to the window edge, rounded cards, one blue accent and your system's own typeface.
+  Home has simple action tiles and a console panel that stays beside the page; every screen,
+  desktop and phone, was brought into the new style. Your old theme choice carries over.
+- **Android catches up.** Install or download from a link, install straight from a saved server,
+  community cheat search and online covers now work on Android too, and the app icon is the
+  PS5Upload logo. Layout fixes for phones throughout.
+- **Convert:** AMPR LZ4 asset packs for exFAT game images (for games that use ampr_emu 0.4 or
+  newer), one place to choose what to make and what happens after, and a queue that only adds
+  real games and takes several game folders at once.
+- **Captures:** view the app's own screenshots large, page through and delete them; delete PS5
+  screenshots and clips too.
+- **Game page:** install updates and DLC right where they are listed.
+- **Sturdier:** uploads, installs, builds, link downloads and PS5 to PS5 copies recover from
+  missed checks, crashes and interruptions instead of failing or hanging; status checks no
+  longer slow transfers down.
+- **Easier to use:** keyboard focus stays inside dialogs, right-to-left languages are mirrored,
+  narrow windows no longer clip, error cards have Retry, and every string is translated into
+  all 21 languages.
+- **Under the hood:** the payload is built with PS5 Payload SDK v0.44 (`make update-sdk` moves
+  to the latest), and the engine refuses console actions that don't name a console.
 
 ---
 
