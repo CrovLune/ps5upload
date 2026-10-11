@@ -4,7 +4,7 @@ What's new in ps5upload, written for humans.
 
 ---
 
-## 7.0.3
+## 7.0.4
 
 - **OLED theme is back, and there's a new Peach theme.** OLED is dark on pure black, so an OLED
   screen's pixels stay off; Peach is a warmer light theme with a cream window and a burnt-peach
@@ -14,6 +14,9 @@ What's new in ps5upload, written for humans.
 - **Remote Play: the pxplay number is right.** It was worked out with the account ID's bytes in
   the wrong order, so pxplay refused it. The account ID field now takes the hex ID (with or
   without 0x), the base64 ID or the pxplay number. The PIN itself was always correct.
+- **7z uploads on 32-bit Android:** archives with more than 4 GiB in one block (most game
+  backups) failed with "dist overflow", and files over 4 GiB inside an archive were cut short.
+  They upload in full now.
 - Remote Play names the signed-in account by its slot ("Slot 7"), the same as Profile.
 - **Upload: the "exfat" destination is a folder, not a conversion.** Its hint is now shown as
   text (phones have no hover) and says so, and sending a game folder there warns that it will
