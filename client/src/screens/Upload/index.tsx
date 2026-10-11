@@ -2053,8 +2053,8 @@ function TransferStatus({ onRetry }: { onRetry: () => void }) {
               size="sm"
               onClick={() => cancelTransfer(host)}
               title={tr(
-                "upload_status_stop_tooltip",
-                "Cancel this upload. Start it again with Resume to continue where it stopped.",
+                "upload_status_stop_tooltip_v2",
+                "Stops sending. What already reached the PS5 is kept for 7 days; Resume continues from there.",
               )}
             >
               {tr("upload_status_stop", "Stop")}

@@ -273,15 +273,17 @@ pub async fn send_payload_history_clear(app: AppHandle) -> Result<bool, String> 
 // the resumed BEGIN_TX finds the interrupted entry and skips past the
 // last-acked shard.
 //
-// Entry lifetime: 24 h. After that we assume the payload's tx table has
-// evicted the entry (FIFO under PS5UPLOAD2_MAX_TX, so heavy users will
-// roll through faster), and resuming would just cause a full re-upload
-// anyway — might as well forget the stale tx_id client-side so the
-// engine mints a fresh one.
+// Entry lifetime: 7 days, the console's own journal retention. After that
+// the helper has cleaned the job up and resuming would be a full re-upload
+// anyway — might as well forget the stale tx_id client-side so the engine
+// mints a fresh one.
 //
 // Store: `<app_data_dir>/resume_txids.json`.
 
-const RESUME_TXID_TTL_MS: u64 = 24 * 60 * 60 * 1000;
+/// Matches the console: the helper keeps a job's journal (and its staged `.ava-part` data)
+/// for seven days of inactivity before cleaning it up, so a stored id is useful that long.
+/// 24 h used to orphan a journal that the console would still have resumed (#440).
+const RESUME_TXID_TTL_MS: u64 = 7 * 24 * 60 * 60 * 1000;
 const RESUME_TXID_MAX_RECORDS: usize = 128;
 
 fn empty_resume_txids() -> JsonValue {

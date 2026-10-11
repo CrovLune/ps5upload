@@ -25,6 +25,10 @@ What's new in ps5upload, written for humans.
 - **Volumes: Eject a USB drive.** Unmounts `/mnt/usbN` so it can be unplugged safely. The
   PS5's own services usually hold the drive open, so the app offers "Eject anyway", which
   flushes the drive first; just make sure no game or app is reading from it.
+- **Stopped uploads resume for 7 days, and Stop says so (#440).** Stop has kept what already
+  reached the PS5 and Start continued from there since 6.0; the app forgot a one-shot
+  upload's resume id after 24 hours though, while the console keeps the data for 7 days.
+  Both now agree on 7 days, and the Stop buttons explain what is kept.
 - **"Coffee or tokens"** replaces "Buy me a coffee" on Home, About and the site.
 - README and DISCLAIMER say how the project is built (with AI coding tools, directed and
   tested by the maintainer) and what that means for you.

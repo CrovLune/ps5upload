@@ -315,7 +315,7 @@ export const useTransferStore = create<TransferState>((set) => {
 
       // ── Cross-session tx_id resolution ─────────────────────────────
       // For folder uploads we carry the tx_id ourselves so a Resume
-      // click (even after an app restart, within the 24 h TTL) reuses
+      // click (even after an app restart, within the 7-day TTL) reuses
       // the same tx and the payload's journal can surface
       // last_acked_shard. A single file reuses the id of an earlier
       // failed attempt the same way (see fileResumeTxId): the console
@@ -340,7 +340,7 @@ export const useTransferStore = create<TransferState>((set) => {
           } catch (e) {
             // forget() failure is not worth failing the upload over
             // (worst case: an orphan record with a stale tx_id,
-            // pruned by TTL within 24 h). But a persistent failure
+            // pruned by TTL after 7 days). But a persistent failure
             // here means cross-session Resume silently breaks
             // forever — log so a user grepping the dev console
             // can find it.

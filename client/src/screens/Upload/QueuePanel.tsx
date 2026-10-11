@@ -297,6 +297,11 @@ export const QueuePanel = memo(function QueuePanel({ host }: { host?: string } =
               size="sm"
               leftIcon={<Square size={12} />}
               onClick={stop}
+              title={tr(
+                "queue_stop_tooltip",
+                undefined,
+                "Stops sending. What already reached the PS5 is kept for 7 days, and Start continues from there.",
+              )}
             >
               {multiConsole
                 ? tr("queue_stop_all", undefined, "Stop all")
@@ -608,6 +613,11 @@ function ConsoleGroup({
               size="sm"
               leftIcon={<Square size={12} />}
               onClick={onStopHost}
+              title={tr(
+                "queue_stop_tooltip",
+                undefined,
+                "Stops sending. What already reached the PS5 is kept for 7 days, and Start continues from there.",
+              )}
             >
               {tr("queue_stop", undefined, "Stop")}
             </Button>

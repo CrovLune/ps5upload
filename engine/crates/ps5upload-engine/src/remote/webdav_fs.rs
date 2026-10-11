@@ -197,7 +197,7 @@ pub(crate) fn decode_percent(s: &str) -> String {
     let mut out = Vec::with_capacity(bytes.len());
     let mut i = 0;
     while i < bytes.len() {
-        if bytes[i] == b'%' && i + 2 < bytes.len() + 0 && i + 2 <= bytes.len() - 1 {
+        if bytes[i] == b'%' && i + 2 < bytes.len() {
             if let Ok(v) = u8::from_str_radix(&s[i + 1..i + 3], 16) {
                 out.push(v);
                 i += 3;
@@ -469,7 +469,6 @@ impl RemoteFs for WebdavFs {
         let item = items
             .into_iter()
             .find(|i| normal(&i.path) == me)
-            .or_else(|| None)
             .ok_or_else(|| RemoteError::NotFound(format!("{path} not found")))?;
         Ok(Entry {
             name: if me.is_empty() {
@@ -640,7 +639,8 @@ mod tests {
                 // Header names arrive lowercased from the http crate; match case-insensitively.
                 let text = String::from_utf8_lossy(&buf[..head_len]).to_ascii_lowercase();
                 let line = text.lines().next().unwrap_or("").to_string();
-                let authed = text.contains("authorization: basic dTpw".to_ascii_lowercase().as_str()); // u:p
+                let authed =
+                    text.contains("authorization: basic dTpw".to_ascii_lowercase().as_str()); // u:p
                 let resp: Vec<u8> = if !authed {
                     b"HTTP/1.1 401 Unauthorized\r\nContent-Length: 0\r\nConnection: close\r\n\r\n"
                         .to_vec()

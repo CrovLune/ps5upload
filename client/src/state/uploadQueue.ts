@@ -266,8 +266,8 @@ export interface QueueItem {
    *  persisted alongside the item. Used so a queue interrupted by
    *  app restart can resume against the payload's existing journal
    *  entry instead of orphaning the in-flight tx and starting fresh.
-   *  Folder uploads use TX_FLAG_RESUME with this id; file uploads
-   *  ignore it (single-file resume isn't wired payload-side today). */
+   *  Every kind of upload (folder, file, archive, PS5-to-PS5) passes
+   *  this id, so Stop and Start continue from the console's journal. */
   txIdHex: string;
   status: QueueItemStatus;
   /** Live progress while running, final count when done, 0 otherwise. */
