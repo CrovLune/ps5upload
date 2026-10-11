@@ -71,3 +71,5 @@ debug = false
 # docs/unrar-upstream-bug.md.
 [patch.crates-io]
 unrar = { path = "../third_party/unrar" }
+# 32-bit fix: archive sizes stay u64 (third_party/sevenz-rust2/README.md, #434).
+sevenz-rust2 = { path = "../third_party/sevenz-rust2" }
