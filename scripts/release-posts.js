@@ -35,7 +35,7 @@
 const fs = require("fs");
 const path = require("path");
 const { execFileSync } = require("child_process");
-const { captureSite, copyImages } = require("./post-images");
+const { captureSite, copyImages } = require("./post-images.js");
 
 const REPO = "phantomptr/ps5upload";
 const DISCORD_INVITE = "https://discord.gg/fzK3xddtrM";
