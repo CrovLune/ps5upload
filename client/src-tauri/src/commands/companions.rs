@@ -39,6 +39,8 @@ struct Companion {
     role: &'static str,
     /// TCP port the tool listens on when running.
     port: u16,
+    /// The tool serves its own web UI on that port, which the strip can open.
+    web: bool,
 }
 
 /// The companions we probe. Port values cross-checked against each
@@ -58,11 +60,25 @@ const COMPANIONS: &[Companion] = &[
         name: "Homebrew enabler",
         role: "Homebrew enabler + launcher",
         port: 2323,
+        web: false,
     },
     Companion {
         name: "FTP",
         role: "FTP server payload",
         port: 2121,
+        web: false,
+    },
+    Companion {
+        name: "Payload Manager",
+        role: "Keeps payloads on the console and loads them at boot (itsPLK)",
+        port: 8084,
+        web: true,
+    },
+    Companion {
+        name: "LZ4 Compression",
+        role: "Compresses games on the PS5 itself (LZ4 packs for AMPR titles)",
+        port: 5920,
+        web: true,
     },
 ];
 
@@ -76,6 +92,7 @@ pub struct CompanionStatus {
     name: &'static str,
     role: &'static str,
     port: u16,
+    web: bool,
     reachable: bool,
     error: Option<String>,
 }
@@ -105,6 +122,7 @@ pub async fn companion_probe(host: String) -> Vec<CompanionStatus> {
                 name: c.name,
                 role: c.role,
                 port: c.port,
+                web: c.web,
                 reachable: false,
                 error: Some("No PS5 host configured".to_string()),
             })
@@ -129,6 +147,7 @@ pub async fn companion_probe(host: String) -> Vec<CompanionStatus> {
                         name: c.name,
                         role: c.role,
                         port: c.port,
+                        web: c.web,
                         reachable: false,
                         error: Some(e),
                     }
@@ -142,6 +161,7 @@ pub async fn companion_probe(host: String) -> Vec<CompanionStatus> {
                             name: c.name,
                             role: c.role,
                             port: c.port,
+                            web: c.web,
                             reachable: true,
                             error: None,
                         }
@@ -154,6 +174,7 @@ pub async fn companion_probe(host: String) -> Vec<CompanionStatus> {
                 name: c.name,
                 role: c.role,
                 port: c.port,
+                web: c.web,
                 reachable: false,
                 error: Some(last),
             }
@@ -171,6 +192,7 @@ pub async fn companion_probe(host: String) -> Vec<CompanionStatus> {
                 name: "probe",
                 role: "internal error",
                 port: 0,
+                web: false,
                 reachable: false,
                 error: Some(format!("task join: {e}")),
             }),

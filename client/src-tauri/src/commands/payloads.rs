@@ -392,6 +392,46 @@ const CATALOGUE: &[CatalogueEntry] = &[
         homepage: "https://github.com/itsPLK/ps5-webkit-autoloader",
     },
     CatalogueEntry {
+        // itsPLK's Payload Manager: keeps payloads on the console
+        // (/data/pldmgr), launches them from its own web page on :8084 and
+        // at boot. ps5upload's Payloads → Payload Manager tab talks to it,
+        // and the catalogue's "Store in Payload Manager" fills it.
+        id: "payload-manager",
+        display_name: "Payload Manager (itsPLK)",
+        role: "Keeps payloads on the console; loads them at boot",
+        description: "Stores payloads on the PS5 itself and starts the ones you mark when the console boots, so a USB stick or a PC is not needed after setup. Has its own web page on port 8084. ps5upload's Payload Manager tab lists what it holds, launches or deletes entries, and edits the boot list; the Catalog's \"Store in Payload Manager\" keeps a payload there.",
+        repo_host: "github.com",
+        repo_owner: "itsPLK",
+        repo_name: "ps5-payload-manager",
+        asset_name_hint: "pldmgr",
+        on_console_marker_path: Some("/data/pldmgr/pldmgr_config.txt"),
+        process_name_hint: None,
+        ports: &[8084],
+        autoload_priority: 2,
+        autoload_delay_ms: 1000,
+        homepage: "https://github.com/itsPLK/ps5-payload-manager",
+    },
+    CatalogueEntry {
+        // theghostonline's LZ4 Compression: packs an installed game's AMPR
+        // assets with LZ4 on the console itself (no PC round trip), the
+        // same pack format ps5upload's Convert writes on the PC. Web page
+        // on :5920; the Connection screen's scene-tools strip opens it.
+        id: "lz4-compression",
+        display_name: "LZ4 Compression (theghostonline)",
+        role: "Compresses games on the PS5 itself",
+        description: "Shrinks a game that is already on the PS5 by LZ4-packing its AMPR assets, entirely on the console: the game never leaves it. Works on folder games and on mounted .exfat/.ffpfs images, packs in place with rollback, verifies every file, and can undo. Needs ShadowMount+ for image sources. Open its page on port 5920 from the Connection screen's scene tools once it is running. ps5upload's Convert does the same packing on this computer when the game is here instead.",
+        repo_host: "github.com",
+        repo_owner: "theghostonline",
+        repo_name: "PS5-LZ4-Compression",
+        asset_name_hint: "lz4-compression",
+        on_console_marker_path: Some("/data/LZ4Compression"),
+        process_name_hint: None,
+        ports: &[5920],
+        autoload_priority: 9,
+        autoload_delay_ms: 500,
+        homepage: "https://github.com/theghostonline/PS5-LZ4-Compression",
+    },
+    CatalogueEntry {
         id: "np-fake-signin",
         display_name: "NP Fake Sign-in",
         role: "Fake PSN sign-in: unlocks the PS5's Remote Play setting",

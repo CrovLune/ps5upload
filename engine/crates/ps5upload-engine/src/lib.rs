@@ -59,6 +59,7 @@ mod migrate_6;
 mod net_health;
 mod pkg_install;
 mod pkg_sidecar;
+mod pldmgr_api;
 mod remote;
 mod remote_download;
 mod remote_pkg;
@@ -9848,6 +9849,11 @@ async fn run(cfg: EngineConfig) -> anyhow::Result<()> {
         .route("/api/ps5/fs/read-preview", post(ps5_fs_read_preview))
         .route("/api/ps5/process/list", get(ps5_process_list))
         .route("/api/ps5/elfldr/health", get(ps5_elfldr_health))
+        .route("/api/ps5/pldmgr", get(pldmgr_api::overview))
+        .route("/api/ps5/pldmgr/launch", post(pldmgr_api::launch))
+        .route("/api/ps5/pldmgr/delete", post(pldmgr_api::delete))
+        .route("/api/ps5/pldmgr/autoload", post(pldmgr_api::autoload))
+        .route("/api/ps5/pldmgr/store", post(pldmgr_api::store))
         .route("/api/ps5/elfldr/ensure", post(ps5_elfldr_ensure))
         .route("/api/ps5/process/kill", post(ps5_process_kill))
         .route("/api/ps5/power/control", post(ps5_power_control))

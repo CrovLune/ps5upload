@@ -30,7 +30,9 @@ import { pairingAllow } from "../../api/ava1";
 import { parsePS5Firmware } from "../../lib/ps5Firmware";
 import { compareVersions } from "../../lib/semver";
 import { safeGetItem, safeSetItem } from "../../lib/safeStorage";
-import { AlertTriangle, CheckCircle2, CircleDashed, XCircle, Send, ArrowRight, Radar, Sparkles, Cable } from "lucide-react";
+import { AlertTriangle, CheckCircle2, CircleDashed, XCircle, Send, ArrowRight, Radar, Sparkles, Cable, ExternalLink } from "lucide-react";
+import { openExternalUrl } from "../../lib/openExternalUrl";
+import { hostOf as bareHostOf } from "../../lib/addr";
 import { PageHeader, Button, Spinner, ErrorCard } from "../../components";
 import { selectConsoleByAddress } from "../../state/roster";
 import { useTr } from "../../state/lang";
@@ -1228,7 +1230,7 @@ function CompanionStrip({ host }: { host: string }) {
       ) : (
         <div className="flex flex-wrap items-center gap-3 text-xs">
           {liveRows.map((r) => (
-            <CompanionPill key={r.port} row={r} />
+            <CompanionPill key={r.port} row={r} host={host} />
           ))}
         </div>
       )}
@@ -1306,10 +1308,29 @@ function CompanionSuggestion() {
   );
 }
 
-function CompanionPill({ row }: { row: CompanionStatus }) {
+function CompanionPill({ row, host }: { row: CompanionStatus; host: string }) {
   const tooltip = row.reachable
     ? `${row.role} — listening on port ${row.port}`
     : row.error ?? "not reachable";
+  // A tool with its own web UI opens in the browser: Payload Manager's and LZ4
+  // Compression's pages are the tool, not a status readout.
+  if (row.web && row.reachable) {
+    const h = bareHostOf(host);
+    const url = `http://${h.includes(":") ? `[${h}]` : h}:${row.port}/`;
+    return (
+      <button
+        type="button"
+        title={`${tooltip} — open its page`}
+        onClick={() => void openExternalUrl(url)}
+        className="inline-flex items-center gap-1.5 rounded-full bg-[var(--color-good-soft)] px-2 py-0.5 text-[var(--color-good)] hover:underline"
+      >
+        <span className="inline-block h-1.5 w-1.5 rounded-full bg-[var(--color-good)]" />
+        <span className="font-medium">{row.name}</span>
+        <span className="font-mono text-xs opacity-70">:{row.port}</span>
+        <ExternalLink size={10} aria-hidden />
+      </button>
+    );
+  }
   return (
     <span
       title={tooltip}

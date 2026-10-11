@@ -1679,6 +1679,8 @@ export interface CompanionStatus {
   name: string;
   role: string;
   port: number;
+  /** The tool serves a web UI on its port; the strip offers to open it. */
+  web?: boolean;
   reachable: boolean;
   error?: string;
 }
