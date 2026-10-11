@@ -8,10 +8,9 @@ name: pages
 #
 # When it deploys:
 # - a change to site/ (or this file) on main;
-# - after the publish workflow finishes. A release made by publish.yml does not fire the
-#   `release` event below: GitHub doesn't start workflows from its own token's actions;
-# - a release published, edited or deleted by hand (promoting a pre-release is an edit);
-# - once a day, so the snapshot never drifts far;
+# - after the publish workflow finishes;
+# - once a day, so the snapshot never drifts far (this is what picks up a pre-release promoted
+#   by hand; the page itself reads the releases API live, so visitors see it at once);
 # - by hand (Actions → pages → Run workflow).
 
 on:
@@ -21,8 +20,8 @@ on:
   workflow_run:
     workflows: [publish]
     types: [completed]
-  release:
-    types: [published, edited, deleted]
+  # No `release` trigger: that run's ref is the tag, and the github-pages environment only
+  # deploys from main, so it was always rejected ("Tag ... is not allowed to deploy").
   schedule:
     - cron: "17 6 * * *"
   workflow_dispatch:
