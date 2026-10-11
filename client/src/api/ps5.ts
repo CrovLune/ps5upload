@@ -1426,6 +1426,21 @@ export async function fsMount(
   });
 }
 
+/** Safely remove a USB drive: the helper unmounts `/mnt/usbN` so it can be unplugged. Without
+ *  `force` it rejects with `usb_eject_busy` while anything on the console holds the drive open
+ *  (the PS5's own services usually do); `force` unmounts anyway after a flush. Goes through the
+ *  engine directly (desktop, browser and Docker alike). */
+export async function usbEject(host: string, mountPoint: string, force = false): Promise<void> {
+  const res = await fetch(`${getEngineUrl()}/api/ps5/usb/eject`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ addr: _mgmtAddr(host), mount_point: mountPoint, force }),
+    signal: AbortSignal.timeout(30_000),
+  });
+  const body = (await res.json().catch(() => ({}))) as { ok?: boolean; error?: string };
+  if (!res.ok || !body.ok) throw new Error(body.error || `eject failed (${res.status})`);
+}
+
 /** Unmount a previously-mounted image. `mountPoint` must be the exact
  *  path returned from `fsMount` — the payload rejects anything outside
  *  `/mnt/ps5upload/`. */

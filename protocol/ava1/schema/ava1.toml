@@ -1056,6 +1056,10 @@ name = "METHOD_APP_HIDDEN_LIST"
 ty = "u16"
 value = 143
 [[const]]
+name = "METHOD_USB_EJECT"
+ty = "u16"
+value = 144
+[[const]]
 name = "JOB_OP_DELETE"
 ty = "u8"
 value = 1

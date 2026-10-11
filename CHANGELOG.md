@@ -12,6 +12,20 @@ What's new in ps5upload, written for humans.
   loaded; an FW 11.40 console crashed three times out of three. The automatic restore now
   waits 90 seconds after the loader first appears. Your own sends from the Connection screen
   are not held.
+- **Payloads → Payload Manager.** A new tab for itsPLK's Payload Manager on the console: what
+  it stores, Launch and Delete, and its boot list (load at boot, order). On the Catalog tab,
+  **Store in Payload Manager** keeps a downloaded payload on the PS5 under its own name; an
+  existing folder is confirmed first, because Payload Manager replaces that folder's other
+  files. Payload Manager itself and LZ4 Compression (on-console game compression by
+  theghostonline) are in the catalogue, and the Connection screen's scene tools open their
+  web pages.
+- **Files: drag a file out of the window** onto your desktop or file manager (desktop app).
+  The first drag fetches the file into a staging folder; keep holding the mouse button, or
+  drag it again once it says it is ready. Files over 4 GB keep using right-click → Download.
+- **Volumes: Eject a USB drive.** Unmounts `/mnt/usbN` so it can be unplugged safely. The
+  PS5's own services usually hold the drive open, so the app offers "Eject anyway", which
+  flushes the drive first; just make sure no game or app is reading from it.
+- **"Coffee or tokens"** replaces "Buy me a coffee" on Home, About and the site.
 - README and DISCLAIMER say how the project is built (with AI coding tools, directed and
   tested by the maintainer) and what that means for you.
 

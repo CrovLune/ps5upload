@@ -3401,6 +3401,36 @@ async fn ps5_hidden_icons(
 }
 
 #[derive(Deserialize)]
+struct UsbEjectReq {
+    addr: Option<String>,
+    mount_point: String,
+    #[serde(default)]
+    force: bool,
+}
+
+/// POST /api/ps5/usb/eject `{addr, mount_point, force}` — unmount a USB drive (`/mnt/usbN`)
+/// so it can be pulled. Without `force`, `usb_eject_busy` means something on the console
+/// holds it open; `force` unmounts anyway after a sync.
+async fn ps5_usb_eject(
+    State(state): State<AppState>,
+    Json(req): Json<UsbEjectReq>,
+) -> impl IntoResponse {
+    let addr = console_addr_or_default(req.addr, &state.default_ps5_addr);
+    let mp = req.mount_point;
+    let force = req.force;
+    crate::log_info!("usb_eject: addr={addr} mount_point={mp} force={force}");
+    let r =
+        tokio::task::spawn_blocking(move || ps5upload_core::fs_ops::usb_eject(&addr, &mp, force))
+            .await
+            .map_err(anyhow::Error::from)
+            .and_then(|r| r);
+    match r {
+        Ok(()) => (StatusCode::OK, Json(serde_json::json!({ "ok": true }))).into_response(),
+        Err(e) => json_err(StatusCode::BAD_GATEWAY, format!("{e:#}")).into_response(),
+    }
+}
+
+#[derive(Deserialize)]
 struct SetIconHiddenReq {
     addr: Option<String>,
     title_id: String,
@@ -9800,6 +9830,7 @@ async fn run(cfg: EngineConfig) -> anyhow::Result<()> {
         .route("/api/ps5/fs/op-cancel", post(ps5_fs_op_cancel))
         .route("/api/ps5/fs/mount", post(ps5_fs_mount))
         .route("/api/ps5/fs/unmount", post(ps5_fs_unmount))
+        .route("/api/ps5/usb/eject", post(ps5_usb_eject))
         .route("/api/ps5/app/launch", post(ps5_app_launch))
         .route("/api/ps5/app/register", post(ps5_app_register))
         .route("/api/ps5/app/unregister", post(ps5_app_unregister))

@@ -162,6 +162,7 @@ pub const METHOD_RP_ENABLE: u16 = 140;
 pub const METHOD_RP_DEVICES: u16 = 141;
 pub const METHOD_APP_ICON_SET: u16 = 142;
 pub const METHOD_APP_HIDDEN_LIST: u16 = 143;
+pub const METHOD_USB_EJECT: u16 = 144;
 pub const JOB_OP_DELETE: u8 = 1;
 pub const JOB_OP_CHMOD_R: u8 = 2;
 pub const JOB_OP_HASH: u8 = 3;
