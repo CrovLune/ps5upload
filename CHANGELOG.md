@@ -4,7 +4,7 @@ What's new in ps5upload, written for humans.
 
 ---
 
-## 7.0.7
+## 7.0.8
 
 - **Hide an icon from the PS5 home screen.** For shortcuts and loaders you set up once and never
   open again: Games → ⋯ → **Hide from home screen**. It stays installed and playable, a
