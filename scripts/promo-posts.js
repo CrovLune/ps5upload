@@ -147,7 +147,7 @@ function buildDiscord() {
 // ── Reddit ──────────────────────────────────────────────────────────────────
 
 function buildReddit() {
-  const title = "PS5Upload: a free, open-source app to get games onto a jailbroken PS5 and manage it (macOS, Windows, Linux, Android, Docker)";
+  const title = "PS5Upload: get games onto your PS5 and manage it from your computer or phone";
   const body = [
     `${PITCH} I've been building it for a while and it's at **v${version}** now, so here's what it does for anyone who hasn't tried it.`,
     "",
