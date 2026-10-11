@@ -302,6 +302,8 @@ with **Settings → Engine URL**.
   LAN, never on the internet.
 - You may build the docker container with the `PS5UPLOAD_BASE_URL` to host the webui through a
   reverse proxy. This cannot be changed on runtime.
+- **Scripting it:** [ps5upctl](https://github.com/yuanzhengze/ps5upctl) is a community
+  command-line client for the engine API (unofficial; the API can change between versions).
 
 ## FAQ
 

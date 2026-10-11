@@ -42,4 +42,5 @@ Verified by decoding a 4.7 GB single-block archive on `linux/arm/v7`:
 unpatched, block 0 fails after 405 MB; patched, all 4,700,000,000 bytes
 come out with the CRC checked.
 
-Drop this copy once upstream ships the same fix.
+Reported upstream: <https://github.com/hasenbanck/sevenz-rust2/issues/148>. Drop this copy once
+upstream ships the same fix.
