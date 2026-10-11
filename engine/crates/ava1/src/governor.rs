@@ -248,18 +248,25 @@ impl Governor {
         let rate = (s.bytes_acked as f64 / s.secs).min(MAX_PLAUSIBLE_RATE);
         let lanes_now = s.lanes.max(1);
         let lane_rate = rate / lanes_now as f64;
+        // What steers lanes and chunks. A credit wait never grows lanes, whatever the console
+        // says about its queue: more lanes cannot fetch credit the console has not granted.
         let bottleneck = if s.source_starved {
             BN_SOURCE
         } else if s.credit_starved {
-            // The console's own word decides: its disk or workers hold the credit back;
-            // an idle console (its queue ran dry) means the credit is slow in transit.
             match s.receiver_bottleneck {
                 BN_DISK | BN_WORKERS => s.receiver_bottleneck,
-                BN_NETWORK => BN_NETWORK,
                 _ => BN_CREDIT,
             }
         } else {
             BN_NETWORK
+        };
+        // What the user is told (#437): a credit wait while the console idles (its queue ran
+        // dry) is the credit being slow in transit, so "network", not "console memory". Only
+        // the label differs from `bottleneck`.
+        let reported = if bottleneck == BN_CREDIT && s.receiver_bottleneck == BN_NETWORK {
+            BN_NETWORK
+        } else {
+            bottleneck
         };
 
         // The best rate fades 1 % a tick, so after a capacity drop (a Wi-Fi roam) the stricter
@@ -394,7 +401,7 @@ impl Governor {
             }
             Probe::Done => Probe::Done,
         };
-        self.decision(bottleneck, s)
+        self.decision(reported, s)
     }
 }
 
@@ -654,6 +661,36 @@ mod tests {
             ..s
         };
         assert_eq!(g.tick(&s).bottleneck, crate::gen::BN_CREDIT);
+    }
+
+    #[test]
+    fn the_idle_console_label_does_not_change_how_lanes_grow() {
+        // #437 changed what the user is told ("network", not "console memory") when credit is
+        // late while the console idles. It must not change the control: a credit wait with an
+        // idle console steers lanes and chunks exactly as a credit wait with no word from the
+        // console did before.
+        let run = |receiver: u8| {
+            let mut g = Governor::new();
+            (0..60)
+                .map(|_| {
+                    let d = g.tick(&Sample {
+                        secs: 1.0,
+                        bytes_acked: 50_000_000,
+                        lanes: g.lanes,
+                        credit_starved: true,
+                        receiver_bottleneck: receiver,
+                        ..Default::default()
+                    });
+                    (d.lanes, d.chunk, d.bottleneck)
+                })
+                .collect::<Vec<_>>()
+        };
+        let idle = run(crate::gen::BN_NETWORK);
+        let silent = run(crate::gen::BN_NONE);
+        let control = |v: &[(u8, u32, u8)]| v.iter().map(|&(l, c, _)| (l, c)).collect::<Vec<_>>();
+        assert_eq!(control(&idle), control(&silent));
+        assert!(idle.iter().all(|&(_, _, b)| b == crate::gen::BN_NETWORK));
+        assert!(silent.iter().all(|&(_, _, b)| b == crate::gen::BN_CREDIT));
     }
 
     #[test]
