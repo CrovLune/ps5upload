@@ -21,6 +21,7 @@
 const fs = require("fs");
 const path = require("path");
 const { execFileSync } = require("child_process");
+const { captureSite, copyImages } = require("./post-images");
 
 const REPO = "phantomptr/ps5upload";
 const RELEASES_URL = `https://github.com/${REPO}/releases/latest`;
@@ -28,6 +29,8 @@ const REPO_URL = `https://github.com/${REPO}`;
 const ISSUES_URL = `https://github.com/${REPO}/issues`;
 const DISCORD_INVITE = "https://discord.gg/fzK3xddtrM";
 const COFFEE_URL = "https://ko-fi.com/B0B81S0WUA"; // client/src/lib/supportLinks.ts
+const SITE_URL = "https://ps5upload.phantomptr.com/"; // site/ on GitHub Pages
+const AUTHOR_URL = "https://phantomptr.com/";
 const DOCKER_IMAGE = "ghcr.io/phantomptr/ps5upload-engine-webui";
 const X_LIMIT = 280;
 const X_URL_LEN = 23;
@@ -92,7 +95,7 @@ function buildX() {
       "Meet PS5Upload 🎮",
       "Get games, apps and homebrew onto a jailbroken PS5, fast, and manage the console from your computer, phone or browser.",
       "Free and open source. macOS, Windows, Linux, Android, Docker.",
-      `Download: ${RELEASES_URL}`,
+      `Download: ${SITE_URL}`,
       "#PS5 #PS5Homebrew",
     ].join("\n\n"),
   ];
@@ -113,7 +116,9 @@ function buildX() {
       ...START.map((s, i) => `${i + 1}. ${s.replace(" (port 9021)", "")}`),
     ].join("\n"),
   );
-  posts.push([`Source: ${REPO_URL}`, `Help & ideas: ${DISCORD_INVITE}`, `☕ ${COFFEE_URL}`].join("\n"));
+  posts.push(
+    [`Website: ${SITE_URL}`, `Source: ${REPO_URL}`, `Help & ideas: ${DISCORD_INVITE}`, `☕ ${COFFEE_URL}`].join("\n"),
+  );
   return posts;
 }
 
@@ -134,8 +139,8 @@ function buildDiscord() {
       "**Getting started**",
       ...START.map((s, i) => `${i + 1}. ${s}`),
       "",
-      `**[Download v${version}](<${RELEASES_URL}>)** · [Source](<${REPO_URL}>) · [Report a bug](<${ISSUES_URL}>) · ☕ [Buy me a coffee](<${COFFEE_URL}>)`,
-      "-# Free and open source (GPL-3.0). Not affiliated with Sony.",
+      `**[Download v${version}](<${SITE_URL}>)** · [Source](<${REPO_URL}>) · [Report a bug](<${ISSUES_URL}>) · ☕ [Buy me a coffee](<${COFFEE_URL}>)`,
+      `-# Made by [PhantomPtr](<${AUTHOR_URL}>). Free and open source (GPL-3.0). Not affiliated with Sony.`,
     ].join("\n");
   for (const size of sizes) {
     const text = render(size);
@@ -168,7 +173,7 @@ function buildReddit() {
     "",
     "### Links",
     "",
-    `- **Download:** [latest release](${RELEASES_URL})`,
+    `- **Website and downloads:** [ps5upload.phantomptr.com](${SITE_URL})`,
     `- **Docker web UI:** \`${DOCKER_IMAGE}:latest\``,
     `- **Source:** [GitHub](${REPO_URL})`,
     `- **Bugs:** [open an issue](${ISSUES_URL})`,
@@ -176,7 +181,7 @@ function buildReddit() {
     "",
     `It's free. If it saves you time, [a coffee](${COFFEE_URL}) keeps it going ☕`,
     "",
-    "*Not affiliated with Sony. Use it on consoles you own.*",
+    `*Made by [PhantomPtr](${AUTHOR_URL}). Not affiliated with Sony. Use it on consoles you own.*`,
   ].join("\n");
   return { title, body };
 }
@@ -204,20 +209,24 @@ const reddit = buildReddit();
 write("reddit-title.txt", reddit.title);
 write("reddit-body.md", reddit.body);
 
-// Screenshots to attach: the website's (site/assets), as PNG since not every uploader takes WebP.
+// Screenshots to attach: the website (hero, features, downloads), taken fresh when
+// Playwright is available, and the app itself (site/assets, as PNG since not every uploader
+// takes WebP).
+captureSite();
+const shots = copyImages(path.join(outDir, "images"), ["site-hero-dark", "site-features-dark", "site-download-dark", "site-hero-light"]);
 const imgDir = path.join(outDir, "images");
 fs.mkdirSync(imgDir, { recursive: true });
-const shots = [];
 for (const name of ["home-dark", "home-light", "upload-dark", "convert-dark"]) {
   const src = path.join(repoRoot, "site", "assets", `${name}.webp`);
   if (!fs.existsSync(src)) continue;
-  const dst = path.join(imgDir, `${name}.png`);
+  const dst = path.join(imgDir, `app-${name}.png`);
   try {
     execFileSync("sips", ["-s", "format", "png", src, "--out", dst], { stdio: "ignore" }); // macOS
+    shots.push(path.basename(dst));
   } catch {
-    fs.copyFileSync(src, path.join(imgDir, `${name}.webp`)); // elsewhere: attach the WebP
+    fs.copyFileSync(src, path.join(imgDir, `app-${name}.webp`)); // elsewhere: attach the WebP
+    shots.push(`app-${name}.webp`);
   }
-  shots.push(path.basename(fs.existsSync(dst) ? dst : `${name}.webp`));
 }
 
 write(
@@ -229,15 +238,15 @@ write(
     "",
     "## X",
     ...x.map((t, i) =>
-      `- \`x-${i + 1}-${i === 0 ? "main" : "reply"}.txt\` — ${i === 0 ? "the post (attach images/home-dark.png)" : `reply ${i}`}, ${xLength(t)}/${X_LIMIT} characters`,
+      `- \`x-${i + 1}-${i === 0 ? "main" : "reply"}.txt\` — ${i === 0 ? "the post (attach images/site-hero-dark.png)" : i === 1 ? "reply 1 (attach images/site-features-dark.png)" : `reply ${i}`}, ${xLength(t)}/${X_LIMIT} characters`,
     ),
     "",
     "## Discord",
-    `- \`discord.md\` — ${discord.length}/${DISCORD_LIMIT} characters. Attach images/home-dark.png.`,
+    `- \`discord.md\` — ${discord.length}/${DISCORD_LIMIT} characters. Attach images/site-hero-dark.png and images/app-home-dark.png.`,
     "",
     "## Reddit",
     "- `reddit-title.txt` — the Title box",
-    "- `reddit-body.md` — the body (Markdown editor). Add a screenshot as an image post, or link one.",
+    "- `reddit-body.md` — the body (Markdown editor). Post it as an image post with images/site-hero-dark.png, or add the images in the body.",
     "",
     "## Images",
     ...shots.map((s) => `- \`images/${s}\``),

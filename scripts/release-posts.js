@@ -35,11 +35,14 @@
 const fs = require("fs");
 const path = require("path");
 const { execFileSync } = require("child_process");
+const { captureSite, copyImages } = require("./post-images");
 
 const REPO = "phantomptr/ps5upload";
 const DISCORD_INVITE = "https://discord.gg/fzK3xddtrM";
 const ISSUES_URL = `https://github.com/${REPO}/issues`;
 const COFFEE_URL = "https://ko-fi.com/B0B81S0WUA"; // client/src/lib/supportLinks.ts
+const SITE_URL = "https://ps5upload.phantomptr.com/"; // site/ on GitHub Pages
+const AUTHOR_URL = "https://phantomptr.com/";
 const DOCKER_IMAGE = "ghcr.io/phantomptr/ps5upload-engine-webui";
 const X_LIMIT = 280;
 const X_URL_LEN = 23; // X counts every link as 23 characters
@@ -199,7 +202,7 @@ function buildX() {
   // The changelog's opening line is the best one-sentence summary there is.
   const intro = summary ? clip(summary, 160) : headline;
   // Without a summary to open with, the post points at the thread below it instead.
-  const main = [lead, intro, `Download: ${releaseUrl}`, "#PS5 #PS5Homebrew", intro ? null : "What's new 👇"]
+  const main = [lead, intro, `Download: ${SITE_URL}`, "#PS5 #PS5Homebrew", intro ? null : "What's new 👇"]
     .filter(Boolean)
     .join("\n\n");
   // Pack every group heading and item into as few replies as fit, without
@@ -214,7 +217,7 @@ function buildX() {
     if (g.heading && g !== groups[0]) lines.push({ text: stripMd(g.heading), heading: true });
     for (const text of items) lines.push({ text, heading: false });
   }
-  lines.push({ text: `Help & ideas: ${DISCORD_INVITE}\nBugs: ${ISSUES_URL}\n☕ ${COFFEE_URL}`, heading: false });
+  lines.push({ text: `Full notes: ${releaseUrl}\nHelp & ideas: ${DISCORD_INVITE}\nBugs: ${ISSUES_URL}\n☕ ${COFFEE_URL}`, heading: false });
   const replies = [];
   let current = [];
   const fits = (extra) => xLength([...current, ...extra].join("\n")) <= X_LIMIT;
@@ -237,7 +240,8 @@ function buildX() {
 
 function buildDiscord() {
   const links = [
-    `**[Download ${tag}](<${releaseUrl}>)**`,
+    `**[Download ${tag}](<${SITE_URL}>)**`,
+    `[Release notes](<${releaseUrl}>)`,
     `[Report a bug](<${ISSUES_URL}>)`,
     `Docker web UI: \`${DOCKER_IMAGE}:${version}\``,
     `☕ [Buy me a coffee](<${COFFEE_URL}>)`,
@@ -289,7 +293,8 @@ function buildReddit() {
     "",
     "### Links",
     "",
-    `- **Download:** [${tag} on GitHub](${releaseUrl})`,
+    `- **Download:** [ps5upload.phantomptr.com](${SITE_URL}) (picks the right file for your system)`,
+    `- **Release notes:** [${tag} on GitHub](${releaseUrl})`,
     `- **Docker (web UI):** \`${DOCKER_IMAGE}:${version}\``,
     `- **Bugs:** [open an issue](${ISSUES_URL})`,
     `- **Help and ideas:** [Discord](${DISCORD_INVITE})`,
@@ -336,6 +341,10 @@ xPosts.forEach((t, i) => write(`x-${i + 1}-${i === 0 ? "main" : "reply"}.txt`, t
 write("discord.md", discord);
 write("reddit-title.txt", reddit.title);
 write("reddit-body.md", reddit.body);
+// The website shows this release: its hero carries the version and the download, its News
+// section these notes. Taken fresh when Playwright is available.
+captureSite();
+const images = copyImages(path.join(outDir, "images"), ["site-hero-dark", "site-news-dark", "site-hero-light"]);
 write(
   "README.md",
   [
@@ -345,16 +354,19 @@ write(
     "",
     "## X",
     ...xPosts.map((t, i) =>
-      `- \`x-${i + 1}-${i === 0 ? "main" : "reply"}.txt\` — ${i === 0 ? "the post" : `reply ${i} (reply to the previous post)`}, ${xLength(t)}/${X_LIMIT} characters`,
+      `- \`x-${i + 1}-${i === 0 ? "main" : "reply"}.txt\` — ${i === 0 ? `the post${images.length ? " (attach images/site-hero-dark.png)" : ""}` : `reply ${i} (reply to the previous post)`}, ${xLength(t)}/${X_LIMIT} characters`,
     ),
     "",
     "## Discord",
-    `- \`discord.md\` — the announcement, ${discord.length}/${DISCORD_LIMIT} characters. Remove the @everyone line to post without a ping.`,
+    `- \`discord.md\` — the announcement, ${discord.length}/${DISCORD_LIMIT} characters. Remove the @everyone line to post without a ping.${images.length ? " Attach images/site-news-dark.png." : ""}`,
     "",
     "## Reddit",
     "- `reddit-title.txt` — the Title box",
     "- `reddit-body.md` — the body (switch the editor to Markdown first)",
     "",
+    ...(images.length
+      ? ["## Images (from the website)", ...images.map((n) => `- \`images/${n}\``), ""]
+      : []),
   ].join("\n"),
 );
 console.error(`\nWrote ${files.length} files to ${path.relative(repoRoot, outDir) || outDir}`);
