@@ -1849,6 +1849,13 @@ installed_section_system: "سیستم",
 installed_section_system_hint:
   "برنامه‌های سیستمی سونی. این‌ها را حذف نکنید مگر دقیقاً بدانید چه هستند.",
 installed_uninstall: "حذف نصب",
+installed_hidden_badge: "پنهان",
+installed_hidden_tooltip: "از صفحهٔ اصلی PS5 پنهان شده است. هنوز نصب است؛ از ⋯ دوباره نمایش دهید.",
+installed_hide_from_home: "پنهان کردن از صفحهٔ اصلی",
+installed_show_on_home: "نمایش در صفحهٔ اصلی",
+installed_hide_confirm_title: "{name} از صفحهٔ اصلی پنهان شود؟",
+installed_hide_confirm_body: "فقط آیکون آن پنهان می‌شود: نصب می‌ماند، ذخیره‌هایش را نگه می‌دارد و می‌توانید از اینجا اجرایش کنید. از همین منو دوباره نمایشش دهید. صفحهٔ اصلی PS5 دفعهٔ بعد که برنامه‌ای را باز و بسته کنید به‌روز می‌شود.",
+installed_hidden_filter: "{count} مورد از صفحهٔ اصلی پنهان است",
 installed_uninstall_confirm_title: "حذف نصب {name}؟",
 installed_uninstall_confirm_system:
   "{id} یک برنامه‌ی سیستمی است. حذف آن می‌تواند کنسول را ناپایدار کند و ممکن است برای بازیابی به نصب مجدد نیاز باشد. تنها اگر دقیقاً می‌دانید این بسته چیست ادامه دهید.",

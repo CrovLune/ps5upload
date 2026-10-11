@@ -1213,6 +1213,13 @@ installed_section_folder_hint: "Registrado a partir de uma pasta /data/homebrew/
 installed_section_system: "Sistema",
 installed_section_system_hint: "Apps de sistema da Sony. Não remova a menos que saiba exatamente o que são.",
 installed_uninstall: "Desinstalar",
+installed_hidden_badge: "Oculto",
+installed_hidden_tooltip: "Oculto na tela inicial do PS5. Continua instalado; mostre de novo pelo ⋯.",
+installed_hide_from_home: "Ocultar da tela inicial",
+installed_show_on_home: "Mostrar na tela inicial",
+installed_hide_confirm_title: "Ocultar {name} da tela inicial?",
+installed_hide_confirm_body: "Só o ícone é ocultado: continua instalado, mantém os salvamentos e você ainda pode iniciá-lo por aqui. Mostre de novo por este menu. A tela inicial do PS5 é atualizada na próxima vez que você abrir e fechar qualquer app.",
+installed_hidden_filter: "{count} ocultos da tela inicial",
 installed_uninstall_confirm_title: "Desinstalar {name}?",
 installed_uninstall_confirm_system:
   "{id} é um app de SISTEMA. Removê-lo pode desestabilizar o console e exigir uma reinstalação para recuperar. Só continue se souber exatamente o que é este pacote.",

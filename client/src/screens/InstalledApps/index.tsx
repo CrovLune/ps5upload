@@ -25,6 +25,8 @@ import {
   Search,
   X,
   Layers,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 
 import { Link, useNavigate } from "react-router";
@@ -88,6 +90,7 @@ import { transferScreenBusy } from "../../lib/ps5Transfers";
 import { useStaleHostGuard } from "../../lib/staleHostGuard";
 import { isBackportEligible } from "../../lib/backport";
 import { BackportPanel } from "./BackportPanel";
+import { hiddenIcons, setIconHidden } from "../../api/hiddenIcons";
 import { EMPTY_CORPUS, loadFakelibCorpus, type FakelibCorpus } from "../../state/fakelibCorpus";
 
 // ── Classification helpers ───────────────────────────────────────────────────
@@ -326,6 +329,8 @@ export const AppCard = memo(function AppCard({
   backportEligible,
   onBackport,
   onFixPermissions,
+  hidden,
+  onToggleHidden,
 }: {
   host: string;
   title: InstalledTitle;
@@ -348,6 +353,10 @@ export const AppCard = memo(function AppCard({
   onBackport: (t: InstalledTitle) => void;
   /** Make the title's folder 0777 (uploads from 6.0-6.1.2 kept the computer's modes). */
   onFixPermissions: (t: InstalledTitle) => void;
+  /** Whether the title's home-screen icon is hidden (#407); undefined when the console could
+   *  not say (an older helper), which leaves the Hide action out. */
+  hidden: boolean | undefined;
+  onToggleHidden: (t: InstalledTitle) => void;
   /** Re-issue the launch for an already-running title, which is what brings it
    *  to the screen. Separate from onLaunch so the confirm/patient-launch
    *  bookkeeping around a cold start doesn't run for a foreground nudge. */
@@ -443,6 +452,22 @@ export const AppCard = memo(function AppCard({
             <span className="truncate font-mono text-xs text-[var(--color-muted)]">
               {title.titleId}
             </span>
+            {hidden && (
+              <>
+                <MetaDot />
+                <span
+                  className="inline-flex shrink-0 items-center gap-1 text-xs text-[var(--color-muted)]"
+                  title={tr(
+                    "installed_hidden_tooltip",
+                    undefined,
+                    "Hidden from the PS5 home screen. It is still installed; show it again from ⋯.",
+                  )}
+                >
+                  <EyeOff size={11} aria-hidden />
+                  {tr("installed_hidden_badge", undefined, "Hidden")}
+                </span>
+              </>
+            )}
           </div>
           {/* Play-time + last-seen-playing (#116). Only ps5upload-observed
               play (app open + watching), so "never" means "not seen by this
@@ -610,6 +635,18 @@ export const AppCard = memo(function AppCard({
                     },
                   ]
                 : []),
+              ...(hidden !== undefined && !title.system
+                ? [
+                    {
+                      label: hidden
+                        ? tr("installed_show_on_home", undefined, "Show on home screen")
+                        : tr("installed_hide_from_home", undefined, "Hide from home screen"),
+                      icon: hidden ? <Eye size={12} /> : <EyeOff size={12} />,
+                      disabled: busy,
+                      onSelect: () => onToggleHidden(title),
+                    },
+                  ]
+                : []),
               {
                 label: tr("installed_uninstall", undefined, "Uninstall"),
                 icon: <Trash2 size={12} />,
@@ -740,6 +777,10 @@ export default function InstalledAppsScreen() {
   // unchanged (name order, everything shown).
   const [sortByPlaytime, setSortByPlaytime] = useState(false);
   const [onlyUnplayed, setOnlyUnplayed] = useState(false);
+  /** Title ids whose home-screen icon is hidden (#407), read from the console; null when it
+   *  could not say (an older helper), which hides the feature rather than guessing. */
+  const [hiddenIds, setHiddenIds] = useState<Set<string> | null>(null);
+  const [onlyHidden, setOnlyHidden] = useState(false);
   // Search box. Deliberately NOT persisted: leaving the tab clears it, so a
   // forgotten filter never greets you later looking like missing games.
   const [query, setQuery] = useState("");
@@ -782,6 +823,13 @@ export default function InstalledAppsScreen() {
       } catch {
         if (!probe.isStale()) setSmp(null);
       }
+      // Hidden home-screen icons (#407) — best-effort, like the two above.
+      try {
+        const ids = await hiddenIcons(probe.host);
+        if (!probe.isStale()) setHiddenIds(new Set(ids));
+      } catch {
+        if (!probe.isStale()) setHiddenIds(null);
+      }
     } catch (e) {
       if (probe.isStale()) return;
       const raw = e instanceof Error ? e.message : String(e);
@@ -805,6 +853,8 @@ export default function InstalledAppsScreen() {
     setRunning(new Map());
     setSdkState({ titles: [] });
     setBackportTitle(null);
+    setHiddenIds(null);
+    setOnlyHidden(false);
   }, [host]);
 
   useEffect(() => {
@@ -1162,6 +1212,54 @@ export default function InstalledAppsScreen() {
     [host, guard, confirmDialog, tr, refresh],
   );
 
+  /** Hide or show a title's home-screen icon (#407). Only app.db's visible flag changes on the
+   *  console: the title stays installed and playable, and Show puts the icon back. */
+  const handleToggleHidden = useCallback(
+    async (t: InstalledTitle) => {
+      if (!host?.trim() || !hiddenIds) return;
+      const probe = guard.capture();
+      const hide = !hiddenIds.has(t.titleId);
+      if (hide) {
+        const ok = await confirmDialog({
+          title: tr(
+            "installed_hide_confirm_title",
+            { name: t.titleName },
+            `Hide ${t.titleName} from the home screen?`,
+          ),
+          message: tr(
+            "installed_hide_confirm_body",
+            undefined,
+            "Only its icon is hidden: it stays installed, keeps its saves, and you can still start it from here. Show it again from this menu. The PS5's home screen updates the next time you open and close any app.",
+          ),
+          confirmLabel: tr("installed_hide_from_home", undefined, "Hide from home screen"),
+        });
+        if (!ok || probe.isStale()) return;
+      }
+      setBusyId(t.titleId);
+      setError(null);
+      try {
+        await setIconHidden(probe.host, t.titleId, hide);
+        audit(hide ? "app_icon_hide" : "app_icon_show", withConsolePrefix(probe.host, t.titleName), {
+          context: t.titleId,
+        });
+        if (probe.isStale()) return;
+        setHiddenIds((cur) => {
+          const next = new Set(cur ?? []);
+          if (hide) next.add(t.titleId);
+          else next.delete(t.titleId);
+          return next;
+        });
+      } catch (e) {
+        if (probe.isStale()) return;
+        const raw = e instanceof Error ? e.message : String(e);
+        setError(humanizePs5Error(raw));
+      } finally {
+        setBusyId(null);
+      }
+    },
+    [host, guard, hiddenIds, confirmDialog, tr],
+  );
+
   const handleSendSmp = useCallback(async () => {
     if (!host?.trim()) return;
     const ip = hostOf(host);
@@ -1223,9 +1321,13 @@ export default function InstalledAppsScreen() {
   // filtering runs against the deferred value, so a fast typist is never
   // blocked re-filtering a few hundred titles on every keystroke. Same
   // shape as the Game files tab.
-  const all = useMemo(
-    () => filterInstalledTitles(titles ?? [], deferredQuery),
-    [titles, deferredQuery],
+  const all = useMemo(() => {
+    const rows = filterInstalledTitles(titles ?? [], deferredQuery);
+    return onlyHidden && hiddenIds ? rows.filter((t) => hiddenIds.has(t.titleId)) : rows;
+  }, [titles, deferredQuery, onlyHidden, hiddenIds]);
+  const hiddenCount = useMemo(
+    () => (titles ?? []).filter((t) => hiddenIds?.has(t.titleId)).length,
+    [titles, hiddenIds],
   );
   const searching = query.trim() !== "";
   const totalMatches = all.length;
@@ -1270,6 +1372,8 @@ export default function InstalledAppsScreen() {
     playSeconds: playOf(t.titleId).seconds,
     lastSeenMs: playOf(t.titleId).lastSeenMs,
     onUninstall: handleUninstall,
+    hidden: hiddenIds ? hiddenIds.has(t.titleId) : undefined,
+    onToggleHidden: handleToggleHidden,
     onLaunch: handleLaunch,
     onStop: handleStop,
     backportEligible: isBackportEligible(t, sdkById.get(t.titleId), ps5Kernel),
@@ -1312,7 +1416,23 @@ export default function InstalledAppsScreen() {
           onLaunch={(title) => void handleLaunch(title)}
         />
       ) : null}
-      <div className="flex justify-end">
+      <div className="flex flex-wrap items-center justify-end gap-2">
+        {/* Hidden icons (#407): how many, and a filter to find them to show them again. */}
+        {(hiddenCount > 0 || onlyHidden) && (
+          <button
+            type="button"
+            onClick={() => setOnlyHidden((v) => !v)}
+            aria-pressed={onlyHidden}
+            className="chip mr-auto inline-flex items-center gap-1.5 px-3 py-1 text-xs"
+          >
+            <EyeOff size={12} aria-hidden />
+            {tr(
+              "installed_hidden_filter",
+              { count: String(hiddenCount) },
+              `${hiddenCount} hidden from the home screen`,
+            )}
+          </button>
+        )}
         <Button
           variant="secondary"
           size="sm"

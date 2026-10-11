@@ -1214,6 +1214,13 @@ installed_section_folder_hint: "콘솔의 /data/homebrew/<id>-app 폴더에서 �
 installed_section_system: "시스템",
 installed_section_system_hint: "Sony 시스템 앱. 정확히 무엇인지 알지 못하면 제거하지 마세요.",
 installed_uninstall: "제거",
+installed_hidden_badge: "숨김",
+installed_hidden_tooltip: "PS5 홈 화면에서 숨겨졌습니다. 여전히 설치되어 있으며 ⋯에서 다시 표시할 수 있습니다.",
+installed_hide_from_home: "홈 화면에서 숨기기",
+installed_show_on_home: "홈 화면에 표시",
+installed_hide_confirm_title: "{name}을(를) 홈 화면에서 숨길까요?",
+installed_hide_confirm_body: "아이콘만 숨겨집니다. 설치와 저장 데이터는 그대로이며 여기서 계속 실행할 수 있습니다. 이 메뉴에서 다시 표시하세요. PS5 홈 화면은 다음에 아무 앱이나 열었다 닫을 때 갱신됩니다.",
+installed_hidden_filter: "홈 화면에서 {count}개 숨김",
 installed_uninstall_confirm_title: "{name}을(를) 제거하시겠습니까?",
 installed_uninstall_confirm_system:
   "{id}은(는) 시스템 앱입니다. 제거하면 콘솔이 불안정해질 수 있으며 복구하려면 재설치가 필요할 수 있습니다. 이 패키지가 정확히 무엇인지 알고 있을 때만 계속하세요.",

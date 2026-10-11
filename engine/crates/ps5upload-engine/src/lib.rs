@@ -3377,6 +3377,56 @@ async fn ps5_appinfo_query(
     }
 }
 
+#[derive(Deserialize)]
+struct HiddenIconsParams {
+    addr: Option<String>,
+}
+
+/// GET /api/ps5/apps/hidden — the titles whose home-screen icon is hidden (#407), read live
+/// from app.db so the list never drifts from the console.
+async fn ps5_hidden_icons(
+    State(state): State<AppState>,
+    Query(q): Query<HiddenIconsParams>,
+) -> impl IntoResponse {
+    let addr = console_addr_or_default(q.addr, &state.default_ps5_addr);
+    let r = tokio::task::spawn_blocking(move || ps5upload_core::diagnostics::hidden_icons(&addr))
+        .await
+        .map_err(anyhow::Error::from)
+        .and_then(|r| r);
+    match r {
+        Ok(v) => (StatusCode::OK, Json(v)).into_response(),
+        Err(e) => json_err(StatusCode::BAD_GATEWAY, format!("{e:#}")).into_response(),
+    }
+}
+
+#[derive(Deserialize)]
+struct SetIconHiddenReq {
+    addr: Option<String>,
+    title_id: String,
+    hidden: bool,
+}
+
+/// POST /api/ps5/apps/hidden `{addr, title_id, hidden}` — hide or show a title's home-screen
+/// icon (#407). Only app.db's `visible` flag changes; the title stays installed. A refusal
+/// (a system app, a title with no icon, app.db locked) is a 200 with `ok: false` and the
+/// helper's reason, so the app can show it.
+async fn ps5_set_icon_hidden(
+    State(state): State<AppState>,
+    Json(req): Json<SetIconHiddenReq>,
+) -> impl IntoResponse {
+    let addr = console_addr_or_default(req.addr, &state.default_ps5_addr);
+    let r = tokio::task::spawn_blocking(move || {
+        ps5upload_core::diagnostics::set_icon_hidden(&addr, &req.title_id, req.hidden)
+    })
+    .await
+    .map_err(anyhow::Error::from)
+    .and_then(|r| r);
+    match r {
+        Ok(v) => (StatusCode::OK, Json(v)).into_response(),
+        Err(e) => json_err(StatusCode::BAD_GATEWAY, format!("{e:#}")).into_response(),
+    }
+}
+
 /// GET /api/ps5/net/interfaces — enumerate console network interfaces.
 ///
 /// Same reason as `ps5_klog`: the browser bug report was silently missing it.
@@ -9790,6 +9840,10 @@ async fn run(cfg: EngineConfig) -> anyhow::Result<()> {
             get(cache_artwork_stats).delete(cache_artwork_clear),
         )
         .route("/api/ps5/appinfo", get(ps5_appinfo_query))
+        .route(
+            "/api/ps5/apps/hidden",
+            get(ps5_hidden_icons).post(ps5_set_icon_hidden),
+        )
         .route("/api/ps5/focus", get(ps5_focus))
         .route("/api/ps5/fs/read-preview", post(ps5_fs_read_preview))
         .route("/api/ps5/process/list", get(ps5_process_list))

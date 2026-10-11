@@ -86,6 +86,38 @@ static void make_appinfo_db(const char *path) {
     sqlite3_close(db);
 }
 
+/* app.db with home-screen icon tables (#407): one per user, each with a
+ * `visible` flag, plus a decoy that has titleId but no visible column. */
+static void make_icon_db(const char *path) {
+    unlink(path);
+    sqlite3 *db = NULL;
+    assert(sqlite3_open(path, &db) == SQLITE_OK);
+    exec_or_die(db,
+        "CREATE TABLE tbl_iconinfo_1000000 (titleId TEXT, visible INTEGER);"
+        "CREATE TABLE tbl_iconinfo_1000001 (titleId TEXT, visible INTEGER);"
+        "CREATE TABLE tbl_info_1000000 (titleId TEXT, titleName TEXT);"
+        "INSERT INTO tbl_iconinfo_1000000 VALUES"
+        " ('PPSA01650',1),('ITEM00001',1),('NPXS40000',1),('NPXS40037',0);"
+        "INSERT INTO tbl_iconinfo_1000001 VALUES ('ITEM00001',1);"
+        "INSERT INTO tbl_info_1000000 VALUES ('ITEM00001','Shortcut');");
+    sqlite3_close(db);
+}
+
+static int read_visible(const char *table, const char *title_id) {
+    sqlite3 *db = NULL;
+    sqlite3_stmt *st = NULL;
+    char sql[128];
+    int v = -1;
+    snprintf(sql, sizeof sql, "SELECT visible FROM %s WHERE titleId = ?", table);
+    assert(sqlite3_open(CONTENT_DB_APP, &db) == SQLITE_OK);
+    assert(sqlite3_prepare_v2(db, sql, -1, &st, NULL) == SQLITE_OK);
+    sqlite3_bind_text(st, 1, title_id, -1, SQLITE_STATIC);
+    if (sqlite3_step(st) == SQLITE_ROW) v = sqlite3_column_int(st, 0);
+    sqlite3_finalize(st);
+    sqlite3_close(db);
+    return v;
+}
+
 static int count_row(void *ctx, int ncol, const char *const *vals) {
     (void)ncol;
     (void)vals;
@@ -244,6 +276,46 @@ int main(void) {
                                        &written) == 0);
         assert(contains(buf, "\"ok\":true"));
         printf("✓ non-SELECT refused; table intact\n");
+    }
+
+    /* ── home-screen icon hide / unhide (#407) ─────────────────────── */
+    {
+        make_icon_db(CONTENT_DB_APP);
+        unlink(CONTENT_DB_APP_BACKUP);
+        assert(content_db_hidden_json(buf, sizeof(buf), &written) == 0);
+        assert(contains(buf, "\"ok\":true") && contains(buf, "\"hidden\":[]"));
+        printf("✓ nothing hidden on a fresh console (the system's own hidden apps are not listed)\n");
+
+        assert(content_db_icon_set_visible("ITEM00001", 0, err, sizeof(err)) == 0);
+        assert(read_visible("tbl_iconinfo_1000000", "ITEM00001") == 0);
+        assert(read_visible("tbl_iconinfo_1000001", "ITEM00001") == 0);
+        assert(read_visible("tbl_iconinfo_1000000", "PPSA01650") == 1);
+        printf("✓ hide flips visible for that title in every user's table, nothing else\n");
+
+        assert(access(CONTENT_DB_APP_BACKUP, F_OK) == 0);
+        printf("✓ app.db backed up before the first change\n");
+
+        assert(content_db_hidden_json(buf, sizeof(buf), &written) == 0);
+        assert(contains(buf, "\"hidden\":[\"ITEM00001\"]"));
+        printf("✓ hidden list reads back from app.db\n");
+
+        assert(content_db_icon_set_visible("ITEM00001", 1, err, sizeof(err)) == 0);
+        assert(read_visible("tbl_iconinfo_1000000", "ITEM00001") == 1);
+        assert(read_visible("tbl_iconinfo_1000001", "ITEM00001") == 1);
+        assert(content_db_hidden_json(buf, sizeof(buf), &written) == 0);
+        assert(contains(buf, "\"hidden\":[]"));
+        printf("✓ unhide restores it\n");
+
+        assert(content_db_icon_set_visible("NPXS40000", 0, err, sizeof(err)) != 0);
+        assert(contains(err, "system"));
+        assert(read_visible("tbl_iconinfo_1000000", "NPXS40000") == 1);
+        printf("✓ system apps are refused: %s\n", err);
+
+        assert(content_db_icon_set_visible("CUSA99999", 0, err, sizeof(err)) != 0);
+        printf("✓ unknown title refused: %s\n", err);
+        assert(content_db_icon_set_visible("x'; DROP", 0, err, sizeof(err)) != 0);
+        printf("✓ malformed title id refused\n");
+        unlink(CONTENT_DB_APP_BACKUP);
     }
 
     unlink(CONTENT_DB_APP);

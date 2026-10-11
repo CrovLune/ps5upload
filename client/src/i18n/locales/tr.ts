@@ -1213,6 +1213,13 @@ installed_section_folder_hint: "Konsoldaki bir /data/homebrew/<id>-app klasörü
 installed_section_system: "Sistem",
 installed_section_system_hint: "Sony sistem uygulamaları. Tam olarak ne olduklarını bilmiyorsanız bunları kaldırmayın.",
 installed_uninstall: "Kaldır",
+installed_hidden_badge: "Gizli",
+installed_hidden_tooltip: "PS5 ana ekranından gizlendi. Hâlâ yüklü; ⋯ menüsünden yeniden gösterin.",
+installed_hide_from_home: "Ana ekrandan gizle",
+installed_show_on_home: "Ana ekranda göster",
+installed_hide_confirm_title: "{name} ana ekrandan gizlensin mi?",
+installed_hide_confirm_body: "Yalnızca simgesi gizlenir: yüklü kalır, kayıtlarını korur ve buradan başlatmaya devam edebilirsiniz. Bu menüden yeniden gösterin. PS5 ana ekranı, bir sonraki kez herhangi bir uygulamayı açıp kapattığınızda güncellenir.",
+installed_hidden_filter: "Ana ekrandan gizlenen: {count}",
 installed_uninstall_confirm_title: "{name} kaldırılsın mı?",
 installed_uninstall_confirm_system:
   "{id} bir SİSTEM uygulamasıdır. Kaldırmak konsolu kararsız hale getirebilir ve kurtarmak için yeniden kurulum gerektirebilir. Yalnızca bu paketin tam olarak ne olduğunu biliyorsanız devam edin.",

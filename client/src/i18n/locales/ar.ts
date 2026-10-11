@@ -1209,6 +1209,13 @@ installed_section_folder_hint: "مُسجَّل من مجلد /data/homebrew/<id>
 installed_section_system: "النظام",
 installed_section_system_hint: "تطبيقات نظام Sony. لا تُزِلها إلا إذا كنت تعرف تمامًا ما هي.",
 installed_uninstall: "إلغاء التثبيت",
+installed_hidden_badge: "مخفي",
+installed_hidden_tooltip: "مخفي من الشاشة الرئيسية لجهاز PS5. ما زال مثبّتًا؛ أظهره مجددًا من ⋯.",
+installed_hide_from_home: "إخفاء من الشاشة الرئيسية",
+installed_show_on_home: "إظهار في الشاشة الرئيسية",
+installed_hide_confirm_title: "إخفاء {name} من الشاشة الرئيسية؟",
+installed_hide_confirm_body: "تُخفى أيقونته فقط: يبقى مثبّتًا ويحتفظ بحفظاته، ويمكنك تشغيله من هنا. أظهره مجددًا من هذه القائمة. تتحدّث الشاشة الرئيسية لجهاز PS5 في المرة التالية التي تفتح فيها أي تطبيق وتغلقه.",
+installed_hidden_filter: "{count} مخفية من الشاشة الرئيسية",
 installed_uninstall_confirm_title: "إلغاء تثبيت {name}؟",
 installed_uninstall_confirm_system:
   "‏{id} تطبيق نظام (SYSTEM). قد تؤدي إزالته إلى زعزعة استقرار الجهاز وقد تتطلب إعادة تثبيت للاستعادة. تابع فقط إذا كنت تعرف تمامًا ما هذه الحزمة.",

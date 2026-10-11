@@ -254,6 +254,11 @@
 #define MGMT_FRAME_ACTIVITY_DB_QUERY_ACK 195u
 #define MGMT_FRAME_ACTIVITY_RESET 253u
 #define MGMT_FRAME_ACTIVITY_RESET_ACK 254u
+/* Home-screen icon hide/unhide and the hidden list (#407). */
+#define MGMT_FRAME_APP_ICON_SET 255u
+#define MGMT_FRAME_APP_ICON_SET_ACK 256u
+#define MGMT_FRAME_APP_HIDDEN_LIST 257u
+#define MGMT_FRAME_APP_HIDDEN_LIST_ACK 258u
 #define MGMT_FRAME_SDK_SCAN 214u
 #define MGMT_FRAME_SDK_SCAN_ACK 215u
 #define MGMT_FRAME_SDK_PATCH 216u
@@ -6935,6 +6940,70 @@ static int handle_appinfo_set(runtime_state_t *state, const char *body,
     }
 
     int rc = mgmt_reply(MGMT_FRAME_APPINFO_SET_ACK, resp, (uint64_t)(n > 0 ? n : 0));
+    pthread_mutex_lock(&state->state_mtx);
+    state->command_count += 1;
+    pthread_mutex_unlock(&state->state_mtx);
+    return rc;
+}
+
+/* Hide or show a title's home-screen icon (#407): body {"title_id":"..","hidden":"1"|"0"}.
+ * Only app.db's `visible` flag changes; the title stays installed. */
+static int handle_app_icon_set(runtime_state_t *state, const char *body,
+                               uint64_t body_len) {
+    if (!state) return -1;
+    char title_id[32] = {0};
+    char hidden[8] = {0};
+    char resp[512];
+    int n;
+
+    if (parse_json_string_field_local(body, body_len, "title_id", title_id,
+                                       sizeof(title_id)) != 0 ||
+        parse_json_string_field_local(body, body_len, "hidden", hidden,
+                                       sizeof(hidden)) != 0 ||
+        (strcmp(hidden, "1") != 0 && strcmp(hidden, "0") != 0)) {
+        n = snprintf(resp, sizeof(resp),
+                     "{\"ok\":false,\"err\":\"title_id and hidden (\\\"1\\\" or \\\"0\\\") are required\"}");
+    } else {
+        int hide = hidden[0] == '1';
+        char err[256] = {0};
+        if (content_db_icon_set_visible(title_id, !hide, err, sizeof(err)) == 0) {
+            n = snprintf(resp, sizeof(resp), "{\"ok\":true,\"err\":null}");
+            /* The home screen redraws its tiles when an app opens or closes, not on its own. */
+            char toast[256];
+            snprintf(toast, sizeof(toast),
+                     hide ? "%s hidden from the home screen. Open and close any app to refresh."
+                          : "%s shown on the home screen again. Open and close any app to refresh.",
+                     title_id);
+            pop_notification(toast);
+        } else {
+            char esc[512];
+            json_escape_into(err, esc, sizeof(esc));
+            n = snprintf(resp, sizeof(resp), "{\"ok\":false,\"err\":\"%s\"}", esc);
+        }
+    }
+
+    int rc = mgmt_reply(MGMT_FRAME_APP_ICON_SET_ACK, resp, (uint64_t)(n > 0 ? n : 0));
+    pthread_mutex_lock(&state->state_mtx);
+    state->command_count += 1;
+    pthread_mutex_unlock(&state->state_mtx);
+    return rc;
+}
+
+/* The titles whose home-screen icon is hidden: {"ok":true,"hidden":[..]} (#407). */
+static int handle_app_hidden_list(runtime_state_t *state) {
+    if (!state) return -1;
+    /* On the heap: handler stacks stay small (mgmt_audit.py stack). */
+    const size_t cap = 16 * 1024;
+    char *resp = (char *)malloc(cap);
+    size_t written = 0;
+    int rc;
+    if (!resp || content_db_hidden_json(resp, cap, &written) != 0 || written == 0) {
+        const char *err = "{\"ok\":false,\"error\":\"cannot read app.db\"}";
+        rc = mgmt_reply(MGMT_FRAME_APP_HIDDEN_LIST_ACK, err, strlen(err));
+    } else {
+        rc = mgmt_reply(MGMT_FRAME_APP_HIDDEN_LIST_ACK, resp, (uint64_t)written);
+    }
+    free(resp);
     pthread_mutex_lock(&state->state_mtx);
     state->command_count += 1;
     pthread_mutex_unlock(&state->state_mtx);

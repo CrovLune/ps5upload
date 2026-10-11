@@ -2001,6 +2001,13 @@ installed_section_system: "System",
 installed_section_system_hint:
   "Sony system apps. Don't remove these unless you know exactly what they are.",
 installed_uninstall: "Uninstall",
+installed_hidden_badge: "Hidden",
+installed_hidden_tooltip: "Hidden from the PS5 home screen. It is still installed; show it again from ⋯.",
+installed_hide_from_home: "Hide from home screen",
+installed_show_on_home: "Show on home screen",
+installed_hide_confirm_title: "Hide {name} from the home screen?",
+installed_hide_confirm_body: "Only its icon is hidden: it stays installed, keeps its saves, and you can still start it from here. Show it again from this menu. The PS5's home screen updates the next time you open and close any app.",
+installed_hidden_filter: "{count} hidden from the home screen",
 installed_uninstall_confirm_title: "Uninstall {name}?",
 installed_uninstall_confirm_system:
   "{id} is a SYSTEM app. Removing it can destabilize the console and may require a reinstall to recover. Only continue if you know exactly what this package is.",

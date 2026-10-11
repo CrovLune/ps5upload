@@ -19,6 +19,8 @@ export type AuditKind =
   | "fs_chmod"
   | "library_unregister"
   | "app_uninstall"
+  | "app_icon_hide"
+  | "app_icon_show"
   | "library_unmount"
   | "library_register"
   | "library_chmod"

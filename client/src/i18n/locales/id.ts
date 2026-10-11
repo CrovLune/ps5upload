@@ -1213,6 +1213,13 @@ installed_section_folder_hint: "Didaftarkan dari folder /data/homebrew/<id>-app 
 installed_section_system: "Sistem",
 installed_section_system_hint: "Aplikasi sistem Sony. Jangan hapus kecuali Anda tahu persis apa itu.",
 installed_uninstall: "Hapus pemasangan",
+installed_hidden_badge: "Disembunyikan",
+installed_hidden_tooltip: "Disembunyikan dari layar beranda PS5. Masih terpasang; tampilkan lagi dari ⋯.",
+installed_hide_from_home: "Sembunyikan dari layar beranda",
+installed_show_on_home: "Tampilkan di layar beranda",
+installed_hide_confirm_title: "Sembunyikan {name} dari layar beranda?",
+installed_hide_confirm_body: "Hanya ikonnya yang disembunyikan: tetap terpasang, menyimpan data simpanannya, dan Anda masih bisa menjalankannya dari sini. Tampilkan lagi dari menu ini. Layar beranda PS5 diperbarui saat Anda membuka dan menutup aplikasi apa pun berikutnya.",
+installed_hidden_filter: "{count} disembunyikan dari layar beranda",
 installed_uninstall_confirm_title: "Hapus pemasangan {name}?",
 installed_uninstall_confirm_system:
   "{id} adalah aplikasi SISTEM. Menghapusnya dapat membuat konsol tidak stabil dan mungkin memerlukan pemasangan ulang untuk memulihkannya. Lanjutkan hanya jika Anda benar-benar tahu apa paket ini.",

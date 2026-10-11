@@ -1214,6 +1214,13 @@ installed_section_folder_hint: "コンソール上の /data/homebrew/<id>-app �
 installed_section_system: "システム",
 installed_section_system_hint: "Sony のシステムアプリ。何であるか正確に分からない限り削除しないでください。",
 installed_uninstall: "アンインストール",
+installed_hidden_badge: "非表示",
+installed_hidden_tooltip: "PS5 のホーム画面で非表示です。インストールされたままです。⋯ から再表示できます。",
+installed_hide_from_home: "ホーム画面で非表示にする",
+installed_show_on_home: "ホーム画面に表示する",
+installed_hide_confirm_title: "{name} をホーム画面で非表示にしますか？",
+installed_hide_confirm_body: "アイコンだけが非表示になります。インストールもセーブデータもそのままで、ここから起動もできます。このメニューから再表示できます。PS5 のホーム画面は、次にいずれかのアプリを開いて閉じたときに更新されます。",
+installed_hidden_filter: "ホーム画面で {count} 件を非表示",
 installed_uninstall_confirm_title: "{name} をアンインストールしますか？",
 installed_uninstall_confirm_system:
   "{id} はシステムアプリです。削除すると本体が不安定になり、復旧に再インストールが必要になる場合があります。このパッケージが何であるかを正確に理解している場合のみ続行してください。",

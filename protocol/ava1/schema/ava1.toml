@@ -1048,6 +1048,14 @@ name = "METHOD_RP_DEVICES"
 ty = "u16"
 value = 141
 [[const]]
+name = "METHOD_APP_ICON_SET"
+ty = "u16"
+value = 142
+[[const]]
+name = "METHOD_APP_HIDDEN_LIST"
+ty = "u16"
+value = 143
+[[const]]
 name = "JOB_OP_DELETE"
 ty = "u8"
 value = 1

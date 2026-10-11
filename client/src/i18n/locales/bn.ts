@@ -1209,6 +1209,13 @@ installed_section_folder_hint: "কনসোলে একটি /data/homebrew/<
 installed_section_system: "সিস্টেম",
 installed_section_system_hint: "Sony-র সিস্টেম অ্যাপ। ঠিক কী তা না জানলে এগুলো সরাবেন না।",
 installed_uninstall: "আনইনস্টল করুন",
+installed_hidden_badge: "লুকানো",
+installed_hidden_tooltip: "PS5-এর হোম স্ক্রিন থেকে লুকানো। এটি এখনও ইনস্টল করা আছে; ⋯ থেকে আবার দেখান।",
+installed_hide_from_home: "হোম স্ক্রিন থেকে লুকান",
+installed_show_on_home: "হোম স্ক্রিনে দেখান",
+installed_hide_confirm_title: "{name} হোম স্ক্রিন থেকে লুকাবেন?",
+installed_hide_confirm_body: "শুধু এর আইকন লুকানো হয়: এটি ইনস্টল থাকে, সেভ রাখে, আর আপনি এখান থেকে চালু করতে পারেন। এই মেনু থেকে আবার দেখান। পরের বার যেকোনো অ্যাপ খুলে বন্ধ করলে PS5-এর হোম স্ক্রিন আপডেট হয়।",
+installed_hidden_filter: "{count}টি হোম স্ক্রিন থেকে লুকানো",
 installed_uninstall_confirm_title: "{name} আনইনস্টল করবেন?",
 installed_uninstall_confirm_system:
   "{id} একটি সিস্টেম (SYSTEM) অ্যাপ। এটি সরালে কনসোল অস্থির হতে পারে এবং পুনরুদ্ধারের জন্য পুনরায় ইনস্টল করা লাগতে পারে। এই প্যাকেজটি ঠিক কী তা জানা থাকলে তবেই এগিয়ে যান।",

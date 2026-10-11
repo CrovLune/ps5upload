@@ -296,6 +296,41 @@ pub fn appinfo_query(addr: &str, title_id: &str, keys: Option<&str>) -> Result<A
     Ok(serde_json::from_slice(&resp)?)
 }
 
+/// The helper's answer to `app.icon_set` / `app.hidden_list` (#407).
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct HiddenIcons {
+    #[serde(default)]
+    pub ok: bool,
+    /// Title ids whose home-screen icon is hidden in any user's icon table.
+    #[serde(default)]
+    pub hidden: Vec<String>,
+    /// Why it failed (`err` from icon_set, `error` from hidden_list).
+    #[serde(default, alias = "err")]
+    pub error: Option<String>,
+}
+
+/// The titles whose home-screen icon is hidden (app.db `visible = 0`).
+pub fn hidden_icons(addr: &str) -> Result<HiddenIcons> {
+    let resp = mgmt::call_legacy_ok(addr, m::APP_HIDDEN_LIST, "APP_HIDDEN_LIST", &[])?;
+    Ok(serde_json::from_slice(&resp)?)
+}
+
+/// Hide (`hidden = true`) or show a title's home-screen icon. Only app.db's `visible` flag
+/// changes; the helper backs app.db up before its first change and refuses system apps.
+pub fn set_icon_hidden(addr: &str, title_id: &str, hidden: bool) -> Result<HiddenIcons> {
+    let body = serde_json::json!({
+        "title_id": title_id,
+        "hidden": if hidden { "1" } else { "0" },
+    });
+    let resp = mgmt::call_legacy_ok(
+        addr,
+        m::APP_ICON_SET,
+        "APP_ICON_SET",
+        body.to_string().as_bytes(),
+    )?;
+    Ok(serde_json::from_slice(&resp)?)
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct NetSpeedTestResult {
     pub round_trips: u32,
@@ -639,5 +674,26 @@ mod net_reach_live {
         let parts: Vec<&str> = spec.split(',').collect();
         let r = super::net_reach(parts[0], parts[1], parts[2].parse().unwrap(), 3000).unwrap();
         println!("REACH {}:{} -> {r:?}", parts[1], parts[2]);
+    }
+}
+
+#[cfg(test)]
+mod hidden_icons_tests {
+    use super::HiddenIcons;
+
+    #[test]
+    fn both_replies_decode_with_their_reason() {
+        let ok: HiddenIcons =
+            serde_json::from_str(r#"{"ok":true,"hidden":["ITEM00001"]}"#).unwrap();
+        assert!(ok.ok && ok.hidden == ["ITEM00001"]);
+        let set_err: HiddenIcons =
+            serde_json::from_str(r#"{"ok":false,"err":"NPXS40000 is a system app"}"#).unwrap();
+        assert!(!set_err.ok);
+        assert_eq!(set_err.error.as_deref(), Some("NPXS40000 is a system app"));
+        let list_err: HiddenIcons =
+            serde_json::from_str(r#"{"ok":false,"error":"cannot read app.db"}"#).unwrap();
+        assert_eq!(list_err.error.as_deref(), Some("cannot read app.db"));
+        let done: HiddenIcons = serde_json::from_str(r#"{"ok":true,"err":null}"#).unwrap();
+        assert!(done.ok && done.error.is_none());
     }
 }

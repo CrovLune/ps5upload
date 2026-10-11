@@ -1211,6 +1211,13 @@ installed_section_folder_hint: "Được đăng ký từ một thư mục /data/
 installed_section_system: "Hệ thống",
 installed_section_system_hint: "Ứng dụng hệ thống của Sony. Đừng gỡ trừ khi bạn biết chính xác chúng là gì.",
 installed_uninstall: "Gỡ cài đặt",
+installed_hidden_badge: "Đã ẩn",
+installed_hidden_tooltip: "Đã ẩn khỏi màn hình chính của PS5. Vẫn được cài đặt; hiện lại từ ⋯.",
+installed_hide_from_home: "Ẩn khỏi màn hình chính",
+installed_show_on_home: "Hiện trên màn hình chính",
+installed_hide_confirm_title: "Ẩn {name} khỏi màn hình chính?",
+installed_hide_confirm_body: "Chỉ biểu tượng bị ẩn: vẫn được cài đặt, giữ dữ liệu lưu và bạn vẫn có thể khởi chạy từ đây. Hiện lại từ menu này. Màn hình chính của PS5 cập nhật vào lần tới bạn mở và đóng bất kỳ ứng dụng nào.",
+installed_hidden_filter: "{count} đã ẩn khỏi màn hình chính",
 installed_uninstall_confirm_title: "Gỡ cài đặt {name}?",
 installed_uninstall_confirm_system:
   "{id} là một ứng dụng HỆ THỐNG. Việc xóa nó có thể gây mất ổn định máy và có thể cần cài lại để khôi phục. Chỉ tiếp tục nếu bạn biết chính xác gói này là gì.",

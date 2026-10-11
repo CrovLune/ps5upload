@@ -1213,6 +1213,13 @@ installed_section_folder_hint: "Enregistré depuis un dossier /data/homebrew/<id
 installed_section_system: "Système",
 installed_section_system_hint: "Applis système de Sony. Ne les supprimez pas sauf si vous savez exactement ce que c'est.",
 installed_uninstall: "Désinstaller",
+installed_hidden_badge: "Masqué",
+installed_hidden_tooltip: "Masqué sur l'écran d'accueil de la PS5. Il reste installé ; réaffichez-le depuis ⋯.",
+installed_hide_from_home: "Masquer de l'écran d'accueil",
+installed_show_on_home: "Afficher sur l'écran d'accueil",
+installed_hide_confirm_title: "Masquer {name} de l'écran d'accueil ?",
+installed_hide_confirm_body: "Seule son icône est masquée : il reste installé, garde ses sauvegardes et vous pouvez toujours le lancer d'ici. Réaffichez-le depuis ce menu. L'écran d'accueil de la PS5 se met à jour la prochaine fois que vous ouvrez et fermez une application.",
+installed_hidden_filter: "{count} masqué(s) de l'écran d'accueil",
 installed_uninstall_confirm_title: "Désinstaller {name} ?",
 installed_uninstall_confirm_system:
   "{id} est une app SYSTÈME. La supprimer peut déstabiliser la console et nécessiter une réinstallation pour récupérer. Ne continuez que si vous savez exactement ce qu'est ce paquet.",

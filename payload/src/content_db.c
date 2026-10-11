@@ -1,6 +1,7 @@
 #include "content_db.h"
 
 #include <fcntl.h>
+#include <sys/stat.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -601,4 +602,187 @@ fail:
     if (db) sqlite3_close(db);
     return -1;
 #undef CDB_FAIL
+}
+
+/* ── home-screen icons (#407) ────────────────────────────────────────── */
+
+#define CDB_MAX_ICON_TABLES 16
+
+/* The per-user icon tables: any table with both a titleId and a visible
+ * column, found by shape like the title table (never by a guessed name). */
+static int cdb_icon_tables(sqlite3 *db, char names[][96], int max) {
+    sqlite3_stmt *st = NULL;
+    int n = 0;
+    if (sqlite3_prepare_v2(db,
+                           "SELECT name FROM sqlite_master WHERE type='table' "
+                           "ORDER BY name",
+                           -1, &st, NULL) != SQLITE_OK)
+        return 0;
+    while (n < max && sqlite3_step(st) == SQLITE_ROW) {
+        const char *name = (const char *)sqlite3_column_text(st, 0);
+        char col[64];
+        if (!name || strlen(name) >= 96 || strchr(name, '"')) continue;
+        if (cdb_has_column(db, name, "titleId", col, sizeof col) &&
+            cdb_has_column(db, name, "visible", col, sizeof col))
+            snprintf(names[n++], 96, "%s", name);
+    }
+    sqlite3_finalize(st);
+    return n;
+}
+
+/* Copy app.db aside once, through SQLite's backup API (a consistent
+ * snapshot even while the shell has it open). The first copy is the one
+ * worth keeping: it predates every change this app made. */
+static int cdb_backup_app_db_once(sqlite3 *src, char *err, size_t errcap) {
+    if (access(CONTENT_DB_APP_BACKUP, F_OK) == 0) return 0;
+    char dir[256];
+    snprintf(dir, sizeof dir, "%s", CONTENT_DB_APP_BACKUP);
+    char *slash = strrchr(dir, '/');
+    if (slash && slash != dir) {
+        *slash = 0;
+        mkdir(dir, 0777);
+    }
+    sqlite3 *dst = NULL;
+    int ok = 0;
+    if (sqlite3_open_v2(CONTENT_DB_APP_BACKUP, &dst,
+                        SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE,
+                        NULL) == SQLITE_OK && dst) {
+        sqlite3_backup *b = sqlite3_backup_init(dst, "main", src, "main");
+        if (b) {
+            ok = sqlite3_backup_step(b, -1) == SQLITE_DONE;
+            sqlite3_backup_finish(b);
+        }
+    }
+    if (dst) sqlite3_close(dst);
+    if (!ok) {
+        unlink(CONTENT_DB_APP_BACKUP);
+        snprintf(err, errcap, "could not back up app.db first, nothing changed");
+        return -1;
+    }
+    return 0;
+}
+
+int content_db_icon_set_visible(const char *title_id, int visible, char *err,
+                                size_t errcap) {
+    sqlite3 *db = NULL;
+    sqlite3_stmt *st = NULL;
+    int in_txn = 0;
+    char tables[CDB_MAX_ICON_TABLES][96];
+
+    if (!err || errcap == 0) return -1;
+    if (!cdb_valid_title_id(title_id)) {
+        snprintf(err, errcap, "invalid title id");
+        return -1;
+    }
+    if (strncasecmp(title_id, "NPXS", 4) == 0) {
+        snprintf(err, errcap, "%s is a system app and cannot be hidden",
+                 title_id);
+        return -1;
+    }
+    if (sqlite3_open_v2(CONTENT_DB_APP, &db, SQLITE_OPEN_READWRITE, NULL) !=
+            SQLITE_OK || !db) {
+        snprintf(err, errcap, "cannot open app.db for writing");
+        if (db) sqlite3_close(db);
+        return -1;
+    }
+    sqlite3_busy_timeout(db, 5000);
+
+    int nt = cdb_icon_tables(db, tables, CDB_MAX_ICON_TABLES);
+    if (nt == 0) {
+        snprintf(err, errcap,
+                 "app.db has no icon table with a visible column; nothing changed");
+        goto fail;
+    }
+    if (cdb_backup_app_db_once(db, err, errcap) != 0) goto fail;
+
+    if (sqlite3_exec(db, "BEGIN IMMEDIATE", NULL, NULL, NULL) != SQLITE_OK) {
+        snprintf(err, errcap, "app.db is locked by the system, try again");
+        goto fail;
+    }
+    in_txn = 1;
+
+    int changed = 0;
+    for (int i = 0; i < nt; i++) {
+        char sql[192];
+        snprintf(sql, sizeof sql,
+                 "UPDATE \"%s\" SET visible = ? WHERE titleId = ?", tables[i]);
+        if (sqlite3_prepare_v2(db, sql, -1, &st, NULL) != SQLITE_OK) {
+            snprintf(err, errcap, "app.db has an unexpected schema");
+            goto fail;
+        }
+        sqlite3_bind_int(st, 1, visible ? 1 : 0);
+        sqlite3_bind_text(st, 2, title_id, -1, SQLITE_STATIC);
+        if (sqlite3_step(st) != SQLITE_DONE) {
+            snprintf(err, errcap, "%s", sqlite3_errmsg(db));
+            goto fail;
+        }
+        int c = sqlite3_changes(db);
+        sqlite3_finalize(st);
+        st = NULL;
+        /* One icon per title per user: more means the table is not what we
+         * think it is, and the change would reach further than asked. */
+        if (c > 1) {
+            snprintf(err, errcap, "refusing to change %d rows for %s in %s", c,
+                     title_id, tables[i]);
+            goto fail;
+        }
+        changed += c;
+    }
+    if (changed == 0) {
+        snprintf(err, errcap, "%s has no home-screen icon", title_id);
+        goto fail;
+    }
+    if (sqlite3_exec(db, "COMMIT", NULL, NULL, NULL) != SQLITE_OK) {
+        snprintf(err, errcap, "could not commit the app.db change");
+        goto fail;
+    }
+    sqlite3_close(db);
+    return 0;
+
+fail:
+    if (st) sqlite3_finalize(st);
+    if (in_txn) sqlite3_exec(db, "ROLLBACK", NULL, NULL, NULL);
+    sqlite3_close(db);
+    return -1;
+}
+
+int content_db_hidden_json(char *buf, size_t cap, size_t *written) {
+    if (!buf || cap < 64) return -1;
+    sqlite3 *db = NULL;
+    char tables[CDB_MAX_ICON_TABLES][96];
+    if (cdb_open_ro(CONTENT_DB_APP, &db, NULL) != SQLITE_OK || !db)
+        return cdb_emit_err(buf, cap, written, "cannot read app.db");
+    int nt = cdb_icon_tables(db, tables, CDB_MAX_ICON_TABLES);
+    if (nt == 0) {
+        sqlite3_close(db);
+        return cdb_emit_err(buf, cap, written,
+                            "app.db has no icon table with a visible column");
+    }
+    /* One query over every user's table; UNION removes the duplicates. */
+    char sql[CDB_MAX_ICON_TABLES * 140];
+    size_t o = 0;
+    for (int i = 0; i < nt; i++)
+        o += (size_t)snprintf(sql + o, sizeof sql - o,
+                              "%sSELECT titleId FROM \"%s\" WHERE visible = 0",
+                              i ? " UNION " : "", tables[i]);
+    snprintf(sql + o, sizeof sql - o, " ORDER BY 1");
+    sqlite3_stmt *st = NULL;
+    if (sqlite3_prepare_v2(db, sql, -1, &st, NULL) != SQLITE_OK) {
+        sqlite3_close(db);
+        return cdb_emit_err(buf, cap, written, "app.db has an unexpected schema");
+    }
+    int n = snprintf(buf, cap, "{\"ok\":true,\"hidden\":[");
+    int first = 1;
+    while (sqlite3_step(st) == SQLITE_ROW && (size_t)n + 32 < cap) {
+        const char *t = (const char *)sqlite3_column_text(st, 0);
+        /* The system hides some of its own apps the same way; those are not ours to show. */
+        if (!t || !cdb_valid_title_id(t) || strncasecmp(t, "NPXS", 4) == 0) continue;
+        n += snprintf(buf + n, cap - (size_t)n, "%s\"%s\"", first ? "" : ",", t);
+        first = 0;
+    }
+    sqlite3_finalize(st);
+    sqlite3_close(db);
+    n += snprintf(buf + n, cap - (size_t)n, "]}");
+    if (written) *written = (size_t)n;
+    return 0;
 }

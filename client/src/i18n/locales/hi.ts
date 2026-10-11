@@ -1210,6 +1210,13 @@ installed_section_folder_hint: "कंसोल पर एक /data/homebrew/<id
 installed_section_system: "सिस्टम",
 installed_section_system_hint: "Sony के सिस्टम ऐप। इन्हें तब तक न हटाएँ जब तक आपको ठीक से पता न हो कि ये क्या हैं।",
 installed_uninstall: "अनइंस्टॉल करें",
+installed_hidden_badge: "छिपा हुआ",
+installed_hidden_tooltip: "PS5 की होम स्क्रीन से छिपा है। यह अब भी इंस्टॉल है; ⋯ से फिर दिखाएँ।",
+installed_hide_from_home: "होम स्क्रीन से छिपाएँ",
+installed_show_on_home: "होम स्क्रीन पर दिखाएँ",
+installed_hide_confirm_title: "{name} को होम स्क्रीन से छिपाएँ?",
+installed_hide_confirm_body: "सिर्फ़ इसका आइकन छिपता है: यह इंस्टॉल रहता है, अपने सेव रखता है, और आप इसे यहाँ से चला सकते हैं। इसी मेनू से फिर दिखाएँ। अगली बार कोई भी ऐप खोलने और बंद करने पर PS5 की होम स्क्रीन अपडेट होती है।",
+installed_hidden_filter: "{count} होम स्क्रीन से छिपे हैं",
 installed_uninstall_confirm_title: "{name} अनइंस्टॉल करें?",
 installed_uninstall_confirm_system:
   "{id} एक सिस्टम (SYSTEM) ऐप है। इसे हटाने से कंसोल अस्थिर हो सकता है और बहाली के लिए फिर से इंस्टॉल करना पड़ सकता है। केवल तभी आगे बढ़ें जब आपको ठीक-ठीक पता हो कि यह पैकेज क्या है।",

@@ -158,6 +158,8 @@ methods! {
     (RP_READINESS, 139, "REMOTE_PLAY_READINESS"),
     (RP_ENABLE, 140, "REMOTE_PLAY_ENABLE"),
     (RP_DEVICES, 141, "REMOTE_PLAY_DEVICES"),
+    (APP_ICON_SET, 142, "APP_ICON_SET"),
+    (APP_HIDDEN_LIST, 143, "APP_HIDDEN_LIST"),
 }
 
 /// A management call the payload refused.

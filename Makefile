@@ -935,6 +935,7 @@ test-payload: payload
 		-I$(PAYLOAD_DIR)/third_party/sqlite3 \
 		-DCONTENT_DB_APP='"/tmp/ps5upload-cdb/app.db"' \
 		-DCONTENT_DB_APPINFO='"/tmp/ps5upload-cdb/appinfo.db"' \
+		-DCONTENT_DB_APP_BACKUP='"/tmp/ps5upload-cdb/app.db.before-hide"' \
 		-o /tmp/ps5upload-content-db-selftest \
 		$(PAYLOAD_DIR)/src/content_db.c \
 		$(PAYLOAD_DIR)/tests/content_db_selftest.c \

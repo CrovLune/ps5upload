@@ -36,6 +36,11 @@
 #ifndef CONTENT_DB_APPINFO
 #define CONTENT_DB_APPINFO "/system_data/priv/mms/appinfo.db"
 #endif
+/* A copy of app.db taken before the first home-screen icon change (#407),
+ * kept so a hide can always be undone by hand. Only the first is kept. */
+#ifndef CONTENT_DB_APP_BACKUP
+#define CONTENT_DB_APP_BACKUP "/data/ps5upload/app.db.before-hide"
+#endif
 
 /* One row of app.db's title table. */
 typedef struct {
@@ -120,5 +125,30 @@ int content_db_appinfo_json(const char *title_id, const char *keys,
  */
 int content_db_appinfo_set(const char *title_id, const char *key,
                            const char *val, char *err, size_t errcap);
+
+/*
+ * Hide or show a title's home-screen icon (#407): sets `visible` in every
+ * user's icon table in app.db (tables found by shape: a titleId and a
+ * visible column; tbl_iconinfo_<userid> on the console). Nothing is
+ * deleted; the title stays installed and runs as before.
+ *
+ * Guarded like content_db_appinfo_set: the id must be a title id, system
+ * apps (NPXS...) are refused, app.db is backed up once before the first
+ * change (CONTENT_DB_APP_BACKUP), the write runs inside BEGIN IMMEDIATE,
+ * and it is rolled back unless at least one row and at most one row per
+ * table changed.
+ *
+ * Returns 0 on success, else non-zero with a short reason in `err`.
+ */
+int content_db_icon_set_visible(const char *title_id, int visible, char *err,
+                                size_t errcap);
+
+/*
+ * The titles whose icon is hidden in any user's icon table, leaving out the
+ * system's own apps (NPXS...), which the system hides the same way:
+ * {"ok":true,"hidden":["ITEM00001",...]} (sorted, no duplicates), or
+ * {"ok":false,"error":".."}. Read-only.
+ */
+int content_db_hidden_json(char *buf, size_t cap, size_t *written);
 
 #endif /* PS5UPLOAD_CONTENT_DB_H */

@@ -1214,6 +1214,13 @@ installed_section_folder_hint: "Aus einem Ordner /data/homebrew/<id>-app auf der
 installed_section_system: "System",
 installed_section_system_hint: "Sony-Systemapps. Entferne sie nicht, außer du weißt genau, was sie sind.",
 installed_uninstall: "Deinstallieren",
+installed_hidden_badge: "Ausgeblendet",
+installed_hidden_tooltip: "Auf dem PS5-Startbildschirm ausgeblendet. Es ist weiter installiert; über ⋯ wieder einblenden.",
+installed_hide_from_home: "Vom Startbildschirm ausblenden",
+installed_show_on_home: "Auf dem Startbildschirm zeigen",
+installed_hide_confirm_title: "{name} vom Startbildschirm ausblenden?",
+installed_hide_confirm_body: "Nur das Symbol wird ausgeblendet: Es bleibt installiert, behält seine Spielstände, und du kannst es weiter von hier starten. Über dieses Menü wieder einblenden. Der Startbildschirm der PS5 aktualisiert sich, wenn du das nächste Mal eine App öffnest und schließt.",
+installed_hidden_filter: "{count} vom Startbildschirm ausgeblendet",
 installed_uninstall_confirm_title: "{name} deinstallieren?",
 installed_uninstall_confirm_system:
   "{id} ist eine SYSTEM-App. Sie zu entfernen, kann die Konsole destabilisieren und erfordert zur Wiederherstellung möglicherweise eine Neuinstallation. Fahre nur fort, wenn du genau weißt, was dieses Paket ist.",

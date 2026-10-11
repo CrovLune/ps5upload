@@ -1791,6 +1791,13 @@ installed_section_system: "Rendszer",
 installed_section_system_hint:
   "Sony rendszeralkalmazások. Ne távolítsd el ezeket, hacsak nem tudod pontosan, mik ezek.",
 installed_uninstall: "Eltávolítás",
+installed_hidden_badge: "Elrejtve",
+installed_hidden_tooltip: "Elrejtve a PS5 kezdőképernyőjén. Továbbra is telepítve van; a ⋯ menüből újra megjelenítheted.",
+installed_hide_from_home: "Elrejtés a kezdőképernyőről",
+installed_show_on_home: "Megjelenítés a kezdőképernyőn",
+installed_hide_confirm_title: "Elrejted a(z) {name} címet a kezdőképernyőről?",
+installed_hide_confirm_body: "Csak az ikonja rejtődik el: telepítve marad, megtartja a mentéseit, és innen továbbra is elindíthatod. Ebből a menüből jelenítheted meg újra. A PS5 kezdőképernyője a következő alkalommal frissül, amikor megnyitsz és bezársz egy alkalmazást.",
+installed_hidden_filter: "{count} elrejtve a kezdőképernyőről",
 installed_uninstall_confirm_title: "Eltávolítod: {name}?",
 installed_uninstall_confirm_system:
   "{id} egy RENDSZER alkalmazás. Eltávolítása destabilizálhatja a konzolt, és újratelepítés válhat szükségessé a helyreállításhoz. Csak akkor folytasd, ha pontosan tudod, mi ez a csomag.",

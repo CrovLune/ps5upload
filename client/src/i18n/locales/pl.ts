@@ -1594,6 +1594,13 @@ installed_section_system: "Systemowe",
 installed_section_system_hint:
   "Aplikacje systemowe Sony. Nie usuwaj ich, jeśli nie wiesz dokładnie, czym są.",
 installed_uninstall: "Odinstaluj",
+installed_hidden_badge: "Ukryte",
+installed_hidden_tooltip: "Ukryte na ekranie głównym PS5. Nadal jest zainstalowane; pokaż je ponownie z ⋯.",
+installed_hide_from_home: "Ukryj na ekranie głównym",
+installed_show_on_home: "Pokaż na ekranie głównym",
+installed_hide_confirm_title: "Ukryć {name} na ekranie głównym?",
+installed_hide_confirm_body: "Ukrywana jest tylko ikona: tytuł pozostaje zainstalowany, zachowuje zapisy i nadal możesz go uruchomić stąd. Pokaż go ponownie z tego menu. Ekran główny PS5 odświeży się, gdy następnym razem otworzysz i zamkniesz dowolną aplikację.",
+installed_hidden_filter: "Ukryte na ekranie głównym: {count}",
 installed_uninstall_confirm_title: "Odinstalować {name}?",
 installed_uninstall_confirm_system:
   "{id} to aplikacja SYSTEMOWA. Usunięcie jej może zdestabilizować konsolę i wymagać ponownej instalacji systemu do odzyskania sprawności. Kontynuuj tylko wtedy, gdy dokładnie wiesz, czym jest ten pakiet.",

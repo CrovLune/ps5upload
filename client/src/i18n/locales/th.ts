@@ -1209,6 +1209,13 @@ installed_section_folder_hint: "ลงทะเบียนจากโฟลเ
 installed_section_system: "ระบบ",
 installed_section_system_hint: "แอประบบของ Sony อย่าลบออกเว้นแต่คุณจะรู้แน่ชัดว่ามันคืออะไร",
 installed_uninstall: "ถอนการติดตั้ง",
+installed_hidden_badge: "ซ่อนอยู่",
+installed_hidden_tooltip: "ซ่อนจากหน้าจอหลักของ PS5 ยังติดตั้งอยู่ แสดงอีกครั้งได้จาก ⋯",
+installed_hide_from_home: "ซ่อนจากหน้าจอหลัก",
+installed_show_on_home: "แสดงบนหน้าจอหลัก",
+installed_hide_confirm_title: "ซ่อน {name} จากหน้าจอหลักหรือไม่",
+installed_hide_confirm_body: "ซ่อนเฉพาะไอคอนเท่านั้น: ยังติดตั้งอยู่ ข้อมูลเซฟยังอยู่ และยังเปิดจากที่นี่ได้ แสดงอีกครั้งได้จากเมนูนี้ หน้าจอหลักของ PS5 จะอัปเดตเมื่อคุณเปิดและปิดแอปใดก็ได้ครั้งถัดไป",
+installed_hidden_filter: "ซ่อนจากหน้าจอหลัก {count} รายการ",
 installed_uninstall_confirm_title: "ถอนการติดตั้ง {name}?",
 installed_uninstall_confirm_system:
   "{id} เป็นแอประบบ (SYSTEM) การลบอาจทำให้เครื่องไม่เสถียรและอาจต้องติดตั้งใหม่เพื่อกู้คืน ดำเนินการต่อเฉพาะเมื่อคุณรู้แน่ชัดว่าแพ็กเกจนี้คืออะไร",
