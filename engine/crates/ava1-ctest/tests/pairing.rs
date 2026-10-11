@@ -5,7 +5,7 @@ use std::time::{Duration, Instant};
 
 use ava1::Ava1Error;
 use ava1_ctest::*;
-use ps5upload_ava1::{Pairing, Pool};
+use ps5upload_ava1::{ConsoleMatch, Pairing, Pool};
 
 mod common;
 use common::{dir, SECRET};
@@ -310,4 +310,66 @@ async fn peeking_at_pairing_never_opens_a_handshake() {
         Some(Pairing::Code { .. })
     ));
     assert_eq!(pool.attempts(), before);
+}
+
+/// Pairs `pool` with the console at 192.0.2.9 (the address the pin is kept under).
+async fn pair_at_9(pool: &Pool, srv: &CServer) {
+    start_pairing(pool).await;
+    let code = wait_for_console_code(srv);
+    pool.confirm_pairing("192.0.2.9", code).await.unwrap();
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn the_paired_console_at_a_new_address_is_recognised_as_the_same_one() {
+    let d = dir("pool-same-moved");
+    let srv = CServer::start_with(SECRET, &d.join("srv-peers"), opts(60));
+    let pool = Pool::new(d.join("ava")).with_addr(srv.addr());
+    pair_at_9(&pool, &srv).await;
+    // DHCP moved it: the same console now answers at .10 (the override routes both to srv).
+    assert_eq!(
+        pool.same_console("192.0.2.9", "192.0.2.10").await,
+        ConsoleMatch::Same
+    );
+    assert_eq!(
+        srv.pair_requests().0,
+        1,
+        "checking never asks for a new code"
+    );
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn another_console_at_the_new_address_is_not_taken_for_the_paired_one() {
+    let d = dir("pool-same-other");
+    let ava = d.join("ava");
+    {
+        let srv = CServer::start_with(SECRET, &d.join("srv-peers"), opts(60));
+        pair_at_9(&Pool::new(ava.clone()).with_addr(srv.addr()), &srv).await;
+    }
+    let other = CServer::start_with([0x77; 32], &d.join("srv2-peers"), opts(60));
+    let pool = Pool::new(ava).with_addr(other.addr());
+    assert_eq!(
+        pool.same_console("192.0.2.9", "192.0.2.10").await,
+        ConsoleMatch::Different
+    );
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn without_a_pin_or_an_answer_it_cannot_tell() {
+    let d = dir("pool-same-unknown");
+    let srv = CServer::start_with(SECRET, &d.join("srv-peers"), opts(60));
+    let pool = Pool::new(d.join("ava")).with_addr(srv.addr());
+    // Never paired at the old address: nothing to compare against.
+    assert_eq!(
+        pool.same_console("192.0.2.9", "192.0.2.10").await,
+        ConsoleMatch::Unknown
+    );
+    pair_at_9(&pool, &srv).await;
+    let addr = srv.addr();
+    drop(srv);
+    // Paired, but nothing answers at the new address.
+    let pool = Pool::new(d.join("ava")).with_addr(addr);
+    assert_eq!(
+        pool.same_console("192.0.2.9", "192.0.2.10").await,
+        ConsoleMatch::Unknown
+    );
 }

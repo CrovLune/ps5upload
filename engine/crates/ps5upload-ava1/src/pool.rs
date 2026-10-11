@@ -100,6 +100,18 @@ pub const REFUSAL_TTL: Duration = Duration::from_secs(5);
 /// A pairing attempt (the dialog opening, a confirm, a dismissal) resets it.
 pub const NOT_PAIRED_TTL: Duration = Duration::from_secs(30);
 
+/// Whether the console answering at a new address is the one paired at an old one
+/// (`Pool::same_console`).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ConsoleMatch {
+    /// It proved the key pinned for the old address.
+    Same,
+    /// It answered with another key: a different console.
+    Different,
+    /// Nothing to compare: the old address has no pin, or nothing answered at the new one.
+    Unknown,
+}
+
 /// Where a console stands for the pairing dialog.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Pairing {
@@ -531,6 +543,44 @@ impl Pool {
         self.rewrite_pins(|lines| {
             lines.retain(|l| l.split_once(' ').map(|(h, _)| h) != Some(host));
         });
+    }
+
+    /// Is the console at `new` the one paired at `old`? For a console whose address changed
+    /// (DHCP): the app offers the new address only when this says `Same`. It checks the key
+    /// without pinning anything or keeping a session; the first ordinary connect to the new
+    /// address pins it, as for any address. A console that does not trust this engine yet is
+    /// still matched by its key, and no code is confirmed.
+    pub async fn same_console(&self, old: &str, new: &str) -> ConsoleMatch {
+        let Some(want) = self.pinned(&host_of(old)) else {
+            return ConsoleMatch::Unknown;
+        };
+        if let Some(have) = self.pinned(&host_of(new)) {
+            return if have == want {
+                ConsoleMatch::Same
+            } else {
+                ConsoleMatch::Different
+            };
+        }
+        let Ok(me) = self.me.clone() else {
+            return ConsoleMatch::Unknown;
+        };
+        match connect_expecting(
+            &self.addr_for(new),
+            Some(want),
+            me,
+            self.peers.clone(),
+            "ps5upload",
+            Timing::default(),
+        )
+        .await
+        {
+            Ok(s) => {
+                s.close().await;
+                ConsoleMatch::Same
+            }
+            Err(Ava1Error::WrongPeer) => ConsoleMatch::Different,
+            Err(_) => ConsoleMatch::Unknown,
+        }
     }
 
     /// One handshake with the console, pairing not yet settled; and the key it was pinned to.

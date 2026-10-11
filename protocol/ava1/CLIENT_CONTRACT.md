@@ -87,6 +87,9 @@ the pinned one answers at this address) or a 502 with `error`.
 `{addr}` removes the key pinned for that address ("forget the old console"). The handshake whose
 code is on screen is held in `ps5upload_ava1::Pool` until confirmed, so asking twice shows one
 code.
+`POST /api/ava1/same-console` `{old, new}` answers `{"result": "same" | "different" | "unknown"}`:
+whether the console at `new` proves the key pinned for `old` (a console whose address changed). It
+pins nothing; `unknown` when `old` has no pin or nothing answers at `new`.
 Tests: `engine/crates/ava1-ctest/tests/pairing.rs` (the C server).
 
 **Addresses.** The client sends the bare console host (`consoleAddr`); the engine owns the port and

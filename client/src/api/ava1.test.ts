@@ -7,6 +7,7 @@ import {
   pairingConfirm,
   pairingForget,
   pairingStatus,
+  sameConsole,
   startPs5ToPs5,
 } from "./ava1";
 
@@ -104,5 +105,27 @@ describe("PS5 to PS5", () => {
     await expect(startPs5ToPs5("a", "/x", "a", "/y")).rejects.toThrow(
       "different consoles",
     );
+  });
+});
+
+describe("sameConsole (a console whose address changed)", () => {
+  it("asks the engine with both bare hosts and reads its verdict", async () => {
+    const f = vi.fn().mockResolvedValue(reply(200, { ok: true, result: "same" }));
+    vi.stubGlobal("fetch", f);
+    expect(await sameConsole("192.168.137.2:9113", "192.168.2.36")).toBe("same");
+    expect(f.mock.calls[0][0]).toBe("http://engine.test:19113/api/ava1/same-console");
+    expect(JSON.parse(f.mock.calls[0][1].body)).toEqual({
+      old: "192.168.137.2",
+      new: "192.168.2.36",
+    });
+  });
+
+  it("reads anything it cannot use as unknown, never as same", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(reply(200, { result: "maybe" })));
+    expect(await sameConsole("10.0.0.2", "10.0.0.3")).toBe("unknown");
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(reply(404, {})));
+    expect(await sameConsole("10.0.0.2", "10.0.0.3")).toBe("unknown");
+    vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("offline")));
+    expect(await sameConsole("10.0.0.2", "10.0.0.3")).toBe("unknown");
   });
 });

@@ -9644,6 +9644,10 @@ async fn run(cfg: EngineConfig) -> anyhow::Result<()> {
             "/api/ava1/pairing/forget",
             post(ava1_api::pairing_forget_handler),
         )
+        .route(
+            "/api/ava1/same-console",
+            post(ava1_api::same_console_handler),
+        )
         .route("/api/game/inspect", post(inspect::inspect_handler))
         .route(
             "/api/game/inspect/image",

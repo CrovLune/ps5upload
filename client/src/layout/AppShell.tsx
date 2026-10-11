@@ -6,6 +6,7 @@ import { localNetworkBlocked, requestLocalNetwork } from "../lib/androidLocalNet
 import StatusBar from "./StatusBar";
 import SessionBanner from "./SessionBanner";
 import EngineDownBanner from "./EngineDownBanner";
+import MovedConsoleBanner, { useMovedConsoleWatch } from "./MovedConsoleBanner";
 import { PairingDialog } from "../screens/Connection/PairingDialog";
 import ConsoleTabs from "./ConsoleTabs";
 import ActivityBar from "./ActivityBar";
@@ -1320,6 +1321,7 @@ export default function AppShell() {
   useStatusPolling();
   useAutoSaveBackup();
   useAutoRedeployDownHelpers();
+  useMovedConsoleWatch();
   useUpdateCheckOnMount();
   useKeepPs5Awake();
   useRoutePersistence();
@@ -1406,6 +1408,7 @@ export default function AppShell() {
       </div>
       <HelperVersionBanner />
       <SessionBanner />
+      <MovedConsoleBanner />
       <EngineDownBanner />
       <AndroidLocalNetworkBanner />
       <AndroidStorageAccessBanner />

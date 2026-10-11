@@ -141,3 +141,26 @@ export async function startPs5ToPs5(
   }
   return body.job_id;
 }
+
+/** Whether the console at `newHost` is the one paired at `oldHost` (engine
+ *  `POST /api/ava1/same-console`: it compares the console's key with the one pinned for the old
+ *  address). Anything it cannot read, an engine without the route included, is `unknown`: only
+ *  `same` lets the app offer the new address. */
+export async function sameConsole(
+  oldHost: string,
+  newHost: string,
+): Promise<"same" | "different" | "unknown"> {
+  try {
+    const res = await fetch(`${getEngineUrl()}/api/ava1/same-console`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ old: consoleAddr(oldHost), new: consoleAddr(newHost) }),
+      signal: AbortSignal.timeout(15_000),
+    });
+    if (!res.ok) return "unknown";
+    const body = (await res.json().catch(() => ({}))) as { result?: string };
+    return body.result === "same" || body.result === "different" ? body.result : "unknown";
+  } catch {
+    return "unknown";
+  }
+}

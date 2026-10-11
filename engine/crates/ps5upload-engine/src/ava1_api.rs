@@ -315,6 +315,34 @@ pub async fn pairing_forget_handler(
     Json(serde_json::json!({ "ok": true, "was_pinned": had })).into_response()
 }
 
+#[derive(serde::Deserialize)]
+pub struct SameConsoleReq {
+    old: Option<String>,
+    new: Option<String>,
+}
+
+/// `POST /api/ava1/same-console` `{old, new}` — is the console answering at `new` the one
+/// paired at `old`? `{"result": "same" | "different" | "unknown"}`. The app asks after the
+/// saved address stops answering and a scan finds a PS5 elsewhere (a DHCP change), and only
+/// offers to switch on `same`.
+pub async fn same_console_handler(
+    State(_state): State<crate::AppState>,
+    Json(req): Json<SameConsoleReq>,
+) -> Response {
+    let (Some(old), Some(new)) = (
+        crate::required_console_addr(req.old),
+        crate::required_console_addr(req.new),
+    ) else {
+        return crate::missing_console_addr();
+    };
+    let result = match ps5upload_ava1::pool().same_console(&old, &new).await {
+        ps5upload_ava1::ConsoleMatch::Same => "same",
+        ps5upload_ava1::ConsoleMatch::Different => "different",
+        ps5upload_ava1::ConsoleMatch::Unknown => "unknown",
+    };
+    Json(serde_json::json!({ "ok": true, "result": result })).into_response()
+}
+
 #[cfg(test)]
 mod tests {
     use ps5upload_ava1::Pairing;
