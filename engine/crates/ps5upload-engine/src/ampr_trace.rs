@@ -223,29 +223,53 @@ pub(crate) async fn status(
 
 /// The debug build from the cache, or fetched and checked against its digest.
 fn debug_runtime() -> Result<Vec<u8>, String> {
+    fetch_pinned(
+        DEBUG_RUNTIME_URL,
+        DEBUG_RUNTIME_SHA256,
+        "libSceAmpr.sprx-0.4.2.1-test-debug-pack",
+        "the ampr_emu debug build",
+    )
+}
+
+/// The release ampr_emu the engine installs into an image whose game has none or an old one.
+pub(crate) fn release_runtime() -> Result<Vec<u8>, String> {
+    use ps5upload_fpkg::ampr_pack::image as img;
+    fetch_pinned(
+        img::RUNTIME_URL,
+        img::RUNTIME_SHA256,
+        "libSceAmpr.sprx-0.4.2.1",
+        "ampr_emu 0.4.2.1",
+    )
+}
+
+/// A file from the data dir's cache, fetched once and only kept or used when its SHA-256
+/// matches `sha`: what goes onto a console or into an image is exactly what was reviewed.
+fn fetch_pinned(url: &str, sha: &str, cache_name: &str, what: &str) -> Result<Vec<u8>, String> {
     let cache = data_dir()?.join("cache");
-    let path = cache.join("libSceAmpr.sprx-0.4.2.1-test-debug-pack");
+    let path = cache.join(cache_name);
     let check = |bytes: &[u8]| -> bool {
         use sha2::Digest;
         let d = sha2::Sha256::digest(bytes);
         let hex: String = d.iter().map(|b| format!("{b:02x}")).collect();
-        hex == DEBUG_RUNTIME_SHA256
+        hex == sha
     };
     if let Ok(bytes) = std::fs::read(&path) {
         if check(&bytes) {
             return Ok(bytes);
         }
     }
-    let bytes = ureq::get(DEBUG_RUNTIME_URL)
+    let bytes = ureq::get(url)
         .call()
-        .map_err(|e| format!("fetching the ampr_emu debug build: {e}"))?
+        .map_err(|e| format!("fetching {what}: {e}"))?
         .body_mut()
         .with_config()
         .limit(16 << 20)
         .read_to_vec()
-        .map_err(|e| format!("reading the ampr_emu debug build: {e}"))?;
+        .map_err(|e| format!("reading {what}: {e}"))?;
     if !check(&bytes) {
-        return Err("the ampr_emu debug build downloaded does not match the digest this app expects; not sent to the console".into());
+        return Err(format!(
+            "{what} downloaded does not match the digest this app expects; not used"
+        ));
     }
     std::fs::create_dir_all(&cache).map_err(|e| e.to_string())?;
     std::fs::write(&path, &bytes).map_err(|e| e.to_string())?;

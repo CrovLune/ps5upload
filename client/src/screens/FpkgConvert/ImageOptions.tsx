@@ -16,17 +16,28 @@ export interface Lz4Choice {
   /** A profile read from a .toml file (its name); null packs with the built-in one. */
   profileName: string | null;
   onProfile: (profile: { name: string; text: string } | null) => void;
+  /** Install ampr_emu 0.4.2.1 into the image (offered when `readiness.kind` is `runtime`). */
+  installRuntime: boolean;
+  onInstallRuntime: (on: boolean) => void;
+}
+
+/** Packs are refused for this game unless the engine installs the runtime, which is on. */
+export function lz4Refused(lz4: Lz4Choice): string | null {
+  if (!lz4.readiness.refusal) return null;
+  if (lz4.readiness.kind === "runtime" && lz4.installRuntime) return null;
+  return lz4.readiness.refusal;
 }
 
 /** Packing replaces .ffpfsc compression: the packs are already compressed, and the engine
  *  writes them into a plain exFAT image only. */
 export function lz4Active(format: ImageFormat, lz4: Lz4Choice | undefined): boolean {
-  return format === "exfat" && !!lz4?.on && !lz4.readiness.refusal;
+  return format === "exfat" && !!lz4?.on && !lz4Refused(lz4);
 }
 
 function Lz4Option({ lz4 }: { lz4: Lz4Choice }) {
   const tr = useTr();
-  const refusal = lz4.readiness.refusal;
+  const refusal = lz4Refused(lz4);
+  const kind = lz4.readiness.kind ?? (lz4.readiness.refusal ? "runtime" : "ok");
   return (
     <div className="space-y-1" data-testid="lz4-option">
       <label className="flex cursor-pointer items-start gap-2.5 text-xs">
@@ -50,7 +61,37 @@ function Lz4Option({ lz4 }: { lz4: Lz4Choice }) {
           </span>
         </span>
       </label>
-      {refusal ? (
+      {kind === "runtime" && (
+        <label className="flex cursor-pointer items-start gap-2.5 text-xs" data-testid="lz4-install-runtime">
+          <input
+            type="checkbox"
+            checked={lz4.installRuntime}
+            onChange={(e) => lz4.onInstallRuntime(e.target.checked)}
+            className="checkbox mt-px h-4 w-4 shrink-0"
+          />
+          <span className="min-w-0">
+            <span className="block font-medium text-[var(--color-text)]">
+              {tr("fpkg.image.lz4_install_runtime", undefined, "Put ampr_emu 0.4.2.1 into the image")}
+            </span>
+            <span className="mt-0.5 block leading-relaxed text-[var(--color-muted)]">
+              {tr(
+                "fpkg.image.lz4_install_runtime_body",
+                { reason: lz4.readiness.refusal ?? "" },
+                "{reason}. The image gets drakmor's ampr_emu 0.4.2.1 as fakelib/libSceAmpr.sprx (fetched once from its GitHub release and checked against a known digest); the game's own copy stays beside it as libSceAmpr.sprx.orig.",
+              )}
+            </span>
+          </span>
+        </label>
+      )}
+      {kind === "no_ampr" ? (
+        <div className="text-xs text-[var(--color-muted)]">
+          {tr(
+            "fpkg.image.lz4_no_ampr",
+            undefined,
+            "This game does not read its files through AMPR, so nothing in it could serve asset packs. Compress it into a .ffpfsc instead: ShadowMount+ decompresses that for any game.",
+          )}
+        </div>
+      ) : refusal ? (
         <div className="text-xs text-[var(--color-warn)]">
           {tr("fpkg.image.lz4_unavailable", { reason: refusal }, "Not available for this game: {reason}")}
         </div>

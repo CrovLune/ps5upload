@@ -4,6 +4,18 @@ What's new in ps5upload, written for humans.
 
 ---
 
+## 7.0.18
+
+- **LZ4 packs for games whose ampr_emu is missing or too old.** When the check finds a game
+  that reads through AMPR but ships no `fakelib/libSceAmpr.sprx`, or one that predates asset
+  packs, the LZ4 option now offers "Put ampr_emu 0.4.2.1 into the image": the engine fetches
+  drakmor's release once (checked against a known digest, never bundled) and writes it into
+  the image, keeping the game's own copy beside it as `libSceAmpr.sprx.orig`. This is the
+  runtime gap behind #449.
+- **A game that does not use AMPR is told so.** The LZ4 option explains that nothing in such a
+  game could serve asset packs, and points at .ffpfsc, which ShadowMount+ decompresses for any
+  game, instead of just refusing.
+
 ## 7.0.17
 
 - **Open a save and edit its files.** Save data has an Open save button per save: the helper

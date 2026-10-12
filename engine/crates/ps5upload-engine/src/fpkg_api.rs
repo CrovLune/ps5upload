@@ -773,6 +773,10 @@ pub(crate) struct AmprLz4Req {
     /// A profile in drakmor's `ampr_pack` TOML format, used in place of the built-in one.
     #[serde(default)]
     profile_toml: Option<String>,
+    /// Put ampr_emu 0.4.2.1 into the image's `fakelib/libSceAmpr.sprx` (the game's own kept
+    /// as `.orig`) when the game ships none or one that predates asset packs.
+    #[serde(default)]
+    install_runtime: bool,
 }
 
 impl AmprLz4Req {
@@ -864,8 +868,29 @@ pub(crate) async fn exfat_build_handler(
     }
     let scan_source = source.clone();
     let check_packs = packs.is_some();
+    let install_runtime = req.ampr_lz4.as_ref().is_some_and(|r| r.install_runtime);
     let scanned = tokio::task::spawn_blocking(move || {
         let mut tree = ps5upload_fpkg::source::open(&scan_source).map_err(|e| e.to_string())?;
+        if check_packs && install_runtime {
+            // The game's own ampr_emu is missing or too old for packs: the image gets the
+            // release one, its own kept beside it. Only for a game that reads through AMPR.
+            let ready = ps5upload_fpkg::ampr_pack::image::readiness(&mut *tree);
+            match ready.as_ref().map(|r| r.kind) {
+                Some("runtime") => {
+                    let bytes = crate::ampr_trace::release_runtime()?;
+                    tree = Box::new(
+                        ps5upload_fpkg::ampr_pack::image::RuntimeInstalled::new(tree, bytes)
+                            .map_err(|e| e.to_string())?,
+                    );
+                }
+                Some("ok") => {}
+                _ => {
+                    return Err(ready
+                        .and_then(|r| r.refusal)
+                        .unwrap_or_else(|| "the game cannot use asset packs".into()))
+                }
+            }
+        }
         // Refused here, before a job exists, when the game cannot use the packs.
         if check_packs {
             if let Some(why) = ps5upload_fpkg::ampr_pack::image::refusal(&mut *tree) {

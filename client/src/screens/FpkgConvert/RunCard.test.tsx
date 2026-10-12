@@ -342,6 +342,8 @@ describe("RunCard", () => {
       onToggle: noop,
       profileName: null,
       onProfile: noop,
+      installRuntime: false,
+      onInstallRuntime: noop,
       ...over,
     });
     // The image's options live under ③ (ImageChoice); the run card only runs.

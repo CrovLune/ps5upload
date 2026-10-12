@@ -95,6 +95,7 @@ export default function FpkgConvertScreen() {
   // the queue.
   const [lz4On, setLz4On] = useState(false);
   const [lz4Profile, setLz4Profile] = useState<{ name: string; text: string } | null>(null);
+  const [lz4InstallRuntime, setLz4InstallRuntime] = useState(false);
   const build: ConvertBuild =
     make === "image" ? { kind: "image", format: imageFormat, compress: imageCompress } : { kind: "pkg" };
   const then = thenFor(build.kind, thenChoice, canInstall);
@@ -221,6 +222,7 @@ export default function FpkgConvertScreen() {
       setLanguage("");
       setLz4On(false);
       setLz4Profile(null);
+      setLz4InstallRuntime(false);
       void check(path);
     },
     [check, reset, setSource, setPassword],
@@ -318,7 +320,9 @@ export default function FpkgConvertScreen() {
               deleteAfter,
             }
           : undefined,
-        lz4Active(build.format, lz4Choice) ? { profileToml: lz4Profile?.text } : undefined,
+        lz4Active(build.format, lz4Choice)
+          ? { profileToml: lz4Profile?.text, installRuntime: lz4InstallRuntime }
+          : undefined,
       );
       return;
     }
@@ -369,6 +373,7 @@ export default function FpkgConvertScreen() {
     setLanguage("");
     setLz4On(false);
     setLz4Profile(null);
+    setLz4InstallRuntime(false);
     setInspection(null);
     setEstimates(null);
     setChecking(false);
@@ -422,6 +427,8 @@ export default function FpkgConvertScreen() {
         onToggle: setLz4On,
         profileName: lz4Profile?.name ?? null,
         onProfile: setLz4Profile,
+        installRuntime: lz4InstallRuntime,
+        onInstallRuntime: setLz4InstallRuntime,
       }
     : undefined;
 
@@ -581,7 +588,7 @@ export default function FpkgConvertScreen() {
                 source.trim(),
                 isLocalFolder,
                 build.kind === "image" && lz4Active(build.format, lz4Choice)
-                  ? { profileToml: lz4Profile?.text }
+                  ? { profileToml: lz4Profile?.text, installRuntime: lz4InstallRuntime }
                   : undefined,
               );
               if (r === "skipped") skippedNote(1);
