@@ -1,11 +1,12 @@
 // Card ② Options: where the package goes (remembered), how hard to compress it, and the one
 // language it declares when a game needs telling.
 
-import type { FpkgCompression, FpkgEstimate } from "../../api/fpkg";
+import type { FpkgCompression, FpkgEstimate, ImageFormat } from "../../api/fpkg";
 import { Button, Card } from "../../components";
 import { PLAYGO_LANGUAGES } from "../../lib/playgoLanguages";
 import { useTr } from "../../state/lang";
 import { CompressionTiles } from "./CompressionTiles";
+import { ImageChoice, type Lz4Choice } from "./ImageOptions";
 import { prettyBytes } from "./RunCard";
 
 /** The most room a conversion needs on the output drive: the package, which the compressed
@@ -32,6 +33,13 @@ export interface OptionsCardProps {
   /** What Convert makes. Compression and language are a package's: an image carries the
    *  folder's files as they are, and its own compression is chosen beside its format. */
   make?: "pkg" | "image";
+  /** The image's options, shown in place of the package's when `make` is "image". */
+  image?: {
+    format: ImageFormat;
+    compress: boolean;
+    onChoice: (format: ImageFormat, compress: boolean) => void;
+    lz4?: Lz4Choice;
+  };
   onLanguage?: (code: string) => void;
 }
 
@@ -40,7 +48,7 @@ export function OptionsCard(props: OptionsCardProps) {
   return (
     <Card>
       <div className="flex flex-col gap-3 text-sm">
-        <div className="font-medium">{tr("fpkg.card.options", undefined, "② Options")}</div>
+        <div className="font-medium">{tr("fpkg.card.options_v2", undefined, "③ Options")}</div>
         <div className="flex flex-col gap-1">
           <label htmlFor="fpkg-output" className="text-[var(--color-muted)]">
             {tr("fpkg.output", undefined, "Output folder")}
@@ -81,11 +89,22 @@ export function OptionsCard(props: OptionsCardProps) {
             </div>
           )}
         {props.make === "image" ? (
-          <div className="text-xs text-[var(--color-muted)]" data-testid="options-image-note">
-            {tr(
-              "fpkg.imageOptionsNote",
-              undefined,
-              "Compression and game language are package options. A game image carries the folder's files as they are; its compression is chosen beside the image format.",
+          <div className="flex flex-col gap-1" data-testid="options-image">
+            <div className="text-[var(--color-muted)]">{tr("fpkg.options.image", undefined, "Image")}</div>
+            <div className="text-xs text-[var(--color-muted)]">
+              {tr(
+                "fpkg.image.what",
+                undefined,
+                "One file you copy to a PS5 drive, which ShadowMount+ mounts and shows on the home screen. Nothing is installed.",
+              )}
+            </div>
+            {props.image && (
+              <ImageChoice
+                format={props.image.format}
+                compress={props.image.compress}
+                onChoice={props.image.onChoice}
+                lz4={props.image.lz4}
+              />
             )}
           </div>
         ) : (

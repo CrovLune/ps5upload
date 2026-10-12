@@ -1,5 +1,6 @@
 // Convert a game folder or mount image (.exfat / .ffpkg) into an installable debug FPKG, and
-// optionally install it, as three guided cards: ① Game, ② Options, ③ Build & install.
+// optionally install it, as four guided cards: ① Game, ② What to make, ③ Options (the
+// package's or the image's), ④ Build & install.
 //
 // The work runs in the engine (desktop, Docker or Android); the console is only involved at the
 // install. `state/fpkgConversion` drives the run; this screen holds the source, its check and the
@@ -33,11 +34,12 @@ import { useTr } from "../../state/lang";
 import { pickLocalPath } from "../../state/localPicker";
 import { useTaskStore } from "../../state/tasks";
 import { GameCard } from "./GameCard";
+import { MakeCard } from "./MakeCard";
 import { OptionsCard } from "./OptionsCard";
 import { RunCard, lz4Active, type Lz4Choice } from "./RunCard";
 import { SwapJournals } from "./SwapJournals";
 import { QueueCard } from "./QueueCard";
-import { thenFor, useConvertQueue, type ConvertBuild, type ConvertThen } from "../../state/convertQueue";
+import { buildExtension, thenFor, useConvertQueue, type ConvertBuild, type ConvertThen } from "../../state/convertQueue";
 import { gameFoldersAmong, gamesInFolder } from "../../lib/folderScan";
 import { usePackageViewer } from "../../state/packageViewer";
 import { consoleSwapDeps } from "../../lib/dumpSwapConsole";
@@ -416,8 +418,8 @@ export default function FpkgConvertScreen() {
           homebrew and when the firmware is unknown. */}
       <FakeGameFirmwareNotice kernel={kernel} contentId={inspection?.content_id} />
 
-      {/* Wide windows: the game and its options on the left, building and the queue on
-          the right, so neither column is a long empty strip. */}
+      {/* Wide windows: ① and ② on the left, ③ and ④ on the right, so the steps read left to
+          right, top to bottom. */}
       <div className="grid items-start gap-4 xl:grid-cols-2">
         <div className="flex min-w-0 flex-col gap-4">
           <GameCard
@@ -452,6 +454,20 @@ export default function FpkgConvertScreen() {
             onPassword={setPassword}
           />
 
+          <MakeCard
+            make={make}
+            onMake={(m) => {
+              setMake(m);
+              if (m === "image" && then === "stream") setThen("upload");
+            }}
+            kernel={kernel}
+            contentId={inspection?.content_id}
+            checked={inspection !== null}
+            locked={locked}
+          />
+
+        </div>
+        <div className="flex min-w-0 flex-col gap-4">
           <OptionsCard
             outputDir={outputDir}
             onChangeOutput={() => void browseOutput()}
@@ -459,6 +475,15 @@ export default function FpkgConvertScreen() {
             canBrowse={canBrowse}
             compression={compression}
             make={make}
+            image={{
+              format: imageFormat,
+              compress: imageCompress,
+              onChoice: (f, c) => {
+                setImageFormat(f);
+                setImageCompress(c);
+              },
+              lz4: lz4Choice,
+            }}
             language={language}
             onLanguage={setLanguage}
             onCompression={setCompression}
@@ -467,8 +492,6 @@ export default function FpkgConvertScreen() {
             plannedSize={inspection?.planned_size}
             outputFree={inspection?.output_free}
           />
-        </div>
-        <div className="flex min-w-0 flex-col gap-4">
 
           <SwapJournals
             deps={swapDeps}
@@ -510,6 +533,22 @@ export default function FpkgConvertScreen() {
             }}
             onRun={run}
             canImage={isLocalFolder}
+            summary={
+              inspection
+                ? tr(
+                    "fpkg.run.summary",
+                    {
+                      what:
+                        build.kind === "image"
+                          ? tr("fpkg.run.what_image", { ext: buildExtension(build) }, "a {ext} game image")
+                          : tr("fpkg.run.what_pkg", undefined, "a package (.pkg)"),
+                      title: inspection.title || inspection.content_id || source.trim(),
+                      dir: outputDir.trim() || "~/Downloads/fpkgs",
+                    },
+                    "Makes {what} of {title} in {dir}.",
+                  )
+                : undefined
+            }
             canQueue={!!source.trim() && !noFiles}
             onQueue={() => {
               const r = queueAdd(
@@ -569,57 +608,60 @@ export default function FpkgConvertScreen() {
             }
           />
 
-          <QueueCard
-            items={queueItems}
-            running={queueRunning}
-            onScanFolder={() =>
-              void (async () => {
-                const folder = !isTauriEnv()
-                  ? await pickLocalPath({ mode: "folder", title: tr("batch_scan_pick", undefined, "Choose the folder that holds your games") })
-                  : await pickPath({ mode: "folder", title: tr("batch_scan_pick", undefined, "Choose the folder that holds your games") });
-                if (!folder) return;
-                try {
-                  const found = await gamesInFolder(folder);
-                  queueAll(found.sources, found.skipped);
-                } catch (err) {
-                  setError(err instanceof Error ? err.message : String(err));
-                }
-              })()
-            }
-            onPickFolders={() =>
-              void (async () => {
-                const picked = await pickPaths({
-                  mode: "folder",
-                  title: tr("cq_pick_folders", undefined, "Pick game folders…"),
-                }).catch(() => [] as string[]);
-                if (!picked.length) return;
-                const { games, skipped } = await gameFoldersAmong(picked);
-                queueAll(
-                  games.map((path) => ({ path, isDir: true })),
-                  skipped,
-                );
-              })()
-            }
-            onPickFiles={() =>
-              void (async () => {
-                const picked = await pickPaths({
-                  title: tr("fpkg.pickImage", undefined, "Choose a game image or archive"),
-                  filters: [{ name: "Game image or archive", extensions: ["exfat", "ffpkg", "ffpfs", "ffpfsc", "zip", "7z", "rar"] }],
-                }).catch(() => [] as string[]);
-                queueAll(
-                  picked.map((path) => ({ path, isDir: false })),
-                  0,
-                );
-              })()
-            }
-            onStart={() => void useConvertQueue.getState().start()}
-            onStop={() => useConvertQueue.getState().stop()}
-            onRemove={(id) => useConvertQueue.getState().remove(id)}
-            onMove={(id, d) => useConvertQueue.getState().move(id, d)}
-            onClearFinished={() => useConvertQueue.getState().clearFinished()}
-          />
         </div>
       </div>
+
+      {/* The queue takes the whole width: its rows are long, and it is the one card that is
+          not a step of converting the current game. */}
+      <QueueCard
+        items={queueItems}
+        running={queueRunning}
+        onScanFolder={() =>
+          void (async () => {
+            const folder = !isTauriEnv()
+              ? await pickLocalPath({ mode: "folder", title: tr("batch_scan_pick", undefined, "Choose the folder that holds your games") })
+              : await pickPath({ mode: "folder", title: tr("batch_scan_pick", undefined, "Choose the folder that holds your games") });
+            if (!folder) return;
+            try {
+              const found = await gamesInFolder(folder);
+              queueAll(found.sources, found.skipped);
+            } catch (err) {
+              setError(err instanceof Error ? err.message : String(err));
+            }
+          })()
+        }
+        onPickFolders={() =>
+          void (async () => {
+            const picked = await pickPaths({
+              mode: "folder",
+              title: tr("cq_pick_folders", undefined, "Pick game folders…"),
+            }).catch(() => [] as string[]);
+            if (!picked.length) return;
+            const { games, skipped } = await gameFoldersAmong(picked);
+            queueAll(
+              games.map((path) => ({ path, isDir: true })),
+              skipped,
+            );
+          })()
+        }
+        onPickFiles={() =>
+          void (async () => {
+            const picked = await pickPaths({
+              title: tr("fpkg.pickImage", undefined, "Choose a game image or archive"),
+              filters: [{ name: "Game image or archive", extensions: ["exfat", "ffpkg", "ffpfs", "ffpfsc", "zip", "7z", "rar"] }],
+            }).catch(() => [] as string[]);
+            queueAll(
+              picked.map((path) => ({ path, isDir: false })),
+              0,
+            );
+          })()
+        }
+        onStart={() => void useConvertQueue.getState().start()}
+        onStop={() => useConvertQueue.getState().stop()}
+        onRemove={(id) => useConvertQueue.getState().remove(id)}
+        onMove={(id, d) => useConvertQueue.getState().move(id, d)}
+        onClearFinished={() => useConvertQueue.getState().clearFinished()}
+      />
 
       <details className="text-sm">
         <summary className="cursor-pointer text-[var(--color-muted)]">

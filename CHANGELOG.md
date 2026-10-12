@@ -10,9 +10,14 @@ What's new in ps5upload, written for humans.
   an image unless the game folder was on this computer, while a package build happily read a
   `ps5://` or `remote://` folder in place. Images now take the same sources: the game is read
   through the helper (or from the server) as it is written, nothing is copied first.
-- **Convert's Options say what applies to an image.** Compression and Game language are
-  package options; with "A game image" chosen they are replaced by a note saying so (an
-  image carries the folder's files as they are, and its compression sits beside the format).
+- **Convert walks you through it.** Four steps that read in order: ① the game, ② what to
+  make, ③ its options, ④ build & install. "What to make" explains a package and a game image
+  side by side and marks the one that suits the game on your PS5 (a PS5 game on firmware
+  above 11.60 installs as a package but will not play, so the image is marked there; a PS4
+  game or an older firmware marks the package). Options show only what applies: Kraken
+  compression and game language for a package; filesystem, .ffpfsc compression, LZ4 packs
+  and the read-back check for an image. Build & install says in one line what it will make,
+  of which game, where. The queue has the whole width below.
 
 ## 7.0.13
 
