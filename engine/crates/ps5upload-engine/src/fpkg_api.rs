@@ -998,15 +998,28 @@ pub(crate) async fn exfat_build_handler(
                 &cancel,
                 &mut report,
             ),
-            None => crate::image_build::build(
-                format,
-                inner_name.as_deref(),
-                &mut *tree,
-                &output,
-                verify_chunk,
-                &cancel,
-                &mut report,
-            ),
+            // A libSceAmpr game gets a fresh ampr_emu.index (#449), as a package does.
+            None => match crate::image_build::AmprIndexed::wrap(&mut *tree) {
+                Ok(Some(mut indexed)) => crate::image_build::build(
+                    format,
+                    inner_name.as_deref(),
+                    &mut indexed,
+                    &output,
+                    verify_chunk,
+                    &cancel,
+                    &mut report,
+                ),
+                Ok(None) => crate::image_build::build(
+                    format,
+                    inner_name.as_deref(),
+                    &mut *tree,
+                    &output,
+                    verify_chunk,
+                    &cancel,
+                    &mut report,
+                ),
+                Err(e) => Err(format!("ampr_emu.index: {e}")),
+            },
         };
         drop(writing);
         drop(spooling);

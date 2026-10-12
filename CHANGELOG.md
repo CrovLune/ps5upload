@@ -4,6 +4,22 @@ What's new in ps5upload, written for humans.
 
 ---
 
+## 7.0.15
+
+- **Game images of a libSceAmpr game get a fresh ampr_emu.index (#449).** A dump's index is
+  often stale (files added, trimmed or resized since it was written), and a plain .exfat,
+  .ffpkg or .ffpfs image carried it as it was, which crashes the game the moment it touches a
+  file the index has wrong. The image now carries one generated from its files, as a package
+  and an LZ4 image already did.
+- **Connection says which of three things is wrong (#447).** "The helper is not running or is
+  an old version" sent people in circles. The app now tells them apart: the helper is down
+  but the console's payload loader answers (so Update helper will work); nothing answers at
+  all (run your jailbreak's loader first); or an older helper is running (Update helper).
+- **HDR screenshots as HDR PNG (#448).** Screenshots has a "Convert as" choice: SDR PNG as
+  before (tone-mapped, opens everywhere), HDR PNG (16-bit BT.2020 PQ with a cICP tag, which
+  HDR-aware viewers and browsers show as captured) or HDR PNG without the tag, for apps that
+  refuse it. Desktop app only, like the converter itself.
+
 ## 7.0.14
 
 - **A game on the PS5 or a saved server can become a game image.** Convert refused to write

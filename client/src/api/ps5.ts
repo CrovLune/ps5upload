@@ -2426,13 +2426,19 @@ export async function convertScreenshot(
   srcPath: string,
   dstPath: string,
   deleteSource: boolean,
+  /** `sdr` (tone-mapped 8-bit, the default), `hdr` (16-bit PQ BT.2020 with a cICP chunk) or
+   *  `hdr_plain` (the same without the chunk, for viewers that refuse it); #448. */
+  mode: ScreenshotPngMode = "sdr",
 ): Promise<string> {
   return invoke<string>("screenshot_convert", {
     srcPath,
     dstPath,
     deleteSource,
+    mode,
   });
 }
+
+export type ScreenshotPngMode = "sdr" | "hdr" | "hdr_plain";
 
 // ─── Save data .zip backup / restore ──────────────────────────────────
 //

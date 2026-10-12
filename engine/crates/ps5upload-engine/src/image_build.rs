@@ -358,6 +358,84 @@ fn verify(
     Ok(())
 }
 
+/// A libSceAmpr game's folder with its `ampr_emu.index` regenerated from the files that go
+/// into the image (#449). The index ampr_emu reads must list every file at its size; a dump's
+/// copy is often stale (files added, trimmed or resized since), and a plain image used to
+/// carry it as it was, which crashes the game once it touches a file the index has wrong.
+/// LZ4 builds regenerate theirs in `ampr_pack::image::prepare`; this is the plain build's.
+pub(crate) struct AmprIndexed<'a> {
+    inner: &'a mut dyn SourceTree,
+    files: Vec<SourceFile>,
+    index: Vec<u8>,
+}
+
+impl<'a> AmprIndexed<'a> {
+    /// `None` when the game does not read through libSceAmpr and ships no index: nothing to
+    /// regenerate, the folder goes in as it is.
+    pub(crate) fn wrap(inner: &'a mut dyn SourceTree) -> Result<Option<Self>, String> {
+        let name = ps5upload_fpkg::ampr_index::NAME;
+        let had = inner
+            .files()
+            .iter()
+            .any(|f| f.path.eq_ignore_ascii_case(name));
+        if !had && !ps5upload_fpkg::source::imports_ampr(inner, "eboot.bin") {
+            return Ok(None);
+        }
+        let mut files: Vec<SourceFile> = inner
+            .files()
+            .iter()
+            .filter(|f| !f.path.eq_ignore_ascii_case(name))
+            .cloned()
+            .collect();
+        let listed: Vec<(String, u64)> = files.iter().map(|f| (f.path.clone(), f.size)).collect();
+        let mtime = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map_or(0, |d| d.as_secs() as i64);
+        let index = ps5upload_fpkg::ampr_index::build(&listed, mtime)?;
+        files.push(SourceFile {
+            path: name.to_string(),
+            size: index.len() as u64,
+        });
+        files.sort_by(|a, b| a.path.cmp(&b.path));
+        Ok(Some(Self {
+            inner,
+            files,
+            index,
+        }))
+    }
+}
+
+impl SourceTree for AmprIndexed<'_> {
+    fn files(&self) -> &[SourceFile] {
+        &self.files
+    }
+    fn empty_dirs(&self) -> &[String] {
+        self.inner.empty_dirs()
+    }
+    fn read(&mut self, path: &str) -> ps5upload_fpkg::Result<Vec<u8>> {
+        if path.eq_ignore_ascii_case(ps5upload_fpkg::ampr_index::NAME) {
+            return Ok(self.index.clone());
+        }
+        self.inner.read(path)
+    }
+    fn read_range(
+        &mut self,
+        path: &str,
+        offset: u64,
+        len: usize,
+    ) -> ps5upload_fpkg::Result<Vec<u8>> {
+        if path.eq_ignore_ascii_case(ps5upload_fpkg::ampr_index::NAME) {
+            let start = (offset as usize).min(self.index.len());
+            let end = start.saturating_add(len).min(self.index.len());
+            return Ok(self.index[start..end].to_vec());
+        }
+        self.inner.read_range(path, offset, len)
+    }
+    fn describe(&self) -> String {
+        format!("{} (ampr_emu.index regenerated)", self.inner.describe())
+    }
+}
+
 /// What a build wrote.
 pub(crate) struct ImageBuilt {
     pub image_bytes: u64,
@@ -957,6 +1035,43 @@ mod tests {
         assert!(index
             .iter()
             .any(|e| e.path == "data/only_packed/table.bin" && e.size == 400_000));
+        let _ = std::fs::remove_dir_all(&root);
+    }
+
+    /// A plain image of a libSceAmpr game carries a fresh index listing the image's files
+    /// (#449), never the dump's stale one.
+    #[test]
+    fn a_plain_image_regenerates_a_stale_ampr_index() {
+        let root = std::env::temp_dir().join(format!("ps5upload-imgi-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&root);
+        let src = ampr_game(&root);
+        std::fs::write(src.join("ampr_emu.index"), b"AMPRIDX3 stale").unwrap();
+        let out = root.join("plain.exfat");
+        let mut tree = FolderSource::open(&src).unwrap();
+        let files_in_source = tree.files().len();
+        let mut indexed = AmprIndexed::wrap(&mut tree).unwrap().expect("an AMPR game");
+        build(
+            ImageFormat::Exfat,
+            None,
+            &mut indexed,
+            &out,
+            DEFAULT_VERIFY_CHUNK,
+            &AtomicBool::new(false),
+            &mut |_, _, _| {},
+        )
+        .unwrap();
+        let mut image = open_image(&out, ImageFormat::Exfat, false).unwrap();
+        let index =
+            ps5upload_fpkg::ampr_index::parse(&image.read("ampr_emu.index").unwrap()).unwrap();
+        // Every file but the index itself, each at its size.
+        assert_eq!(index.len(), files_in_source - 1);
+        assert!(index
+            .iter()
+            .any(|e| e.path == "eboot.bin" && e.size == 300_000));
+        // A game that does not read through libSceAmpr is left alone.
+        let plain = game(&root.join("noampr"));
+        let mut t2 = FolderSource::open(&plain).unwrap();
+        assert!(AmprIndexed::wrap(&mut t2).unwrap().is_none());
         let _ = std::fs::remove_dir_all(&root);
     }
 
