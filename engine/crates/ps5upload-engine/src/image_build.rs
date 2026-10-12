@@ -1136,7 +1136,7 @@ mod tests {
         assert!(attempt(&src).contains("has none"));
         // A title that does not read through libSceAmpr.
         let plain = game(&root.join("plain"));
-        assert!(attempt(&plain).contains("does not import libSceAmpr"));
+        assert!(attempt(&plain).contains("does not read its files through AMPR"));
         assert!(!exfat.exists() && !lz4_spool(&exfat).exists());
         let _ = std::fs::remove_dir_all(&root);
     }

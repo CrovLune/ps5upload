@@ -40,7 +40,9 @@ export function TraceCard({
     amprTrace
       .status(titleId)
       .then((s) => {
-        setStatus(s);
+        // An engine without this route (or a fake one) answers without the fields: treat
+        // that as nothing recorded rather than crashing the page.
+        setStatus(s && s.state ? s : null);
         setError(null);
       })
       .catch((e) => setError(e instanceof Error ? e.message : String(e)));
@@ -51,7 +53,8 @@ export function TraceCard({
     setBusy(what);
     setError(null);
     try {
-      setStatus(await go());
+      const r = await go();
+      setStatus(r && r.state ? r : null);
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
@@ -62,7 +65,7 @@ export function TraceCard({
   // A session ends when the game closes: collect it without being asked.
   const wasRunning = useRef(running);
   useEffect(() => {
-    const tracing = status?.state.tracing && status.state.host === host;
+    const tracing = !!status?.state?.tracing && status.state.host === host;
     if (wasRunning.current && !running && tracing && host && gamePath && !busy) {
       void run("collect", () => amprTrace.collect(host, gamePath, titleId)).then(() =>
         pushNotification("info", tr("trace_collected", undefined, "Play session recorded"), {
@@ -74,11 +77,11 @@ export function TraceCard({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [running]);
 
-  const tracing = !!status?.state.tracing;
+  const tracing = !!status?.state?.tracing;
   const sessions = status?.sessions ?? [];
   const profile = status?.profile ?? null;
   const canAct = !!host && !!gamePath;
-  const sameConsole = !status?.state.host || status.state.host === host;
+  const sameConsole = !status?.state?.host || status.state.host === host;
 
   return (
     <Card>
@@ -108,7 +111,7 @@ export function TraceCard({
             <p>
               {tr(
                 "trace_playing_hint",
-                { name: status.state.host === host ? consoleName : (status.state.host ?? "") },
+                { name: status?.state?.host === host ? consoleName : (status?.state?.host ?? "") },
                 "Measuring on {name}: start the game, load a save, visit a few areas, then quit it from the console. Each session is recorded when the game closes while this page is open, or with Record session.",
               )}
             </p>

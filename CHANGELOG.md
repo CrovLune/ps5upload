@@ -4,6 +4,12 @@ What's new in ps5upload, written for humans.
 
 ---
 
+## 7.0.19
+
+- **Fix: the game page could crash on "Measure how it plays".** When the engine's reply had
+  no state (an engine without the route, or a test stand-in), the card threw and the whole
+  game page fell back to the error screen. It now treats that as nothing recorded.
+
 ## 7.0.18
 
 - **LZ4 packs for games whose ampr_emu is missing or too old.** When the check finds a game
