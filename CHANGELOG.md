@@ -4,6 +4,17 @@ What's new in ps5upload, written for humans.
 
 ---
 
+## 7.0.17
+
+- **Open a save and edit its files.** Save data has an Open save button per save: the helper
+  copies the save image under `/data`, unseals its key through the console's own pfsmgr and
+  mounts the image decrypted, and Files opens on it. Read, replace or add files; Close &
+  write back unmounts it and copies the image back into the real save only if something
+  changed, so a look leaves the save untouched. One save open at a time. PS5 saves verified
+  on FW 13.60 (an untouched open keeps the image's timestamp); PS4 saves (`sdimg_*` with the
+  key in `<name>.bin`) follow the same path but have not been tried. The recipe is
+  earthonion's garlic-savemgr, credited in the README. Needs the 7.0.17 helper.
+
 ## 7.0.16
 
 - **Measure how a game plays, then pack it that way.** A game's page has a new card for a

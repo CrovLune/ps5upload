@@ -3463,6 +3463,51 @@ async fn ps5_usb_eject(
 }
 
 #[derive(Deserialize)]
+struct SaveOpenReq {
+    addr: Option<String>,
+    /// The save image under /user/home; empty or absent only reports what is open.
+    #[serde(default)]
+    image: String,
+}
+
+/// POST /api/ps5/saves/open `{addr, image}` — the helper mounts the save decrypted (copied
+/// under /data first) and says where; the Files screen then reads and writes it. One save
+/// open at a time; another one closes the first. Empty `image` reports what is open.
+async fn ps5_save_open(
+    State(state): State<AppState>,
+    Json(req): Json<SaveOpenReq>,
+) -> impl IntoResponse {
+    let addr = console_addr_or_default(req.addr, &state.default_ps5_addr);
+    let image = req.image;
+    crate::log_info!("save_open: addr={addr} image={image}");
+    let r = tokio::task::spawn_blocking(move || ps5upload_core::saves::save_open(&addr, &image))
+        .await
+        .map_err(anyhow::Error::from)
+        .and_then(|r| r);
+    match r {
+        Ok(v) => (StatusCode::OK, Json(v)).into_response(),
+        Err(e) => json_err(StatusCode::BAD_GATEWAY, format!("{e:#}")).into_response(),
+    }
+}
+
+/// POST /api/ps5/saves/close `{addr}` — unmounts the open save and writes it back.
+async fn ps5_save_close(
+    State(state): State<AppState>,
+    Json(req): Json<SaveOpenReq>,
+) -> impl IntoResponse {
+    let addr = console_addr_or_default(req.addr, &state.default_ps5_addr);
+    crate::log_info!("save_close: addr={addr}");
+    let r = tokio::task::spawn_blocking(move || ps5upload_core::saves::save_close(&addr))
+        .await
+        .map_err(anyhow::Error::from)
+        .and_then(|r| r);
+    match r {
+        Ok(v) => (StatusCode::OK, Json(v)).into_response(),
+        Err(e) => json_err(StatusCode::BAD_GATEWAY, format!("{e:#}")).into_response(),
+    }
+}
+
+#[derive(Deserialize)]
 struct SetIconHiddenReq {
     addr: Option<String>,
     title_id: String,
@@ -9933,6 +9978,8 @@ async fn run(cfg: EngineConfig) -> anyhow::Result<()> {
         .route("/api/ps5/fs/mount", post(ps5_fs_mount))
         .route("/api/ps5/fs/unmount", post(ps5_fs_unmount))
         .route("/api/ps5/usb/eject", post(ps5_usb_eject))
+        .route("/api/ps5/saves/open", post(ps5_save_open))
+        .route("/api/ps5/saves/close", post(ps5_save_close))
         .route("/api/ps5/app/launch", post(ps5_app_launch))
         .route("/api/ps5/app/register", post(ps5_app_register))
         .route("/api/ps5/app/unregister", post(ps5_app_unregister))
