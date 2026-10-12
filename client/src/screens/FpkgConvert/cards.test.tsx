@@ -59,6 +59,29 @@ describe("CompressionTiles", () => {
   });
 });
 
+describe("OptionsCard for an image", () => {
+  const props = {
+    outputDir: "/out",
+    onChangeOutput: () => {},
+    onOutputTyped: () => {},
+    canBrowse: true,
+    compression: "balanced" as const,
+    onCompression: () => {},
+    estimates: undefined,
+    locked: false,
+  };
+  it("hides the package-only compression and language, and says why", () => {
+    const out = renderToStaticMarkup(
+      <OptionsCard {...props} make="image" language="de-DE" onLanguage={() => {}} />,
+    );
+    expect(out).toContain("options-image-note");
+    expect(out).not.toContain("fpkg-language");
+    expect(out).not.toContain("Balanced");
+    const pkg = renderToStaticMarkup(<OptionsCard {...props} make="pkg" language="" onLanguage={() => {}} />);
+    expect(pkg).toContain("fpkg-language");
+  });
+});
+
 describe("OptionsCard free space", () => {
   const props = {
     outputDir: "/out",

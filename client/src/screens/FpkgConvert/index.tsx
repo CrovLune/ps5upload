@@ -376,15 +376,15 @@ export default function FpkgConvertScreen() {
   // converted in place only.
   const isImage = /\.(exfat|ffpkg)$/i.test(source.trim()) && !source.startsWith("ps5://");
   const noFiles = inspection !== null && inspection.files === 0;
-  // A game folder on this computer can be written as an image. One on the console or a
-  // saved server, an image, or an archive cannot from here (use Convert, or unpack first).
+  // A game folder can be written as an image: on this computer, on a saved server, or on
+  // the console (read through the helper, as a package build reads it). An image or an
+  // archive cannot from here (compress it, or unpack it first).
   const src = source.trim();
   const isLocalFolder =
     inspection !== null &&
     !noFiles &&
     !isImage &&
     !isArchiveSource(src) &&
-    !/^(ps5|remote):\/\//.test(src) &&
     !/\.(exfat|ffpkg|ffpfs|ffpfsc)$/i.test(src);
   // Offered only for a game that reads its files through libSceAmpr (the check says so).
   const lz4Choice: Lz4Choice | undefined = inspection?.ampr_packs
@@ -458,6 +458,7 @@ export default function FpkgConvertScreen() {
             onOutputTyped={setOutputDir}
             canBrowse={canBrowse}
             compression={compression}
+            make={make}
             language={language}
             onLanguage={setLanguage}
             onCompression={setCompression}

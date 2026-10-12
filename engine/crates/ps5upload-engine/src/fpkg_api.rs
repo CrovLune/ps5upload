@@ -809,9 +809,13 @@ pub(crate) async fn exfat_build_handler(
     State(state): State<AppState>,
     Json(req): Json<ExfatBuildReq>,
 ) -> impl IntoResponse {
-    use ps5upload_fpkg::source::{FolderSource, SourceTree};
     let source = resolve_engine_path(&req.source);
-    if !tokio::fs::metadata(&source).await.is_ok_and(|m| m.is_dir()) {
+    // A game folder on this computer, on a saved server (`remote://`) or on a console
+    // (`ps5://`, read through the helper as a package build reads it): the opener below
+    // knows them all. A local path has to be a folder; an image or archive is not written
+    // as another image from here.
+    let remote = ps5upload_fpkg::remote_source::is_remote(&source);
+    if !remote && !tokio::fs::metadata(&source).await.is_ok_and(|m| m.is_dir()) {
         return json_err(
             StatusCode::BAD_REQUEST,
             format!("{} is not a folder", source.display()),
@@ -861,10 +865,10 @@ pub(crate) async fn exfat_build_handler(
     let scan_source = source.clone();
     let check_packs = packs.is_some();
     let scanned = tokio::task::spawn_blocking(move || {
-        let mut tree = FolderSource::open(&scan_source).map_err(|e| e.to_string())?;
+        let mut tree = ps5upload_fpkg::source::open(&scan_source).map_err(|e| e.to_string())?;
         // Refused here, before a job exists, when the game cannot use the packs.
         if check_packs {
-            if let Some(why) = ps5upload_fpkg::ampr_pack::image::refusal(&mut tree) {
+            if let Some(why) = ps5upload_fpkg::ampr_pack::image::refusal(&mut *tree) {
                 return Err(why);
             }
         }
@@ -987,7 +991,7 @@ pub(crate) async fn exfat_build_handler(
         let outcome = match &packs {
             Some(packs) => crate::image_build::build_packed(
                 format,
-                &mut tree,
+                &mut *tree,
                 &output,
                 packs,
                 verify_chunk,
@@ -997,7 +1001,7 @@ pub(crate) async fn exfat_build_handler(
             None => crate::image_build::build(
                 format,
                 inner_name.as_deref(),
-                &mut tree,
+                &mut *tree,
                 &output,
                 verify_chunk,
                 &cancel,

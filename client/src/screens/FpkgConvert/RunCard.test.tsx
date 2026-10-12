@@ -205,7 +205,7 @@ describe("RunCard", () => {
       expect(options(out, "After converting")).toEqual(["Keep the image", "Upload it to the PS5"]);
       expect(out).toContain(".ffpkg (UFS2), recommended");
       expect(button(out, "Make game image")?.disabled).toBe(true);
-      expect(out).toContain("Only a game folder on this computer can become a game image.");
+      expect(out).toContain("Only a game folder (on this computer, a saved server or the PS5) can become a game image.");
       // Queueing still works: a folder of games can be queued as images.
       expect(button(out, "Add this game to the queue")?.disabled).toBe(false);
     });

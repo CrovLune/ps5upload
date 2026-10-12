@@ -4,6 +4,16 @@ What's new in ps5upload, written for humans.
 
 ---
 
+## 7.0.14
+
+- **A game on the PS5 or a saved server can become a game image.** Convert refused to write
+  an image unless the game folder was on this computer, while a package build happily read a
+  `ps5://` or `remote://` folder in place. Images now take the same sources: the game is read
+  through the helper (or from the server) as it is written, nothing is copied first.
+- **Convert's Options say what applies to an image.** Compression and Game language are
+  package options; with "A game image" chosen they are replaced by a note saying so (an
+  image carries the folder's files as they are, and its compression sits beside the format).
+
 ## 7.0.13
 
 - **Game image builds: the read-back check is no longer the slow part.** After writing an

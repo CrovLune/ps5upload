@@ -29,6 +29,9 @@ export interface OptionsCardProps {
   outputFree?: number | null;
   /** The one language the package declares to PlayGo; "" keeps every language. */
   language?: string;
+  /** What Convert makes. Compression and language are a package's: an image carries the
+   *  folder's files as they are, and its own compression is chosen beside its format. */
+  make?: "pkg" | "image";
   onLanguage?: (code: string) => void;
 }
 
@@ -77,18 +80,28 @@ export function OptionsCard(props: OptionsCardProps) {
               )}
             </div>
           )}
-        <div className="flex flex-col gap-1">
-          <div className="text-[var(--color-muted)]">
-            {tr("fpkg.compression", undefined, "Compression")}
+        {props.make === "image" ? (
+          <div className="text-xs text-[var(--color-muted)]" data-testid="options-image-note">
+            {tr(
+              "fpkg.imageOptionsNote",
+              undefined,
+              "Compression and game language are package options. A game image carries the folder's files as they are; its compression is chosen beside the image format.",
+            )}
           </div>
-          <CompressionTiles
-            value={props.compression}
-            onChange={props.onCompression}
-            estimates={props.estimates}
-            disabled={props.locked}
-          />
-        </div>
-        {props.onLanguage && (
+        ) : (
+          <div className="flex flex-col gap-1">
+            <div className="text-[var(--color-muted)]">
+              {tr("fpkg.compression", undefined, "Compression")}
+            </div>
+            <CompressionTiles
+              value={props.compression}
+              onChange={props.onCompression}
+              estimates={props.estimates}
+              disabled={props.locked}
+            />
+          </div>
+        )}
+        {props.onLanguage && props.make !== "image" && (
           <div className="flex flex-col gap-1">
             <label htmlFor="fpkg-language" className="text-[var(--color-muted)]">
               {tr("fpkg.language", undefined, "Game language")}
