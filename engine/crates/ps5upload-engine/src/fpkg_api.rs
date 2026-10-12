@@ -819,10 +819,11 @@ pub(crate) async fn exfat_build_handler(
     // knows them all. A local path has to be a folder; an image or archive is not written
     // as another image from here.
     let remote = ps5upload_fpkg::remote_source::is_remote(&source);
-    if !remote && !tokio::fs::metadata(&source).await.is_ok_and(|m| m.is_dir()) {
+    let image_file = crate::image_build::is_image_file(&source);
+    if !remote && !image_file && !tokio::fs::metadata(&source).await.is_ok_and(|m| m.is_dir()) {
         return json_err(
             StatusCode::BAD_REQUEST,
-            format!("{} is not a folder", source.display()),
+            format!("{} is not a game folder or image", source.display()),
         )
         .into_response();
     }
@@ -852,6 +853,17 @@ pub(crate) async fn exfat_build_handler(
     let out_dir = output_dir(req.output_dir.as_deref());
     let (out_name, inner_name) = crate::image_build::output_names(&source, format, req.compress);
     let output = out_dir.join(out_name);
+    if !remote
+        && image_file
+        && tokio::fs::canonicalize(&output).await.ok()
+            == tokio::fs::canonicalize(&source).await.ok()
+    {
+        return json_err(
+            StatusCode::BAD_REQUEST,
+            "the image would be written over its own source: pick another format or output folder",
+        )
+        .into_response();
+    }
     if tokio::fs::try_exists(&output).await.unwrap_or(false) {
         return json_err(
             StatusCode::CONFLICT,

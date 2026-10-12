@@ -57,11 +57,36 @@ impl ImageFormat {
 pub(crate) const PFS_NAME_MAX: usize = 63;
 
 /// A safe file stem from a game folder's name.
+/// Image files a build may read as its source (an .exfat into a .ffpkg, say).
+pub(crate) fn is_image_file(path: &Path) -> bool {
+    path.is_file()
+        && path.extension().and_then(|e| e.to_str()).is_some_and(|e| {
+            matches!(
+                e.to_ascii_lowercase().as_str(),
+                "exfat" | "ffpkg" | "ufs2" | "ffpfs" | "ffpfsc"
+            )
+        })
+}
+
 fn stem_of(source: &Path) -> String {
-    let stem: String = source
+    let name = source
         .file_name()
         .map(|s| s.to_string_lossy().into_owned())
-        .unwrap_or_default()
+        .unwrap_or_default();
+    // An image source names its output after itself without the image extension.
+    let name = match name.rsplit_once('.') {
+        Some((base, ext))
+            if !base.is_empty()
+                && matches!(
+                    ext.to_ascii_lowercase().as_str(),
+                    "exfat" | "ffpkg" | "ufs2" | "ffpfs" | "ffpfsc"
+                ) =>
+        {
+            base.to_string()
+        }
+        _ => name,
+    };
+    let stem: String = name
         .chars()
         .map(|c| {
             if c.is_control() || "\"*/:<>?\\|".contains(c) {
@@ -743,6 +768,11 @@ mod tests {
         assert_eq!(
             output_names(Path::new("/"), ImageFormat::Exfat, false).0,
             "game.exfat"
+        );
+        // An image source: the output carries its name, not its old extension.
+        assert_eq!(
+            output_names(Path::new("/g/PPSA29343.exfat"), ImageFormat::Ffpkg, false).0,
+            "PPSA29343.ffpkg"
         );
         assert_eq!(
             output_names(src, ImageFormat::Exfat, true),

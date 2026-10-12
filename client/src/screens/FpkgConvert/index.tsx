@@ -11,7 +11,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { PackagePlus } from "lucide-react";
 
-import { fpkg, type AmprLz4Options, type FpkgEstimates, type FpkgInspection, type ImageFormat } from "../../api/fpkg";
+import { fpkg, type AmprLz4Options, type FpkgEstimates, type FpkgInspection } from "../../api/fpkg";
 import { appLaunch } from "../../api/ps5";
 import { Callout, Card, PageHeader } from "../../components";
 import { FakeGameFirmwareNotice } from "../../components/FakeGameFirmwareNotice";
@@ -94,8 +94,6 @@ export default function FpkgConvertScreen() {
   const imageFormat = useConvertPrefs((s) => s.imageFormat);
   const imageCompress = useConvertPrefs((s) => s.imageCompress);
   const setImageChoice = useConvertPrefs((s) => s.setImageChoice);
-  const setImageFormat = (f: ImageFormat) => setImageChoice(f, imageCompress);
-  const setImageCompress = (c: boolean) => setImageChoice(imageFormat, c);
   useEffect(() => {
     if (pipeline.phase === "running") {
       const building = makesImage(pipeline.mode) ? "image" : "pkg";
@@ -397,16 +395,11 @@ export default function FpkgConvertScreen() {
   // converted in place only.
   const isImage = /\.(exfat|ffpkg)$/i.test(source.trim()) && !source.startsWith("ps5://");
   const noFiles = inspection !== null && inspection.files === 0;
-  // A game folder can be written as an image: on this computer, on a saved server, or on
-  // the console (read through the helper, as a package build reads it). An image or an
-  // archive cannot from here (compress it, or unpack it first).
+  // A game folder or a game image can be written as an image (an .exfat into a .ffpkg, say):
+  // on this computer, on a saved server, or on the console (read through the helper, as a
+  // package build reads it). An archive cannot from here: unpack it first.
   const src = source.trim();
-  const isLocalFolder =
-    inspection !== null &&
-    !noFiles &&
-    !isImage &&
-    !isArchiveSource(src) &&
-    !/\.(exfat|ffpkg|ffpfs|ffpfsc)$/i.test(src);
+  const isLocalFolder = inspection !== null && !noFiles && !isArchiveSource(src);
   // A profile measured from play (the game page's Measure how it plays) is the LZ4 default
   // for this title; a file picked by hand replaces it.
   const measuredFor = titleIdOf(inspection?.content_id);
@@ -524,10 +517,7 @@ export default function FpkgConvertScreen() {
             image={{
               format: imageFormat,
               compress: imageCompress,
-              onChoice: (f, c) => {
-                setImageFormat(f);
-                setImageCompress(c);
-              },
+              onChoice: (f, c) => setImageChoice(f, c),
               lz4: lz4Choice,
             }}
             language={language}
@@ -566,10 +556,7 @@ export default function FpkgConvertScreen() {
               onMake: setMake,
               imageFormat,
               imageCompress,
-              onImageChoice: (f, c) => {
-                setImageFormat(f);
-                setImageCompress(c);
-              },
+              onImageChoice: (f, c) => setImageChoice(f, c),
               then,
               onThen: setThen,
               deleteAfter,

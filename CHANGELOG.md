@@ -4,6 +4,14 @@ What's new in ps5upload, written for humans.
 
 ---
 
+## 7.0.21
+
+- **Fix: the image format could not be changed.** Picking .exfat or .ffpfs snapped back to
+  .ffpkg (7.0.20 wrote the old format back a moment after the new one).
+- **An image can become another image.** An .exfat, .ffpkg or .ffpfs on this computer, a
+  saved server or the PS5 can be rewritten in another format (an .exfat into a .ffpkg, say);
+  the output is named after the source without its old extension, and never overwrites it.
+
 ## 7.0.20
 
 - **Convert remembers what it is making.** Leaving the screen during an image build and
