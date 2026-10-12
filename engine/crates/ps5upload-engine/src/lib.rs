@@ -31,6 +31,7 @@
 //!   GET  /api/ps5/volumes             → list storage volumes detected by the payload
 //!   GET  /api/ps5/list-dir?path=...   → list immediate children of a directory on PS5
 
+mod ampr_trace;
 mod ava1_api;
 mod bundled_payload;
 mod collection;
@@ -9981,6 +9982,15 @@ async fn run(cfg: EngineConfig) -> anyhow::Result<()> {
         .route("/api/ps5/fs/read-preview", post(ps5_fs_read_preview))
         .route("/api/ps5/process/list", get(ps5_process_list))
         .route("/api/ps5/elfldr/health", get(ps5_elfldr_health))
+        .route("/api/ampr/trace", get(ampr_trace::status))
+        .route("/api/ampr/trace/start", post(ampr_trace::start))
+        .route("/api/ampr/trace/stop", post(ampr_trace::stop))
+        .route("/api/ampr/trace/collect", post(ampr_trace::collect))
+        .route("/api/ampr/trace/generate", post(ampr_trace::generate))
+        .route(
+            "/api/ampr/profile",
+            get(ampr_trace::profile_get).delete(ampr_trace::profile_delete),
+        )
         .route("/api/ps5/pldmgr", get(pldmgr_api::overview))
         .route("/api/ps5/pldmgr/launch", post(pldmgr_api::launch))
         .route("/api/ps5/pldmgr/delete", post(pldmgr_api::delete))

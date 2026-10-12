@@ -66,6 +66,7 @@ import { CollectionCover } from "../Collection/CollectionCover";
 import { CoverFrame, PlatformTag } from "../../components/GameIconFrame";
 import { ConsolesCard } from "./ConsolesCard";
 import { DrivesCard } from "./DrivesCard";
+import { TraceCard } from "./TraceCard";
 import { fetchRunningGames } from "../../lib/runningGames";
 import { killGame } from "../../lib/killGame";
 import { playFor, useTrackedPlay } from "../../lib/trackedPlay";
@@ -505,6 +506,26 @@ export default function GameHubScreen() {
             onSend={() => setSendHost(connectedHost || null)}
             onChanged={() => void gv.reload()}
           />
+          {/* Measuring needs the game as a folder on the connected console (an image is
+              read-only, and the journal is written into the game's folder). */}
+          {(() => {
+            const folder =
+              connectedEntry?.installed && connectedEntry.registered_from
+                ? connectedEntry.registered_from
+                : game.source === "installed" && game.path
+                  ? game.path
+                  : null;
+            const isFolder = !!folder && /^\//.test(folder) && !/\.(exfat|ffpkg|ffpfs|ffpfsc)$/i.test(folder);
+            return (
+              <TraceCard
+                titleId={game.titleId}
+                host={connectedHost && isFolder ? connectedHost : null}
+                gamePath={isFolder ? folder : null}
+                consoleName={names[connectedHost] ?? connectedHost}
+                running={running}
+              />
+            );
+          })()}
         </div>
       )}
 

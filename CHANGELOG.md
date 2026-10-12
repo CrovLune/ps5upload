@@ -4,6 +4,19 @@ What's new in ps5upload, written for humans.
 
 ---
 
+## 7.0.16
+
+- **Measure how a game plays, then pack it that way.** A game's page has a new card for a
+  folder game on the connected console: Start measuring puts drakmor's measuring build of
+  ampr_emu into the game's `fakelib2` (ShadowMount+ loads it over `fakelib`, nothing the
+  game ships is touched), you play, and each session is recorded when the game closes (or
+  with Record session). Build profile turns the sessions into a per-game LZ4 profile: block
+  size, layout and hot flag per file from how it was actually read, and the decoded cache,
+  physical cache and worker counts from an LRU simulation of those reads. Convert's LZ4
+  option picks the profile up for that title ("measured from N play sessions"). Stop
+  measuring removes the measuring build again. The generator is a port of drakmor's
+  `ampr_pack_profile.py` and matches its output byte for byte on a reference trace.
+
 ## 7.0.15
 
 - **Game images of a libSceAmpr game get a fresh ampr_emu.index (#449).** A dump's index is

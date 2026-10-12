@@ -423,6 +423,7 @@ This software builds on the following open-source projects:
 
 * [elf-arsenal](https://git.etawen.dev/soniciso/elf-arsenal) (soniciso, Sanad) — parts of the drive sensor, cheat and wake-watchdog code
 * [PS5 Dump Forge](https://github.com/quer3q/ps5-dump-forge) (quer3q) — the UFS2 (`.ffpkg`) and PFS (`.ffpfs`) image writers, the streaming `.ffpfsc` container, reader and safety fixes to the package crates, and the ideas behind hash-checked images and spare space for read-write mounts
+* [ampr_emu](https://github.com/drakmor/ampr_emu) and [ShadowMountPlus](https://github.com/drakmor/ShadowMountPlus) (drakmor) — the AMPR emulator that plays LZ4 asset packs, and the mount tool that shows our images on the home screen. Our packer is a port of its `ampr_pack.py`, the index writer follows `build_ampr_index.py`, and "Measure how it plays" is a port of `ampr_pack_profile.py` fed by the debug build's command journal
 * [PROSPEROPatches](https://prosperopatches.com/), [ORBISPatches](https://orbispatches.com/) and [TMDB](https://www.themoviedb.org/) — game details and artwork
 * [etaHEN PS5_Cheats](https://github.com/etaHEN/PS5_Cheats) and GoldHEN — cheat files
 * Everyone who contributed code, translations and docs, and the Discord testers

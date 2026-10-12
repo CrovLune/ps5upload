@@ -43,6 +43,7 @@ import { buildExtension, thenFor, useConvertQueue, type ConvertBuild, type Conve
 import { gameFoldersAmong, gamesInFolder } from "../../lib/folderScan";
 import { usePackageViewer } from "../../state/packageViewer";
 import { consoleSwapDeps } from "../../lib/dumpSwapConsole";
+import { amprTrace, titleIdOf } from "../../api/amprTrace";
 
 /** How long a first press of Delete package stays armed. */
 const DELETE_ARM_MS = 5000;
@@ -388,6 +389,31 @@ export default function FpkgConvertScreen() {
     !isImage &&
     !isArchiveSource(src) &&
     !/\.(exfat|ffpkg|ffpfs|ffpfsc)$/i.test(src);
+  // A profile measured from play (the game page's Measure how it plays) is the LZ4 default
+  // for this title; a file picked by hand replaces it.
+  const measuredFor = titleIdOf(inspection?.content_id);
+  useEffect(() => {
+    if (!measuredFor || !inspection?.ampr_packs || inspection.ampr_packs.refusal) return;
+    let live = true;
+    amprTrace
+      .profile(measuredFor)
+      .then((p) => {
+        if (!live || !p) return;
+        setLz4Profile((cur) =>
+          cur
+            ? cur
+            : {
+                name: tr("trace_profile_name", { n: p.profile.sessions }, "measured from {n} play sessions"),
+                text: p.toml,
+              },
+        );
+      })
+      .catch(() => {});
+    return () => {
+      live = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [measuredFor, inspection?.ampr_packs?.refusal]);
   // Offered only for a game that reads its files through libSceAmpr (the check says so).
   const lz4Choice: Lz4Choice | undefined = inspection?.ampr_packs
     ? {
