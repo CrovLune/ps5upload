@@ -756,6 +756,10 @@ pub(crate) struct ExfatBuildReq {
     /// Pack the game's files into AMPR LZ4 asset packs first (exFAT only, not with `compress`).
     #[serde(default)]
     ampr_lz4: Option<AmprLz4Req>,
+    /// How much of a file the read-back check reads per call, in KiB (1024 to 65536); 8192
+    /// when absent, which measured fastest.
+    #[serde(default)]
+    verify_chunk_kib: Option<u32>,
 }
 
 #[derive(Deserialize, Default)]
@@ -816,6 +820,10 @@ pub(crate) async fn exfat_build_handler(
     }
     let format = match crate::image_build::ImageFormat::parse(req.format.as_deref()) {
         Ok(f) => f,
+        Err(e) => return json_err(StatusCode::BAD_REQUEST, e).into_response(),
+    };
+    let verify_chunk = match crate::image_build::verify_chunk(req.verify_chunk_kib) {
+        Ok(c) => c,
         Err(e) => return json_err(StatusCode::BAD_REQUEST, e).into_response(),
     };
     let packs = match &req.ampr_lz4 {
@@ -982,6 +990,7 @@ pub(crate) async fn exfat_build_handler(
                 &mut tree,
                 &output,
                 packs,
+                verify_chunk,
                 &cancel,
                 &mut report,
             ),
@@ -990,6 +999,7 @@ pub(crate) async fn exfat_build_handler(
                 inner_name.as_deref(),
                 &mut tree,
                 &output,
+                verify_chunk,
                 &cancel,
                 &mut report,
             ),

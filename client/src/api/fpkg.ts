@@ -127,6 +127,9 @@ export const fpkg = {
     format: ImageFormat = "exfat",
     compress = false,
     lz4?: AmprLz4Options,
+    /** The read-back check's KiB per read (Convert's preference); the engine's default
+     *  when absent. */
+    verifyChunkKib?: number,
   ) =>
     invoke<{ job_id: string }>("exfat_build", {
       source,
@@ -134,5 +137,6 @@ export const fpkg = {
       format,
       compress,
       amprLz4: lz4 ? { level: lz4.level, profile_toml: lz4.profileToml } : undefined,
+      verifyChunkKib,
     }),
 };

@@ -8,6 +8,7 @@ import { CheckCircle2, Circle, ListPlus, Loader2, XCircle } from "lucide-react";
 
 import { Button, Card, Checkbox, ProgressBar, SegmentedControl, Toggle } from "../../components";
 import { buildExtension, type ConvertThen } from "../../state/convertQueue";
+import { DEFAULT_VERIFY_CHUNK_KIB, VERIFY_CHUNK_KIB, useConvertPrefs } from "../../state/convertPrefs";
 import { makesImage } from "../../state/fpkgConversion";
 import type { InstallMethod, Pipeline, PipelineStage } from "../../state/fpkgConversion";
 import { useTr } from "../../state/lang";
@@ -784,6 +785,46 @@ function ImageChoice({
         </span>
       </label>
       {lz4 && format === "exfat" && <Lz4Option lz4={lz4} />}
+      <VerifyChunkOption />
     </div>
+  );
+}
+
+/** How much the read-back check reads per call. Measured on a 10 GB image: 1–32 MiB are
+ *  within 15% of each other once the reader fetches whole runs of clusters, and 8 MiB was
+ *  fastest; the choice is here for anyone whose disk says otherwise. */
+function VerifyChunkOption() {
+  const tr = useTr();
+  const kib = useConvertPrefs((s) => s.verifyChunkKib);
+  const set = useConvertPrefs((s) => s.setVerifyChunkKib);
+  return (
+    <label className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs" data-testid="verify-chunk">
+      <span className="min-w-0">
+        <span className="block font-medium text-[var(--color-text)]">
+          {tr("fpkg.image.verify_chunk", undefined, "Read-back check, per read")}
+        </span>
+        <span className="mt-0.5 block leading-relaxed text-[var(--color-muted)]">
+          {tr(
+            "fpkg.image.verify_chunk_body",
+            undefined,
+            "After writing, the image is read back and every file hash-checked. 8 MiB was fastest in measurement; try another if your disk disagrees. The check itself is the same at any size.",
+          )}
+        </span>
+      </span>
+      <select
+        value={kib}
+        onChange={(e) => set(Number(e.target.value))}
+        className="select w-auto!"
+        aria-label={tr("fpkg.image.verify_chunk", undefined, "Read-back check, per read")}
+      >
+        {VERIFY_CHUNK_KIB.map((k) => (
+          <option key={k} value={k}>
+            {k === DEFAULT_VERIFY_CHUNK_KIB
+              ? tr("fpkg.image.verify_chunk_default", { n: k / 1024 }, "{n} MiB (default)")
+              : tr("fpkg.image.verify_chunk_mib", { n: k / 1024 }, "{n} MiB")}
+          </option>
+        ))}
+      </select>
+    </label>
   );
 }

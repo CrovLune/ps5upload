@@ -149,7 +149,7 @@ impl<'a> HashingTree<'a> {
         }
         let finished = match self.in_flight.get_mut(path) {
             Some((next, hasher)) if *next == offset => {
-                hasher.update(bytes);
+                hash_update(hasher, bytes);
                 *next += bytes.len() as u64;
                 *next >= size
             }
@@ -176,7 +176,7 @@ impl<'a> HashingTree<'a> {
             .map(|(p, s)| (p.clone(), *s))
             .collect();
         for (path, size) in missing {
-            let h = hash_file(self.inner, &path, size, cancel)?;
+            let h = hash_file(self.inner, &path, size, DEFAULT_VERIFY_CHUNK, cancel)?;
             self.done.insert(path, h);
         }
         Ok(self.done)
@@ -210,12 +210,42 @@ impl SourceTree for HashingTree<'_> {
     }
 }
 
-const CHUNK: u64 = 8 << 20;
+/// How much of a file the read-back check reads per call when the caller does not say.
+/// Measured on a 10 GB exFAT image in page cache: reads alone go 7 GiB/s at 1–8 MiB, hashing
+/// on all cores peaks at 8 MiB (3.7 GiB/s against 1.3 single-threaded); 1–32 MiB are within
+/// 15% of each other, and the FAT-walk fix in the exFAT reader mattered far more.
+pub(crate) const DEFAULT_VERIFY_CHUNK: u64 = 8 << 20;
+/// What a request may ask for, in KiB: 1 MiB to 64 MiB.
+pub(crate) const VERIFY_CHUNK_KIB_RANGE: std::ops::RangeInclusive<u32> = 1024..=65536;
+
+/// The read-back chunk a request asks for (`verify_chunk_kib`), or the default.
+pub(crate) fn verify_chunk(kib: Option<u32>) -> Result<u64, String> {
+    match kib {
+        None => Ok(DEFAULT_VERIFY_CHUNK),
+        Some(k) if VERIFY_CHUNK_KIB_RANGE.contains(&k) => Ok(u64::from(k) << 10),
+        Some(k) => Err(format!(
+            "verify_chunk_kib {k} is not {} to {}",
+            VERIFY_CHUNK_KIB_RANGE.start(),
+            VERIFY_CHUNK_KIB_RANGE.end()
+        )),
+    }
+}
+
+/// Feeds `bytes` to a hasher, on every core when there is enough to split (BLAKE3's own
+/// advice: multi-threading pays from about 128 KiB).
+fn hash_update(h: &mut blake3::Hasher, bytes: &[u8]) {
+    if bytes.len() >= 128 << 10 {
+        h.update_rayon(bytes);
+    } else {
+        h.update(bytes);
+    }
+}
 
 fn hash_file(
     tree: &mut dyn SourceTree,
     path: &str,
     size: u64,
+    chunk: u64,
     cancel: &AtomicBool,
 ) -> Result<blake3::Hash, String> {
     let mut h = blake3::Hasher::new();
@@ -224,14 +254,14 @@ fn hash_file(
         if cancel.load(Ordering::Relaxed) {
             return Err("cancelled".into());
         }
-        let want = (size - at).min(CHUNK) as usize;
+        let want = (size - at).min(chunk) as usize;
         let buf = tree
             .read_range(path, at, want)
             .map_err(|e| format!("{path}: {e}"))?;
         if buf.is_empty() {
             return Err(format!("{path} ended at {at} of its {size} bytes"));
         }
-        h.update(&buf);
+        hash_update(&mut h, &buf);
         at += buf.len() as u64;
     }
     Ok(h.finalize())
@@ -265,12 +295,13 @@ fn open_image(
 }
 
 /// Reads the image back and compares it with the source: the same files at the same sizes,
-/// the same empty folders, and every file's BLAKE3 hash.
+/// the same empty folders, and every file's BLAKE3 hash. `chunk` bytes per read.
 fn verify(
     image: &mut dyn SourceTree,
     want: &HashMap<String, blake3::Hash>,
     want_sizes: &HashMap<String, u64>,
     want_empty: &[String],
+    chunk: u64,
     cancel: &AtomicBool,
     progress: &mut dyn FnMut(u64, u64),
 ) -> Result<(), String> {
@@ -314,7 +345,7 @@ fn verify(
                 f.path, f.size
             ));
         }
-        let h = hash_file(image, &f.path, f.size, cancel)?;
+        let h = hash_file(image, &f.path, f.size, chunk, cancel)?;
         if Some(&h) != want.get(&f.path) {
             return Err(format!(
                 "{} differs between the image and the folder",
@@ -403,11 +434,13 @@ impl Planned {
 /// Builds `source` as an image at `output`: planned, written to `<output>.partial` (straight
 /// into a `.ffpfsc` container when `inner_name` is given), read back and hash-checked, then
 /// renamed. `stage(id, done, total)` reports `plan`, `write` (or `compress`) and `verify`.
+/// `verify_chunk`: how much the read-back check reads per call (see [`verify_chunk`]).
 pub(crate) fn build(
     format: ImageFormat,
     inner_name: Option<&str>,
     source: &mut dyn SourceTree,
     output: &Path,
+    verify_chunk: u64,
     cancel: &AtomicBool,
     stage: &mut dyn FnMut(&str, u64, u64),
 ) -> Result<ImageBuilt, String> {
@@ -474,6 +507,7 @@ pub(crate) fn build(
             &hashes,
             &want_sizes,
             &want_empty,
+            verify_chunk,
             cancel,
             &mut |d, t| stage("verify", d, t),
         )?;
@@ -537,6 +571,7 @@ pub(crate) fn build_packed(
     source: &mut dyn SourceTree,
     output: &Path,
     packs: &Lz4Packs,
+    verify_chunk: u64,
     cancel: &AtomicBool,
     stage: &mut dyn FnMut(&str, u64, u64),
 ) -> Result<ImageBuilt, String> {
@@ -566,9 +601,16 @@ pub(crate) fn build_packed(
         ampr_pack::image::prepare(source, &config, &spool, mtime, &mut control)
     };
     let result = match prepared {
-        Ok((mut overlay, report)) => {
-            build(format, None, &mut overlay, output, cancel, stage).map(|b| (b, report))
-        }
+        Ok((mut overlay, report)) => build(
+            format,
+            None,
+            &mut overlay,
+            output,
+            verify_chunk,
+            cancel,
+            stage,
+        )
+        .map(|b| (b, report)),
         Err(e) => Err(e.to_string()),
     };
     let _ = std::fs::remove_dir_all(&spool);
@@ -590,6 +632,18 @@ pub(crate) fn build_packed(
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn verify_chunk_takes_1_to_64_mib_in_kib_and_defaults_to_8() {
+        assert_eq!(verify_chunk(None).unwrap(), 8 << 20);
+        assert_eq!(verify_chunk(Some(1024)).unwrap(), 1 << 20);
+        assert_eq!(verify_chunk(Some(65536)).unwrap(), 64 << 20);
+        assert!(verify_chunk(Some(512))
+            .unwrap_err()
+            .contains("1024 to 65536"));
+        assert!(verify_chunk(Some(0)).is_err());
+        assert!(verify_chunk(Some(1 << 20)).is_err());
+    }
+
     use super::*;
     use ps5upload_fpkg::source::FolderSource;
 
@@ -680,6 +734,7 @@ mod tests {
                     inner.as_deref(),
                     &mut tree,
                     &out,
+                    DEFAULT_VERIFY_CHUNK,
                     &cancel,
                     &mut |s, _, _| {
                         if stages.last().map(String::as_str) != Some(s) {
@@ -719,6 +774,7 @@ mod tests {
             None,
             &mut tree,
             &out,
+            DEFAULT_VERIFY_CHUNK,
             &cancel,
             &mut |_, _, _| {}
         )
@@ -756,7 +812,14 @@ mod tests {
         let _ = h.read("sce_sys/param.json").unwrap();
         let all = h.hashes(&cancel).unwrap();
         let mut again = FolderSource::open(&src).unwrap();
-        let direct = hash_file(&mut again, "eboot.bin", 300_000, &cancel).unwrap();
+        let direct = hash_file(
+            &mut again,
+            "eboot.bin",
+            300_000,
+            DEFAULT_VERIFY_CHUNK,
+            &cancel,
+        )
+        .unwrap();
         assert_eq!(all["eboot.bin"], direct);
         assert_eq!(all.len(), 4);
         let _ = std::fs::remove_dir_all(&root);
@@ -776,6 +839,7 @@ mod tests {
             None,
             &mut tree,
             &out,
+            DEFAULT_VERIFY_CHUNK,
             &AtomicBool::new(false),
             &mut |_, _, _| {},
         )
@@ -832,6 +896,7 @@ mod tests {
                 level: 9,
                 block_shift: 16,
             },
+            DEFAULT_VERIFY_CHUNK,
             &cancel,
             &mut |s, _, _| {
                 if stages.last().map(String::as_str) != Some(s) {
@@ -912,6 +977,7 @@ mod tests {
                 level: 9,
                 block_shift: 16,
             },
+            DEFAULT_VERIFY_CHUNK,
             &AtomicBool::new(false),
             &mut |_, _, _| {},
         )
@@ -932,6 +998,7 @@ mod tests {
                     level: 9,
                     block_shift: 16,
                 },
+                DEFAULT_VERIFY_CHUNK,
                 &AtomicBool::new(false),
                 &mut |_, _, _| {},
             )

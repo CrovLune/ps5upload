@@ -1687,6 +1687,14 @@ struct Ps5ToPs5Req {
     /// Paces the relay like an upload's cap (the environment's cap otherwise).
     #[serde(default)]
     bandwidth_cap_mbps: Option<f64>,
+    /// `auto` (absent), `direct` (never through this computer) or `relay` (never direct); #444.
+    #[serde(default)]
+    route: Option<String>,
+    /// What the sending console dials to reach the receiving one (`host[:port]`, IPv4), in
+    /// place of the receiving console's own address: a local forward on the sending console
+    /// (ps5-tailscale), or a NAT the consoles see differently from this computer.
+    #[serde(default)]
+    direct_addr: Option<String>,
 }
 
 async fn ps5_to_ps5_handler(
@@ -1696,6 +1704,28 @@ async fn ps5_to_ps5_handler(
     let tx_id = match parse_or_random_tx_id(req.tx_id.as_deref()) {
         Ok(id) => id,
         Err(e) => return json_err(StatusCode::BAD_REQUEST, e.to_string()).into_response(),
+    };
+    let route_options = {
+        let mode = match ps5upload_ava1::c2c::RouteMode::parse(req.route.as_deref()) {
+            Ok(m) => m,
+            Err(e) => return json_err(StatusCode::BAD_REQUEST, e).into_response(),
+        };
+        let dial = req
+            .direct_addr
+            .as_deref()
+            .map(str::trim)
+            .filter(|d| !d.is_empty())
+            .map(str::to_string);
+        if let Some(d) = &dial {
+            if let Err(e) = ps5upload_ava1::c2c::parse_dial(d) {
+                return json_err(
+                    StatusCode::BAD_REQUEST,
+                    format!("the direct route address: {e}"),
+                )
+                .into_response();
+            }
+        }
+        ps5upload_ava1::c2c::RouteOptions { mode, dial }
     };
     let relay_cap = {
         let mut cfg = make_transfer_config(&req.to);
@@ -1798,6 +1828,7 @@ async fn ps5_to_ps5_handler(
                 progress.clone(),
                 cancel,
                 relay_cap,
+                &route_options,
                 |route| match route {
                     ps5upload_ava1::c2c::Route::Direct => route_notes.route.store(
                         ps5upload_core::transfer::LIVE_ROUTE_DIRECT,

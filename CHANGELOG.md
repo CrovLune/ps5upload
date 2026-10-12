@@ -4,6 +4,39 @@ What's new in ps5upload, written for humans.
 
 ---
 
+## 7.0.13
+
+- **Game image builds: the read-back check is no longer the slow part.** After writing an
+  .exfat image the engine reads it back and hash-checks every file. The exFAT reader fetched
+  one 64 KiB cluster per read and, for a big file, walked its chain from the start on every
+  read, so the check crawled on fast drives. It now keeps the FAT in memory, continues where
+  the last read stopped and reads whole runs of clusters in one call, and hashing uses every
+  core. Measured on a 10 GB image in cache: 169 MiB/s before, 3.7 GiB/s after. Convert has a
+  new **read-back check, per read** choice (1 to 32 MiB) for anyone whose disk prefers a
+  different size; 8 MiB measured fastest and is the default. The check itself is unchanged.
+- **The game page is lighter.** The Overview card that repeated the hero (title id, name,
+  size, path) is gone: the path, last played and Screenshots & clips now sit in the hero. Each
+  copy on your drives is one compact row: its facts on one line, the path under it, the one
+  action most people want (Send to PS5 or Install) as a button and the rest (copy path, copy
+  install link, Convert, show in file manager, move to Trash) behind a ⋯ menu.
+- **7z uploads: a damaged archive stops instead of retrying (#446).** When the LZMA decoder
+  gives up on a cut-short or corrupt stream ("dist overflow"), the job used to fail as if the
+  connection had dropped, so the queue retried it again and again, decoding the same bytes to
+  the same end. It is now a corrupt-archive failure that names the entry and how far into it
+  the decoder got, and asks you to test the archive with 7-Zip before trying again. The
+  archive in the report was not available to us; if yours passes 7-Zip's test and still fails,
+  say so on the issue.
+- **Console to console: choose the route and the address (#444).** Send to another console…
+  has a **Change…** link under the route note: **Auto** (as before), **Direct only** (never
+  through this device, for a phone on mobile data; if the consoles cannot connect the send
+  fails and says why) or **Through this device**. With Auto or Direct only you can also give
+  the address the sending console dials to reach the other one, for setups where the address
+  this device uses is not the one the consoles use between themselves: with ps5-tailscale, a
+  local forward on the sending console (127.0.0.1:19120 → the other console:9120). The choice
+  is remembered per pair of consoles. The consoles' keys and the one-time ticket still decide
+  who may send, not the address. Taking over a running send from another device, and a
+  "test direct connection" button, are not in this release.
+
 ## 7.0.12
 
 - **Convert: a "Stored" package option (no compression).** Reports of packages that install but
