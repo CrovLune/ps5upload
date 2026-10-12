@@ -591,9 +591,9 @@ export default function ScreenshotsScreen({ tabs }: { tabs?: ReactNode } = {}) {
                   className="select w-auto! text-xs"
                   aria-label={tr("screenshots_png_mode", undefined, "Convert as")}
                   title={tr(
-                    "screenshots_png_mode_hint",
+                    "screenshots_png_mode_hint_v2",
                     undefined,
-                    "SDR PNG opens everywhere (the HDR capture is tone-mapped). HDR PNG keeps the capture's brightness and colour as 16-bit BT.2020 PQ with a cICP tag, which HDR-aware viewers and browsers show as captured; pick the one without the tag for apps that refuse it (Discord).",
+                    "SDR PNG opens everywhere (the HDR capture is tone-mapped). HDR PNG keeps the capture's brightness and colour as 16-bit BT.2020 PQ with the capture's own ICC profile and a cICP tag, which HDR-aware viewers and browsers show as captured; pick the one without the cICP tag for apps that refuse it.",
                   )}
                   data-testid="screenshots-png-mode"
                 >

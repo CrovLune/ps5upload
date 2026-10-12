@@ -236,7 +236,10 @@ mod desktop {
         }
         if let Mode::Hdr { cicp } = mode {
             if let Some((width, height, rgb16)) = decode_to_pq16(jxr)? {
-                return encode_png16(width, height, &rgb16, cicp);
+                // The capture's own ICC profile (Sony's "ScreenCapturePQ"): viewers that do
+                // not read cICP, and HDR-capable browsers, show the image as HDR through it.
+                let icc = jxr_icc_profile(jxr);
+                return encode_png16(width, height, &rgb16, cicp, icc.as_deref());
             }
         }
         let (width, height, rgb8) = decode_to_rgb8(jxr)?;
@@ -247,15 +250,73 @@ mod desktop {
         Ok(out)
     }
 
-    /// A 16-bit RGB PNG (big-endian samples, as PNG stores them), with a cICP chunk right
-    /// after IHDR when asked: BT.2020 primaries (9), PQ transfer (16), RGB (0), full range (1).
-    fn encode_png16(width: u32, height: u32, rgb16: &[u16], cicp: bool) -> Result<Vec<u8>, String> {
+    /// The ICC profile embedded in a JPEG XR container, if any. The container is TIFF-like:
+    /// `II`/`MM`, 0xBC, version, then an IFD whose entries are (tag u16, type u16, count u32,
+    /// value-or-offset u32); the profile is TIFF's InterColorProfile tag 0x8773 (JXRMeta.h's
+    /// WMP_tagIccProfile), type UNDEFINED, its bytes at the offset.
+    pub fn jxr_icc_profile(jxr: &[u8]) -> Option<Vec<u8>> {
+        if jxr.len() < 8 || jxr[2] != 0xBC {
+            return None;
+        }
+        let le = match &jxr[0..2] {
+            b"II" => true,
+            b"MM" => false,
+            _ => return None,
+        };
+        let u16_at = |at: usize| -> Option<u16> {
+            let b = jxr.get(at..at + 2)?;
+            Some(if le {
+                u16::from_le_bytes([b[0], b[1]])
+            } else {
+                u16::from_be_bytes([b[0], b[1]])
+            })
+        };
+        let u32_at = |at: usize| -> Option<u32> {
+            let b = jxr.get(at..at + 4)?;
+            Some(if le {
+                u32::from_le_bytes([b[0], b[1], b[2], b[3]])
+            } else {
+                u32::from_be_bytes([b[0], b[1], b[2], b[3]])
+            })
+        };
+        let ifd = u32_at(4)? as usize;
+        let entries = u16_at(ifd)? as usize;
+        for i in 0..entries.min(4096) {
+            let e = ifd + 2 + i * 12;
+            if u16_at(e)? != 0x8773 {
+                continue;
+            }
+            let count = u32_at(e + 4)? as usize;
+            let at = u32_at(e + 8)? as usize;
+            // Four bytes or fewer live in the entry itself; a profile never does.
+            if count <= 4 || count > 16 << 20 {
+                return None;
+            }
+            return jxr.get(at..at.checked_add(count)?).map(<[u8]>::to_vec);
+        }
+        None
+    }
+
+    /// A 16-bit RGB PNG (big-endian samples, as PNG stores them). Right after IHDR: the
+    /// capture's ICC profile as iCCP when it has one, and a cICP chunk when asked (BT.2020
+    /// primaries 9, PQ transfer 16, RGB 0, full range 1).
+    fn encode_png16(
+        width: u32,
+        height: u32,
+        rgb16: &[u16],
+        cicp: bool,
+        icc: Option<&[u8]>,
+    ) -> Result<Vec<u8>, String> {
         let mut out = Vec::with_capacity(rgb16.len() * 2 / 2);
         {
             let mut enc = png::Encoder::new(&mut out, width, height);
             enc.set_color(png::ColorType::Rgb);
             enc.set_depth(png::BitDepth::Sixteen);
             let mut w = enc.write_header().map_err(|e| format!("png header: {e}"))?;
+            if let Some(profile) = icc {
+                w.write_chunk(png::chunk::ChunkType(*b"iCCP"), &iccp_chunk(profile))
+                    .map_err(|e| format!("png iCCP: {e}"))?;
+            }
             if cicp {
                 w.write_chunk(png::chunk::ChunkType(*b"cICP"), &[9, 16, 0, 1])
                     .map_err(|e| format!("png cICP: {e}"))?;
@@ -269,6 +330,16 @@ mod desktop {
             w.finish().map_err(|e| format!("png finish: {e}"))?;
         }
         Ok(out)
+    }
+
+    /// An iCCP chunk body: profile name, NUL, compression method 0, zlib-compressed profile.
+    fn iccp_chunk(profile: &[u8]) -> Vec<u8> {
+        use std::io::Write;
+        let mut body = b"ScreenCapturePQ\0\0".to_vec();
+        let mut z = flate2::write::ZlibEncoder::new(Vec::new(), flate2::Compression::default());
+        let _ = z.write_all(profile);
+        body.extend(z.finish().unwrap_or_default());
+        body
     }
 
     /// The capture as 16-bit BT.2020 PQ codes, or `None` for an SDR capture. A PS5 capture

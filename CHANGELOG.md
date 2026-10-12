@@ -4,6 +4,13 @@ What's new in ps5upload, written for humans.
 
 ---
 
+## 7.0.22
+
+- **HDR PNG carries the capture's ICC profile (#448).** 7.0.15 wrote the cICP tag only;
+  viewers that go by the ICC profile (and the reporter's) showed the image as SDR. Sony's
+  "ScreenCapturePQ" profile is now read out of the .jxr and embedded as iCCP in both HDR
+  variants, with cICP beside it in the tagged one.
+
 ## 7.0.21
 
 - **Fix: the image format could not be changed.** Picking .exfat or .ffpfs snapped back to
