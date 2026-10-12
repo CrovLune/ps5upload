@@ -4,8 +4,13 @@ What's new in ps5upload, written for humans.
 
 ---
 
-## 7.0.19
+## 7.0.20
 
+- **Convert remembers what it is making.** Leaving the screen during an image build and
+  coming back showed "A package" selected and package stage names while the image kept
+  building. What to make and the image choice are now remembered, follow the build that is
+  running, and an image build's stages read "Plan image", "Write image", "Read the image
+  back".
 - **Fix: the game page could crash on "Measure how it plays".** When the engine's reply had
   no state (an engine without the route, or a test stand-in), the card threw and the whole
   game page fell back to the error screen. It now treats that as nothing recorded.

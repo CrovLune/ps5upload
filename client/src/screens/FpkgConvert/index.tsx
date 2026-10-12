@@ -26,7 +26,7 @@ import { profileNameForHost, useRosterStore } from "../../state/roster";
 import { useWebviewDrop } from "../../lib/useWebviewDrop";
 import { useConnectionStore } from "../../state/connection";
 import { useConvertPrefs } from "../../state/convertPrefs";
-import { isArchiveSource, useFpkgConversion } from "../../state/fpkgConversion";
+import { isArchiveSource, makesImage, useFpkgConversion } from "../../state/fpkgConversion";
 import { useUploadStore } from "../../state/upload";
 import { DEFAULT_IMAGE_SUBPATH } from "../../lib/imageUpload";
 import { useLocation, useNavigate } from "react-router";
@@ -87,9 +87,22 @@ export default function FpkgConvertScreen() {
   const [language, setLanguage] = useState("");
   // ③'s one choice of what to make: a package, or the image picked (format, compressed). The
   // queue builds exactly this, never a package in place of the image picked (#433 report).
-  const [imageFormat, setImageFormat] = useState<ImageFormat>("ffpkg");
-  const [imageCompress, setImageCompress] = useState(false);
-  const [make, setMake] = useState<"pkg" | "image">("pkg");
+  // What to make is remembered (prefs), and while a build runs it follows the build: coming
+  // back to the screen mid-image must not show it as a package build.
+  const make = useConvertPrefs((s) => s.make);
+  const setMake = useConvertPrefs((s) => s.setMake);
+  const imageFormat = useConvertPrefs((s) => s.imageFormat);
+  const imageCompress = useConvertPrefs((s) => s.imageCompress);
+  const setImageChoice = useConvertPrefs((s) => s.setImageChoice);
+  const setImageFormat = (f: ImageFormat) => setImageChoice(f, imageCompress);
+  const setImageCompress = (c: boolean) => setImageChoice(imageFormat, c);
+  useEffect(() => {
+    if (pipeline.phase === "running") {
+      const building = makesImage(pipeline.mode) ? "image" : "pkg";
+      if (building !== make) setMake(building);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pipeline.phase]);
   // AMPR LZ4 asset packs for this game's .exfat image, and the profile it packs with. Per game
   // (they depend on the game's own ampr_emu), so only the game checked here carries them into
   // the queue.

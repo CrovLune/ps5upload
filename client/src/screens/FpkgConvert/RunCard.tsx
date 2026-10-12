@@ -134,7 +134,16 @@ export function RunCard(props: RunCardProps) {
   const { pipeline: p, installTask } = props;
   const now = useNow(p.phase === "running");
   const rows = stageRows(p, installTask);
-  const label = (s: PipelineStage) => tr(LABEL[s][0], undefined, LABEL[s][1]);
+  // An image build plans, writes and verifies an image, not a package.
+  const image = p.phase !== "idle" && makesImage(p.mode);
+  const label = (s: PipelineStage) =>
+    image && s === "plan"
+      ? tr("fpkg.stage.plan_image", undefined, "Plan image")
+      : image && s === "write"
+        ? tr("fpkg.stage.write_image", undefined, "Write image")
+        : image && s === "verify"
+          ? tr("fpkg.stage.verify_image", undefined, "Read the image back")
+          : tr(LABEL[s][0], undefined, LABEL[s][1]);
 
   /** " · 96 MiB/s · 21 min left" for the active row: the install task's figures while sending,
    *  else measured from the stage's own bytes since it began. */
