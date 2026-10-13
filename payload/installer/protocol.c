@@ -122,6 +122,13 @@ void inst_parse_request(const char *buf, size_t len, inst_request_t *req) {
         int have_path = json_get_string(buf, len, "path", req->path, sizeof(req->path));
         (void)json_get_string(buf, len, "name_hint", req->name_hint,
                               sizeof(req->name_hint));
+        /* `icon_url` is optional. Too long or not plain http is an error, never cut or ignored. */
+        int have_icon = json_get_string(buf, len, "icon_url", req->icon_url, sizeof(req->icon_url));
+        if (have_icon < 0) { req->error = "bad_request"; return; }
+        if (have_icon == 1 && strncmp(req->icon_url, "http://", 7) != 0) {
+            req->error = "bad_request";
+            return;
+        }
         if (have_url < 0 || have_path < 0) { req->error = "bad_request"; return; }
         if (have_url == 1 && have_path == 1) { req->error = "bad_request"; return; }
         if (have_url == 0 && have_path == 0) { req->error = "bad_request"; return; }

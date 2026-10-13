@@ -21,6 +21,7 @@ int inst_sony_init(inst_sony_state_t *st) {
 }
 
 /* One InstallByPackage call with the given URI. content_id is always "".
+ * icon_url comes from the request (PKG-Manager fills it the same way).
  * When `swap_shellcore` is set, swap to ShellCore authid around the call.
  *
  * `meta` must be zeroed in full before it is filled: Sony reads past its six pointers (see
@@ -32,7 +33,7 @@ int inst_sony_init(inst_sony_state_t *st) {
  * and has not been measured again. Until it is, a call that never returns is bounded by the
  * engine's own deadline on the request, not from inside this process. */
 static uint32_t call_install(const char *uri, const char *name_hint,
-                             int swap_shellcore) {
+                             const char *icon_url, int swap_shellcore) {
     fprintf(stderr, "[installer] InstallByPackage uri=%s swap=%d\n", uri, swap_shellcore);
     MetaInfo meta;
     SceAppInstallPkgInfo pkg_info;
@@ -45,7 +46,7 @@ static uint32_t call_install(const char *uri, const char *name_hint,
     meta.playgo_scenario_id = "";
     meta.content_id         = "";                 /* always empty */
     meta.content_name       = name_hint ? name_hint : "";
-    meta.icon_url           = "";
+    meta.icon_url           = icon_url ? icon_url : "";  /* the download queue's icon; "" = none */
 
     uint64_t saved = 0;
     if (swap_shellcore)
@@ -74,14 +75,14 @@ static inst_install_result_t install_plain_path(const inst_request_t *req,
     if (inst_rewrite_path(req->path, fixed, sizeof(fixed)) != 0) return r;
 
     int swap = (st->fw_major > 0 && st->fw_major < 11);
-    r.code = call_install(fixed, req->name_hint, swap);
+    r.code = call_install(fixed, req->name_hint, req->icon_url, swap);
     r.via = "path";
     if (r.code == 0) { r.accepted = 1; return r; }
 
     char file_uri[INST_PATH_MAX + 8];
     int n = snprintf(file_uri, sizeof(file_uri), "file://%s", fixed);
     if (n > 0 && (size_t)n < sizeof(file_uri)) {
-        uint32_t code = call_install(file_uri, req->name_hint, swap);
+        uint32_t code = call_install(file_uri, req->name_hint, req->icon_url, swap);
         if (code == 0) { r.accepted = 1; r.code = 0; r.via = "file"; return r; }
         r.code = code;
         r.via = "file";
@@ -99,7 +100,7 @@ inst_install_result_t inst_sony_install(const inst_request_t *req,
     *lb_out = NULL;
 
     if (req->src == INST_SRC_URL) {
-        r.code = call_install(req->url, req->name_hint, 0);
+        r.code = call_install(req->url, req->name_hint, req->icon_url, 0);
         r.via = "url";
         r.accepted = (r.code == 0);
         if (!r.accepted) r.hint = inst_install_hint(r.code);
@@ -118,7 +119,7 @@ inst_install_result_t inst_sony_install(const inst_request_t *req,
     if (inst_loopback_start(&lb, req->path, attempt, base, &port) == 0) {
         char url[INST_URL_MAX];
         if (inst_build_loopback_url(url, sizeof(url), port, attempt, base) > 0) {
-            uint32_t code = call_install(url, req->name_hint, 0);
+            uint32_t code = call_install(url, req->name_hint, req->icon_url, 0);
             if (code == 0) {
                 r.accepted = 1; r.code = 0; r.via = "loopback";
                 *lb_out = lb;               /* caller tracks the serving job */
@@ -131,7 +132,7 @@ inst_install_result_t inst_sony_install(const inst_request_t *req,
                 char fixed[INST_PATH_MAX];
                 if (inst_rewrite_path(req->path, fixed, sizeof(fixed)) == 0) {
                     int swap = (st->fw_major > 0 && st->fw_major < 11);
-                    uint32_t code2 = call_install(fixed, req->name_hint, swap);
+                    uint32_t code2 = call_install(fixed, req->name_hint, req->icon_url, swap);
                     r.via = "path";
                     r.code = code2;
                     r.accepted = (code2 == 0);
@@ -155,7 +156,7 @@ inst_install_result_t inst_sony_install(const inst_request_t *req,
             r.via = "path"; r.code = 0x80020002u; r.accepted = 0; return r;
         }
         int swap = (st->fw_major > 0 && st->fw_major < 11);
-        r.code = call_install(fixed, req->name_hint, swap);
+        r.code = call_install(fixed, req->name_hint, req->icon_url, swap);
         r.via = "path";
         r.accepted = (r.code == 0);
         if (!r.accepted) r.hint = inst_install_hint(r.code);

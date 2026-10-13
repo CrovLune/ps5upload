@@ -37,6 +37,40 @@ static void test_parse(void) {
     CHECK(strcmp(r.url, "http://10.0.0.2:9300/a.pkg") == 0);
     CHECK(strcmp(r.name_hint, "CUSA1 (Base)") == 0);
 
+    /* install with an icon: kept as given */
+    const char *ii = "{\"op\":\"install\",\"url\":\"http://10.0.0.2:8765/pkg/t/a.json\","
+                     "\"name_hint\":\"Ion Fury\",\"icon_url\":\"http://10.0.0.2:8765/pkg/u/a.png\"}";
+    inst_parse_request(ii, strlen(ii), &r);
+    CHECK(r.error == NULL);
+    CHECK(strcmp(r.icon_url, "http://10.0.0.2:8765/pkg/u/a.png") == 0);
+
+    /* no icon: empty, still an install (what every older caller sends) */
+    inst_parse_request(iu, strlen(iu), &r);
+    CHECK(r.error == NULL);
+    CHECK(r.icon_url[0] == '\0');
+
+    /* an icon that is not plain http is refused */
+    const char *ih = "{\"op\":\"install\",\"url\":\"http://a/b.json\",\"icon_url\":\"https://a/b.png\"}";
+    inst_parse_request(ih, strlen(ih), &r);
+    CHECK(r.error != NULL && strcmp(r.error, "bad_request") == 0);
+
+    /* an icon longer than 127 bytes is refused, never cut */
+    char longicon[400];
+    char longreq[600];
+    memset(longicon, 'a', sizeof(longicon));
+    memcpy(longicon, "http://", 7);
+    longicon[128] = '\0';  /* 128 bytes */
+    snprintf(longreq, sizeof(longreq), "{\"op\":\"install\",\"url\":\"http://a/b.json\",\"icon_url\":\"%s\"}", longicon);
+    inst_parse_request(longreq, strlen(longreq), &r);
+    CHECK(r.error != NULL && strcmp(r.error, "bad_request") == 0);
+
+    /* exactly 127 bytes is accepted */
+    longicon[127] = '\0';
+    snprintf(longreq, sizeof(longreq), "{\"op\":\"install\",\"url\":\"http://a/b.json\",\"icon_url\":\"%s\"}", longicon);
+    inst_parse_request(longreq, strlen(longreq), &r);
+    CHECK(r.error == NULL);
+    CHECK(strlen(r.icon_url) == 127);
+
     /* install by path */
     const char *ip = "{\"op\":\"install\",\"path\":\"/data/x.pkg\"}";
     inst_parse_request(ip, strlen(ip), &r);

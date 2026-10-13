@@ -8,6 +8,7 @@
 #define INST_URL_MAX   2048
 #define INST_PATH_MAX  1024
 #define INST_HINT_MAX  256
+#define INST_ICON_MAX  128  /* the PS5 installer takes URLs of at most 127 bytes */
 #define INST_JOBID_MAX 64
 
 typedef enum {
@@ -30,6 +31,8 @@ typedef struct {
     char       url[INST_URL_MAX];
     char       path[INST_PATH_MAX];
     char       name_hint[INST_HINT_MAX];
+    /* Optional plain-http URL of a PNG the download queue shows ("" = none). */
+    char       icon_url[INST_ICON_MAX];
     char       job[INST_JOBID_MAX];
     /* An install with `"route":"path"`: hand Sony the file's plain path and
      * never serve it over loopback. Only the engine's guarded last resort
